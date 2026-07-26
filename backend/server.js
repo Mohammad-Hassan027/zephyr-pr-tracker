@@ -32,10 +32,6 @@ app.use((err, _req, res, _next) => {
 
 const PORT = process.env.PORT || 5000;
 
-/**
- * Exportable DB connect helper for serverless and standalone environments.
- * Uses a cached promise to avoid reconnecting on warm serverless invocations.
- */
 export async function connectDB() {
   if (mongoose.connection && mongoose.connection.readyState === 1) {
     return mongoose.connection;
@@ -43,10 +39,7 @@ export async function connectDB() {
   if (!process.env.MONGO_URI) {
     throw new Error("Missing MONGO_URI environment variable");
   }
-  if (!global._mongoPromise) {
-    global._mongoPromise = mongoose.connect(process.env.MONGO_URI);
-  }
-  await global._mongoPromise;
+  await mongoose.connect(process.env.MONGO_URI);
   return mongoose.connection;
 }
 
@@ -58,7 +51,7 @@ const isMainModule = process.argv[1]
   ? pathToFileURL(process.argv[1]).href === import.meta.url
   : false;
 
-if (!process.env.VERCEL && isMainModule) {
+if (isMainModule) {
   connectDB()
     .then(() => {
       app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
@@ -68,4 +61,3 @@ if (!process.env.VERCEL && isMainModule) {
       process.exit(1);
     });
 }
-
