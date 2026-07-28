@@ -150,6 +150,14 @@ router.get("/stats/leaderboard", requireAdmin, async (_req, res) => {
   res.json(full);
 });
 
+// GET /api/registrations/audit - admin audit trail of reviewed (approved/rejected) registrations
+router.get("/audit", requireAdmin, async (_req, res) => {
+  const audit = await Registration.find({ status: { $in: ["approved", "rejected"] } })
+    .populate("event", "name slug")
+    .sort({ updatedAt: -1 });
+  res.json(audit);
+});
+
 // GET /api/registrations/:id - status check (used by the participant's status page)
 router.get("/:id", async (req, res) => {
   const reg = await Registration.findById(req.params.id).populate("event", "name slug date");

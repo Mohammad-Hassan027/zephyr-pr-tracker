@@ -24,6 +24,9 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
             <Link href="/admin" className="rounded-full px-3 py-1.5 transition hover:bg-accent/10 hover:text-accent">
               Admin
             </Link>
+            <Link href="/admin/audit" className="rounded-full px-3 py-1.5 transition hover:bg-accent/10 hover:text-accent">
+              Audit Trail
+            </Link>
           </nav>
         )}
       </div>
