@@ -10,6 +10,7 @@ import memberRoutes from "./routes/members.js";
 import registrationRoutes from "./routes/registrations.js";
 
 const app = express();
+app.set("trust proxy", 1);
 const allowedOrigin =
   process.env.CLIENT_ORIGIN || process.env.CLIENT_URL || "*";
 const corsOrigins = allowedOrigin.split(",").map((origin) => origin.trim());
