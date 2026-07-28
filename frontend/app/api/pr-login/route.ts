@@ -1,33 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import {
+  backendUrl,
+  PR_CODE_COOKIE,
+  PR_SESSION_COOKIE,
+  sessionCookieOptions,
+} from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
   const { code, password } = await req.json();
 
-  const backendRes = await fetch(`${API_URL}/members/login`, {
+  const backendRes = await fetch(backendUrl("/members/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, password }),
+    cache: "no-store",
   });
+  const data = await backendRes.json().catch(() => ({}));
 
-  if (!backendRes.ok) {
-    const body = await backendRes.json();
+  if (!backendRes.ok || !data.token) {
     return NextResponse.json(
-      { error: body.error || "Login failed" },
+      { error: data.error || "Login failed" },
       { status: 401 },
     );
   }
 
-  const member = await backendRes.json();
-  const res = NextResponse.json(member);
-  res.cookies.set("pr_code", member.code, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: "/",
-  });
+  const res = NextResponse.json({ name: data.name, code: data.code });
+  res.cookies.set(PR_SESSION_COOKIE, data.token, sessionCookieOptions);
+  res.cookies.set(PR_CODE_COOKIE, data.code, sessionCookieOptions);
   return res;
 }

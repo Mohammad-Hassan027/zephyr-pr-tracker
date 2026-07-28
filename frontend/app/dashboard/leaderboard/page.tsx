@@ -1,8 +1,8 @@
 import Header from "@/components/Header";
-import { getLeaderboard } from "@/lib/api";
+import { getAdminLeaderboard } from "@/lib/admin-api";
 
 export default async function LeaderboardPage() {
-  const leaderboard = await getLeaderboard();
+  const leaderboard = await getAdminLeaderboard();
 
   return (
     <>

@@ -59,14 +59,14 @@ export async function getEvents(): Promise<EventItem[]> {
 }
 
 export async function getStats(): Promise<EventStat[]> {
-  const res = await fetch(`${API_URL}/registrations/stats/summary`, {
+  const res = await fetch("/api/admin/registrations/stats/summary", {
     cache: "no-store",
   });
   return res.json();
 }
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-  const res = await fetch(`${API_URL}/registrations/stats/leaderboard`, {
+  const res = await fetch("/api/admin/registrations/stats/leaderboard", {
     cache: "no-store",
   });
   return res.json();
@@ -106,18 +106,19 @@ export async function getPendingQueue(
   code?: string,
 ): Promise<PendingRegistration[]> {
   const url = code
-    ? `${API_URL}/registrations/queue/pending?code=${code}`
-    : `${API_URL}/registrations/queue/pending`;
+    ? "/api/pr/registrations/pending"
+    : "/api/admin/registrations/pending";
   const res = await fetch(url, { cache: "no-store" });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Queue load failed");
+  return data;
 }
 
 export async function approveRegistration(id: string, reviewerCode?: string) {
-  const res = await fetch(`${API_URL}/registrations/${id}/approve`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ reviewerCode }),
-  });
+  const url = reviewerCode
+    ? `/api/pr/registrations/${id}/approve`
+    : `/api/admin/registrations/${id}/approve`;
+  const res = await fetch(url, { method: "PATCH" });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Approve failed");
   return data;
@@ -128,10 +129,13 @@ export async function rejectRegistration(
   reviewerCode?: string,
   reason?: string,
 ) {
-  const res = await fetch(`${API_URL}/registrations/${id}/reject`, {
+  const url = reviewerCode
+    ? `/api/pr/registrations/${id}/reject`
+    : `/api/admin/registrations/${id}/reject`;
+  const res = await fetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ reviewerCode, reason }),
+    body: JSON.stringify({ reason }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Reject failed");
@@ -139,7 +143,7 @@ export async function rejectRegistration(
 }
 
 export async function prLogin(code: string, password: string) {
-  const res = await fetch(`${API_URL}/members/login`, {
+  const res = await fetch("/api/pr-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code, password }),

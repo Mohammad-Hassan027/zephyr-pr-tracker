@@ -32,7 +32,7 @@ export default function AdminPage() {
 
   async function loadData() {
     const [m, e] = await Promise.all([
-      fetch(`${API_URL}/members`).then((r) => r.json()),
+      fetch("/api/admin/members").then((r) => r.json()),
       fetch(`${API_URL}/events`).then((r) => r.json()),
     ]);
     setMembers(m);
@@ -46,7 +46,7 @@ export default function AdminPage() {
   async function createEvent(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
-    const res = await fetch(`${API_URL}/events`, {
+    const res = await fetch("/api/admin/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -67,7 +67,7 @@ export default function AdminPage() {
     e.preventDefault();
     setMsg("");
     setNewPin(null);
-    const res = await fetch(`${API_URL}/members`, {
+    const res = await fetch("/api/admin/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(memberForm),

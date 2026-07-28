@@ -1,8 +1,8 @@
 import Header from "@/components/Header";
-import { getStats } from "@/lib/api";
+import { getAdminStats } from "@/lib/admin-api";
 
 export default async function DashboardPage() {
-  const stats = await getStats();
+  const stats = await getAdminStats();
   const total = stats.reduce((sum, s) => sum + s.count, 0);
 
   return (
