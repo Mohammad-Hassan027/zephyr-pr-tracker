@@ -24,7 +24,7 @@ Tracks per-event participation and referral attribution for the PR team, with a 
 
 ```
 cd backend
-cp .env.example .env   # fill in MONGO_URI + CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET
+cp .env.example .env   # fill in MONGO_URI, PR_ADMIN_PASSWORD, AUTH_SECRET, and Cloudinary credentials
 npm install
 npm run dev             # http://localhost:5000
 ```
@@ -33,7 +33,7 @@ npm run dev             # http://localhost:5000
 
 ```
 cd frontend
-cp .env.local.example .env.local   # set PR_ADMIN_PASSWORD
+cp .env.local.example .env.local   # set the frontend and backend API URLs
 npm install
 npm run dev              # http://localhost:3000
 ```
@@ -41,13 +41,11 @@ npm run dev              # http://localhost:3000
 ## Seed data (quick start)
 
 ```
-# create an event
-curl -X POST http://localhost:5000/api/events \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Coding War","slug":"coding-war","date":"2026-08-10","capacity":100}'
+cd backend
+npm run seed
 ```
 
-Then create a PR member from `/admin` (after logging in at `/login`) — this is easier than curl since it needs a file-free JSON body but you'll want the returned PIN, which only the UI surfaces cleanly.
+For manual setup, log in at `/login`, then create events and PR members from `/admin`. Those write actions are admin-only.
 
 ## Design
 
@@ -61,4 +59,38 @@ Orange (`#EA580C`) brand color matching the Zephyr/TCET card, shared header acro
 ## Notes / trade-offs
 
 - UPI screenshots are uploaded to Cloudinary (folder `zephyr-payments`) and only the URL is stored in MongoDB. Rejected submissions have their Cloudinary image deleted automatically.
-- PR member sessions are a plain cookie holding their code, checked by middleware; there's no re-verification against the DB on every request. Fine for a college fest, not bank-grade auth.
+- Admin and PR sessions are signed, expiring backend-issued tokens stored in httpOnly cookies. Protected frontend actions proxy through Next route handlers, and the backend re-checks each PR member token against the database before serving queues or review actions.
+
+### PR member logins:
+
+- **Rahul Sharma** code=RAHUL851 pin=428160
+- **Sneha Patil** code=SNEHA305 pin=882020
+- **Aman Khan** code=AMAN126 pin=741051
+- **Priya Desai** code=PRIYA114 pin=687901
+
+
+## Deploying to Vercel
+
+### Frontend on Vercel
+
+1. Import the frontend folder into Vercel.
+2. Set these environment variables in Vercel:
+   - BACKEND_API_URL: your deployed backend URL ending in /api, for example https://your-backend-url.com/api
+   - NEXT_PUBLIC_API_URL: /api if using the included Next rewrites, or your deployed backend URL ending in /api
+   - NEXT_PUBLIC_SITE_URL: your Vercel frontend URL, for example https://your-app.vercel.app
+3. Deploy.
+
+### Backend
+
+Deploy the backend separately on a Node host such as Render or Railway with:
+
+- MONGO_URI
+- PR_ADMIN_PASSWORD=your-admin-password
+- AUTH_SECRET=replace-with-a-long-random-secret
+- CLIENT_ORIGIN=https://your-vercel-app-url
+- CLIENT_URL=https://your-vercel-app-url
+- CLOUDINARY_CLOUD_NAME
+- CLOUDINARY_API_KEY
+- CLOUDINARY_API_SECRET
+
+The backend includes a health endpoint at /health.
