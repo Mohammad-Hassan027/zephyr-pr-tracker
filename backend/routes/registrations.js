@@ -5,6 +5,7 @@ import Event from "../models/Event.js";
 import PRMember from "../models/PRMember.js";
 import { nextSequence } from "../models/Counter.js";
 import cloudinary, { uploadBuffer } from "../config/cloudinary.js";
+import { requireAdmin, requireAdminOrPRMember } from "../utils/auth.js";
 
 const router = Router();
 
@@ -19,8 +20,16 @@ const upload = multer({
   },
 });
 
+function getReviewerCode(auth) {
+  return auth.role === "admin" ? "admin" : auth.code;
+}
+
+function canReviewRegistration(auth, registration) {
+  return auth.role === "admin" || registration.referralCode === auth.code;
+}
+
 // POST /api/registrations - public submission: details + referral + event + UPI screenshot.
-// Lands as status "pending" — no regNo yet. A PR member (or admin) must approve it.
+// Lands as status "pending"; no regNo yet. A PR member or admin must approve it.
 router.post("/", upload.single("screenshot"), async (req, res) => {
   try {
     const { studentName, studentEmail, studentPhone, college, amount, eventSlug, referralCode } =
@@ -68,31 +77,15 @@ router.post("/", upload.single("screenshot"), async (req, res) => {
   }
 });
 
-// GET /api/registrations/:id - status check (used by the participant's status page)
-router.get("/:id", async (req, res) => {
-  const reg = await Registration.findById(req.params.id).populate("event", "name slug date");
-  if (!reg) return res.status(404).json({ error: "Not found" });
-
-  res.json({
-    status: reg.status,
-    rejectionReason: reg.rejectionReason,
-    regNo: reg.regNo,
-    studentName: reg.studentName,
-    studentEmail: reg.studentEmail,
-    studentPhone: reg.studentPhone,
-    college: reg.college,
-    amount: reg.amount,
-    createdAt: reg.createdAt,
-    event: reg.event,
-  });
-});
-
-// GET /api/registrations/queue/pending?code=XXX - a PR member's own pending approvals.
-// Omit `code` (admin use) to see everything pending across all members.
-router.get("/queue/pending", async (req, res) => {
-  const { code } = req.query;
+// GET /api/registrations/queue/pending - authenticated approval queue.
+router.get("/queue/pending", requireAdminOrPRMember, async (req, res) => {
   const filter = { status: "pending" };
-  if (code) filter.referralCode = String(code).toUpperCase();
+
+  if (req.auth.role === "pr") {
+    filter.referralCode = req.auth.code;
+  } else if (req.query.code) {
+    filter.referralCode = String(req.query.code).toUpperCase();
+  }
 
   const pending = await Registration.find(filter)
     .populate("event", "name slug")
@@ -100,51 +93,8 @@ router.get("/queue/pending", async (req, res) => {
   res.json(pending);
 });
 
-// PATCH /api/registrations/:id/approve - PR member (or admin) approves, assigns regNo
-router.patch("/:id/approve", async (req, res) => {
-  try {
-    const { reviewerCode } = req.body;
-    const reg = await Registration.findById(req.params.id);
-    if (!reg) return res.status(404).json({ error: "Not found" });
-    if (reg.status !== "pending") return res.status(400).json({ error: "Already reviewed" });
-
-    const seq = await nextSequence("regNo");
-    reg.regNo = `ZP${String(seq).padStart(4, "0")}`;
-    reg.status = "approved";
-    reg.reviewedBy = reviewerCode || "admin";
-    await reg.save();
-
-    res.json({ ok: true, regNo: reg.regNo });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// PATCH /api/registrations/:id/reject
-router.patch("/:id/reject", async (req, res) => {
-  try {
-    const { reviewerCode, reason } = req.body;
-    const reg = await Registration.findById(req.params.id);
-    if (!reg) return res.status(404).json({ error: "Not found" });
-    if (reg.status !== "pending") return res.status(400).json({ error: "Already reviewed" });
-
-    reg.status = "rejected";
-    reg.reviewedBy = reviewerCode || "admin";
-    reg.rejectionReason = reason || "Payment could not be verified";
-    await reg.save();
-
-    if (reg.paymentScreenshotPublicId) {
-      cloudinary.uploader.destroy(reg.paymentScreenshotPublicId).catch(() => {});
-    }
-
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
 // GET /api/registrations/stats - approved participation count per event
-router.get("/stats/summary", async (_req, res) => {
+router.get("/stats/summary", requireAdmin, async (_req, res) => {
   const stats = await Registration.aggregate([
     { $match: { status: "approved" } },
     { $group: { _id: "$event", count: { $sum: 1 } } },
@@ -173,7 +123,7 @@ router.get("/stats/summary", async (_req, res) => {
 });
 
 // GET /api/registrations/leaderboard - approved referral counts per PR member
-router.get("/stats/leaderboard", async (_req, res) => {
+router.get("/stats/leaderboard", requireAdmin, async (_req, res) => {
   const leaderboard = await Registration.aggregate([
     { $match: { status: "approved", referralCode: { $ne: null } } },
     { $group: { _id: "$referralCode", count: { $sum: 1 } } },
@@ -187,6 +137,73 @@ router.get("/stats/leaderboard", async (_req, res) => {
     .sort((a, b) => b.count - a.count);
 
   res.json(full);
+});
+
+// GET /api/registrations/:id - status check (used by the participant's status page)
+router.get("/:id", async (req, res) => {
+  const reg = await Registration.findById(req.params.id).populate("event", "name slug date");
+  if (!reg) return res.status(404).json({ error: "Not found" });
+
+  res.json({
+    status: reg.status,
+    rejectionReason: reg.rejectionReason,
+    regNo: reg.regNo,
+    studentName: reg.studentName,
+    studentEmail: reg.studentEmail,
+    studentPhone: reg.studentPhone,
+    college: reg.college,
+    amount: reg.amount,
+    createdAt: reg.createdAt,
+    event: reg.event,
+  });
+});
+
+// PATCH /api/registrations/:id/approve - authenticated PR member or admin approval.
+router.patch("/:id/approve", requireAdminOrPRMember, async (req, res) => {
+  try {
+    const reg = await Registration.findById(req.params.id);
+    if (!reg) return res.status(404).json({ error: "Not found" });
+    if (reg.status !== "pending") return res.status(400).json({ error: "Already reviewed" });
+    if (!canReviewRegistration(req.auth, reg)) {
+      return res.status(403).json({ error: "You cannot review this registration" });
+    }
+
+    const seq = await nextSequence("regNo");
+    reg.regNo = `ZP${String(seq).padStart(4, "0")}`;
+    reg.status = "approved";
+    reg.reviewedBy = getReviewerCode(req.auth);
+    await reg.save();
+
+    res.json({ ok: true, regNo: reg.regNo });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PATCH /api/registrations/:id/reject - authenticated PR member or admin rejection.
+router.patch("/:id/reject", requireAdminOrPRMember, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const reg = await Registration.findById(req.params.id);
+    if (!reg) return res.status(404).json({ error: "Not found" });
+    if (reg.status !== "pending") return res.status(400).json({ error: "Already reviewed" });
+    if (!canReviewRegistration(req.auth, reg)) {
+      return res.status(403).json({ error: "You cannot review this registration" });
+    }
+
+    reg.status = "rejected";
+    reg.reviewedBy = getReviewerCode(req.auth);
+    reg.rejectionReason = reason || "Payment could not be verified";
+    await reg.save();
+
+    if (reg.paymentScreenshotPublicId) {
+      cloudinary.uploader.destroy(reg.paymentScreenshotPublicId).catch(() => {});
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 export default router;

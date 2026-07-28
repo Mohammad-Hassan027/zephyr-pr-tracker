@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Event from "../models/Event.js";
+import { requireAdmin } from "../utils/auth.js";
 
 const router = Router();
 
@@ -16,8 +17,8 @@ router.get("/:slug", async (req, res) => {
   res.json(event);
 });
 
-// POST /api/events - create event (PR/admin use)
-router.post("/", async (req, res) => {
+// POST /api/events - create event (admin only)
+router.post("/", requireAdmin, async (req, res) => {
   try {
     const { name, slug, description, date, capacity } = req.body;
     const event = await Event.create({ name, slug, description, date, capacity });
