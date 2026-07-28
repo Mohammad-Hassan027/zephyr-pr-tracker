@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import multer from "multer";
 import Registration from "../models/Registration.js";
 import Event from "../models/Event.js";
@@ -8,6 +9,16 @@ import cloudinary, { uploadBuffer } from "../config/cloudinary.js";
 import { requireAdmin, requireAdminOrPRMember } from "../utils/auth.js";
 
 const router = Router();
+
+const registrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 submissions per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many registration attempts from this IP. Please try again after 15 minutes.",
+  },
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -30,7 +41,7 @@ function canReviewRegistration(auth, registration) {
 
 // POST /api/registrations - public submission: details + referral + event + UPI screenshot.
 // Lands as status "pending"; no regNo yet. A PR member or admin must approve it.
-router.post("/", upload.single("screenshot"), async (req, res) => {
+router.post("/", registrationLimiter, upload.single("screenshot"), async (req, res) => {
   try {
     const { studentName, studentEmail, studentPhone, college, amount, eventSlug, referralCode } =
       req.body;

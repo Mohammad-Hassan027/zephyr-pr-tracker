@@ -67,7 +67,7 @@ Orange (`#EA580C`) brand color matching the Zephyr/TCET card, shared header acro
 - **Sneha Patil** code=SNEHA305 pin=882020
 - **Aman Khan** code=AMAN126 pin=741051
 - **Priya Desai** code=PRIYA114 pin=687901
-
+- **Hassan** code=HASSAN653 pin=330807
 
 ## Deploying to Vercel
 
