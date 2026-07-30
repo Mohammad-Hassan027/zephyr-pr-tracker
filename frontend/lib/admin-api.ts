@@ -22,10 +22,25 @@ async function adminFetch<T>(path: string): Promise<T> {
   return data as T;
 }
 
+export type AuditRegistration = {
+  _id: string;
+  regNo: string | null;
+  studentName: string;
+  event: { name: string; slug?: string };
+  status: "approved" | "rejected";
+  reviewedBy: string | null;
+  rejectionReason: string | null;
+  updatedAt: string;
+};
+
 export function getAdminStats() {
   return adminFetch<EventStat[]>("/registrations/stats/summary");
 }
 
 export function getAdminLeaderboard() {
   return adminFetch<LeaderboardEntry[]>("/registrations/stats/leaderboard");
+}
+
+export function getAdminAuditTrail() {
+  return adminFetch<AuditRegistration[]>("/registrations/audit");
 }
