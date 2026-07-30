@@ -98,6 +98,39 @@ router.get("/queue/pending", requireAdminOrPRMember, async (req, res) => {
     filter.referralCode = String(req.query.code).toUpperCase();
   }
 
+  if (req.query.event) {
+    const ev = await Event.findOne({ slug: String(req.query.event).trim() });
+    if (!ev) return res.json([]);
+    filter.event = ev._id;
+  }
+
+  if (req.query.college) {
+    filter.college = { $regex: String(req.query.college).trim(), $options: "i" };
+  }
+
+  if (req.query.from || req.query.to) {
+    const createdAtFilter = {};
+    if (req.query.from) {
+      const fromDate = new Date(String(req.query.from).trim());
+      if (!isNaN(fromDate.getTime())) {
+        createdAtFilter.$gte = fromDate;
+      }
+    }
+    if (req.query.to) {
+      const toStr = String(req.query.to).trim();
+      let toDate = new Date(toStr);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(toStr)) {
+        toDate = new Date(`${toStr}T23:59:59.999Z`);
+      }
+      if (!isNaN(toDate.getTime())) {
+        createdAtFilter.$lte = toDate;
+      }
+    }
+    if (Object.keys(createdAtFilter).length > 0) {
+      filter.createdAt = createdAtFilter;
+    }
+  }
+
   const pending = await Registration.find(filter)
     .populate("event", "name slug")
     .sort({ createdAt: 1 });

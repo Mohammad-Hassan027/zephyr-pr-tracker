@@ -102,13 +102,30 @@ export async function getRegistrationStatus(
   return res.json();
 }
 
+export type PendingQueueFilters = {
+  event?: string;
+  college?: string;
+  from?: string;
+  to?: string;
+};
+
 export async function getPendingQueue(
   code?: string,
+  filters?: PendingQueueFilters,
 ): Promise<PendingRegistration[]> {
-  const url = code
+  const params = new URLSearchParams();
+  if (code) params.set("code", code);
+  if (filters?.event) params.set("event", filters.event);
+  if (filters?.college) params.set("college", filters.college);
+  if (filters?.from) params.set("from", filters.from);
+  if (filters?.to) params.set("to", filters.to);
+
+  const queryString = params.toString() ? `?${params.toString()}` : "";
+  const baseUrl = code
     ? "/api/pr/registrations/pending"
     : "/api/admin/registrations/pending";
-  const res = await fetch(url, { cache: "no-store" });
+
+  const res = await fetch(`${baseUrl}${queryString}`, { cache: "no-store" });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Queue load failed");
   return data;
