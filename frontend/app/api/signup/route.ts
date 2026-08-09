@@ -7,20 +7,20 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { name, slug, email, password } = await req.json();
 
-    const backendRes = await fetch(backendUrl("/clubs/login"), {
+    const backendRes = await fetch(backendUrl("/clubs/signup"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ name, slug, email, password }),
       cache: "no-store",
     });
     const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok || !data.token) {
       return NextResponse.json(
-        { error: data.error || "Invalid email or password" },
-        { status: backendRes.status === 500 ? 500 : 401 },
+        { error: data.error || "Signup failed" },
+        { status: backendRes.status || 400 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Login failed" },
+      { error: err instanceof Error ? err.message : "Signup failed" },
       { status: 500 },
     );
   }
