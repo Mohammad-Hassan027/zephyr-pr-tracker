@@ -5,6 +5,10 @@ import {
   proxyBackendRequest,
 } from "@/lib/server-auth";
 
+export async function GET() {
+  return proxyBackendRequest("/events", getSessionToken(ADMIN_SESSION_COOKIE));
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
   return proxyBackendRequest("/events", getSessionToken(ADMIN_SESSION_COOKIE), {

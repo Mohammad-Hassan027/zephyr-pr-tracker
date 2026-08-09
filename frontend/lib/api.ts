@@ -53,8 +53,11 @@ export type PendingRegistration = {
   event: { name: string; slug: string };
 };
 
-export async function getEvents(): Promise<EventItem[]> {
-  const res = await fetch(`${API_URL}/events`, { cache: "no-store" });
+export async function getEvents(clubSlug?: string): Promise<EventItem[]> {
+  const url = clubSlug
+    ? `${API_URL}/events?club=${encodeURIComponent(clubSlug)}`
+    : `${API_URL}/events`;
+  const res = await fetch(url, { cache: "no-store" });
   return res.json();
 }
 
@@ -80,11 +83,16 @@ export async function submitRegistration(form: {
   college: string;
   amount: string;
   eventSlug: string;
+  clubSlug?: string;
   referralCode: string;
   screenshot: File;
 }): Promise<{ id: string; status: string }> {
   const body = new FormData();
-  Object.entries(form).forEach(([key, value]) => body.append(key, value));
+  Object.entries(form).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      body.append(key, value);
+    }
+  });
 
   const res = await fetch(`${API_URL}/registrations`, { method: "POST", body });
   const data = await res.json();
