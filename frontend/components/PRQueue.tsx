@@ -25,9 +25,10 @@ export default function PRQueue({ code }: { code?: string }) {
 
   // Fetch available events on mount
   useEffect(() => {
-    getEvents()
+    fetch("/api/admin/events")
+      .then((r) => (r.ok ? r.json() : getEvents()))
       .then((data) => setEvents(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Failed to load events", err));
+      .catch(() => getEvents().then((data) => setEvents(Array.isArray(data) ? data : [])));
   }, []);
 
   const load = useCallback(async () => {

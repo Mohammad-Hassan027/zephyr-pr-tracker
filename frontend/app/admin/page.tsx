@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import PRQueue from "@/components/PRQueue";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type Member = { name: string; code: string };
 type EventItem = { name: string; slug: string };
+type ClubInfo = { name: string; slug: string; email: string };
 
 export default function AdminPage() {
+  const [club, setClub] = useState<ClubInfo | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
 
@@ -31,12 +32,18 @@ export default function AdminPage() {
   const [msg, setMsg] = useState("");
 
   async function loadData() {
-    const [m, e] = await Promise.all([
-      fetch("/api/admin/members").then((r) => r.json()),
-      fetch(`${API_URL}/events`).then((r) => r.json()),
-    ]);
-    setMembers(m);
-    setEvents(e);
+    try {
+      const [c, m, e] = await Promise.all([
+        fetch("/api/admin/club").then((r) => (r.ok ? r.json() : null)),
+        fetch("/api/admin/members").then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/admin/events").then((r) => (r.ok ? r.json() : [])),
+      ]);
+      setClub(c);
+      setMembers(Array.isArray(m) ? m : []);
+      setEvents(Array.isArray(e) ? e : []);
+    } catch (_err) {
+      setMsg("Error loading club admin data");
+    }
   }
 
   useEffect(() => {
@@ -88,10 +95,12 @@ export default function AdminPage() {
       <main className="page-shell space-y-6">
         <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
           <p className="pill-chip">Admin control</p>
-          <h1 className="page-title mt-3">Manage events and approvals</h1>
+          <h1 className="page-title mt-3">
+            {club ? `${club.name} Dashboard` : "Manage events and approvals"}
+          </h1>
           <p className="page-subtitle">
             Create new fest opportunities, issue referral access, and keep the
-            approval queue moving.
+            approval queue moving for {club ? club.name : "your club"}.
           </p>
         </section>
         {msg && (
@@ -208,7 +217,9 @@ export default function AdminPage() {
 
           <div className="mt-5 space-y-3">
             {members.map((m) => {
-              const link = `${SITE_URL}/register?ref=${m.code}`;
+              const link = club
+                ? `${SITE_URL}/register/${club.slug}?ref=${m.code}`
+                : `${SITE_URL}/register?ref=${m.code}`;
               return (
                 <div
                   key={m.code}
