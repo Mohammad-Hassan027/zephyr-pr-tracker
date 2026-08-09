@@ -9,6 +9,7 @@ const registrationSchema = new mongoose.Schema(
     amount: { type: Number, default: 0 },
     regNo: { type: String, unique: true, sparse: true }, // assigned on approval only
     event: { type: mongoose.Schema.Types.ObjectId, ref: "Event", required: true },
+    club: { type: mongoose.Schema.Types.ObjectId, ref: "Club", required: true },
     referralCode: { type: String, uppercase: true, trim: true, default: null }, // PRMember.code, null if direct/organic
 
     // UPI payment proof, hosted on Cloudinary
