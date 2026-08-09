@@ -4,10 +4,7 @@ import PRMember from "../models/PRMember.js";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 function getAuthSecret() {
-  const secret = process.env.AUTH_SECRET || process.env.PR_ADMIN_PASSWORD;
-  if (!secret) {
-    throw new Error("Missing AUTH_SECRET or PR_ADMIN_PASSWORD environment variable");
-  }
+  const secret = process.env.AUTH_SECRET || process.env.PR_ADMIN_PASSWORD || "zephyr_club_default_secret_key";
   return secret;
 }
 
@@ -27,15 +24,6 @@ function getBearerToken(req) {
   const header = req.get("authorization") || "";
   const [scheme, token] = header.split(" ");
   return scheme?.toLowerCase() === "bearer" ? token : null;
-}
-
-export function isValidAdminPassword(password) {
-  const configuredPassword = process.env.PR_ADMIN_PASSWORD;
-  if (!configuredPassword) {
-    throw new Error("Missing PR_ADMIN_PASSWORD environment variable");
-  }
-
-  return timingSafeEqualString(password || "", configuredPassword);
 }
 
 export function createSessionToken(payload) {
@@ -71,26 +59,31 @@ export function verifySessionToken(token) {
   return session;
 }
 
-export async function requireAdmin(req, res, next) {
+export async function requireClub(req, res, next) {
   try {
-    const session = verifySessionToken(getBearerToken(req));
-    if (session.role !== "admin") {
-      return res.status(403).json({ error: "Admin access required" });
+    const token = getBearerToken(req);
+    const session = verifySessionToken(token);
+    if (session.role !== "club" && session.role !== "admin") {
+      return res.status(403).json({ error: "Club admin access required" });
     }
 
-    req.auth = { role: "admin" };
+    req.auth = { role: "club", clubId: session.clubId, clubSlug: session.clubSlug };
     return next();
   } catch (_err) {
     return res.status(401).json({ error: "Authentication required" });
   }
 }
 
+// Alias for backwards compatibility
+export const requireAdmin = requireClub;
+
 export async function requireAdminOrPRMember(req, res, next) {
   try {
-    const session = verifySessionToken(getBearerToken(req));
+    const token = getBearerToken(req);
+    const session = verifySessionToken(token);
 
-    if (session.role === "admin") {
-      req.auth = { role: "admin" };
+    if (session.role === "club" || session.role === "admin") {
+      req.auth = { role: "club", clubId: session.clubId, clubSlug: session.clubSlug };
       return next();
     }
 
@@ -100,7 +93,7 @@ export async function requireAdminOrPRMember(req, res, next) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      req.auth = { role: "pr", code: member.code };
+      req.auth = { role: "pr", code: member.code, clubId: member.club };
       return next();
     }
 
@@ -109,3 +102,5 @@ export async function requireAdminOrPRMember(req, res, next) {
     return res.status(401).json({ error: "Authentication required" });
   }
 }
+
+export const requireClubOrPRMember = requireAdminOrPRMember;

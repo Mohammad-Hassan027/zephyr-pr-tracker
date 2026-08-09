@@ -1,19 +1,12 @@
 import { Router } from "express";
-import { createSessionToken, isValidAdminPassword } from "../utils/auth.js";
 
 const router = Router();
 
-router.post("/admin/login", (req, res) => {
-  try {
-    const { password } = req.body;
-    if (!isValidAdminPassword(password)) {
-      return res.status(401).json({ error: "Wrong password" });
-    }
-
-    res.json({ token: createSessionToken({ role: "admin" }) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Legacy admin login endpoint replaced by multi-tenant club login
+router.post("/admin/login", (_req, res) => {
+  return res.status(410).json({
+    error: "Single admin password login is deprecated. Please use club login at /api/clubs/login",
+  });
 });
 
 export default router;
