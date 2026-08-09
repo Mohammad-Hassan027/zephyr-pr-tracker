@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { pathToFileURL } from "node:url";
 
 import authRoutes from "./routes/auth.js";
+import clubRoutes from "./routes/clubs.js";
 import eventRoutes from "./routes/events.js";
 import memberRoutes from "./routes/members.js";
 import registrationRoutes from "./routes/registrations.js";
@@ -19,6 +20,7 @@ app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/clubs", clubRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/registrations", registrationRoutes);
