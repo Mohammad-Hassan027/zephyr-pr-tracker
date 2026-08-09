@@ -1,6 +1,9 @@
 import Header from "@/components/Header";
 import { getAdminLeaderboard } from "@/lib/admin-api";
 
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
+
 export default async function LeaderboardPage() {
   const leaderboard = await getAdminLeaderboard();
 
