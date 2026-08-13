@@ -47,6 +47,17 @@ npm run seed
 
 For manual setup, log in at `/login`, then create events and PR members from `/admin`. Those write actions are admin-only.
 
+## Migrating to Multi-Tenant Model
+
+Immediately after deploying the multi-tenant update, run the migration script once on the backend to backfill any existing single-tenant events, PR members, and registrations to a default "Zephyr" club:
+
+```bash
+cd backend
+npm run migrate
+```
+
+You can set `ZEPHYR_ADMIN_EMAIL` and `ZEPHYR_ADMIN_PASSWORD` in environment variables before running the migration. The script is idempotent and skips any documents that already have a `club` assigned.
+
 ## Design
 
 Orange (`#EA580C`) brand color matching the Zephyr/TCET card, shared header across PR-facing pages, card-style layout throughout.
