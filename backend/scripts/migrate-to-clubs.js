@@ -65,10 +65,15 @@ async function migrate() {
       slug: "zephyr",
       email: String(email).trim().toLowerCase(),
       passwordHash,
+      status: "approved",
     });
-    console.log(`Created default Club: ${club.name} (${club.slug}) with email: ${club.email}`);
+    console.log(`Created default Club: ${club.name} (${club.slug}) with email: ${club.email} [Status: approved]`);
   } else {
-    console.log(`Using existing default Club: ${club.name} (${club.slug}) [ID: ${club._id}]`);
+    if (club.status !== "approved") {
+      club.status = "approved";
+      await club.save();
+    }
+    console.log(`Using existing default Club: ${club.name} (${club.slug}) [ID: ${club._id}, Status: ${club.status}]`);
   }
 
   // 2. Bulk update documents missing a club reference

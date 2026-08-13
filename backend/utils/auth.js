@@ -104,3 +104,23 @@ export async function requireAdminOrPRMember(req, res, next) {
 }
 
 export const requireClubOrPRMember = requireAdminOrPRMember;
+
+export function isValidPlatformAdminPassword(password) {
+  const configuredPassword = process.env.PLATFORM_ADMIN_PASSWORD || "platformadminsecret123";
+  return timingSafeEqualString(password || "", configuredPassword);
+}
+
+export async function requirePlatformAdmin(req, res, next) {
+  try {
+    const token = getBearerToken(req);
+    const session = verifySessionToken(token);
+    if (session.role !== "platform_admin") {
+      return res.status(403).json({ error: "Platform admin access required" });
+    }
+
+    req.auth = { role: "platform_admin" };
+    return next();
+  } catch (_err) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+}
