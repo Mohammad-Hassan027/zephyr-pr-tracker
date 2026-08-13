@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  ADMIN_SESSION_COOKIE,
-  backendUrl,
-  sessionCookieOptions,
-} from "@/lib/server-auth";
+import { backendUrl } from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,17 +13,17 @@ export async function POST(req: NextRequest) {
     });
     const data = await backendRes.json().catch(() => ({}));
 
-    if (!backendRes.ok || !data.token) {
+    if (!backendRes.ok) {
       return NextResponse.json(
         { error: data.error || "Signup failed" },
         { status: backendRes.status || 400 },
       );
     }
 
-    const res = NextResponse.json({ ok: true });
-    res.cookies.set(ADMIN_SESSION_COOKIE, data.token, sessionCookieOptions);
-    res.cookies.delete("pr_session");
-    return res;
+    return NextResponse.json({
+      ok: true,
+      message: data.message || "Your club is pending approval",
+    });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Signup failed" },

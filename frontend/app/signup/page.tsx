@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function SignupPage() {
@@ -11,7 +10,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const [submitted, setSubmitted] = useState(false);
 
   function handleNameChange(val: string) {
     setName(val);
@@ -39,8 +38,7 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push("/admin");
-        router.refresh();
+        setSubmitted(true);
       } else {
         setError(data.error || "Signup failed");
       }
@@ -49,6 +47,31 @@ export default function SignupPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-6">
+        <div className="surface-card w-full max-w-md p-6 text-center sm:p-8">
+          <p className="pill-chip">Registration Submitted</p>
+          <h1 className="mt-3 text-2xl font-semibold text-ink">
+            Your club is pending approval
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Thank you for registering <strong className="text-ink">{name}</strong>!
+            Your application has been received and is awaiting approval by the platform administrator.
+          </p>
+
+          <div className="mt-6 rounded-2xl border border-accent/20 bg-accent/10 p-4 text-xs text-slate-700">
+            Once approved, you will be able to log in with your email <code className="font-semibold">{email}</code> and access your club admin dashboard.
+          </div>
+
+          <Link href="/login" className="btn-primary mt-6 inline-block w-full">
+            Go to club login
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -92,7 +115,7 @@ export default function SignupPage() {
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
             />
             <p className="mt-1 text-[11px] text-slate-400">
-              Registration link: /register?club={slug || "your-slug"}
+              Registration link: /register/{slug || "your-slug"}
             </p>
           </div>
 
@@ -135,7 +158,7 @@ export default function SignupPage() {
             disabled={loading}
             className="btn-primary w-full"
           >
-            {loading ? "Creating account..." : "Sign up club"}
+            {loading ? "Submitting application..." : "Submit club registration"}
           </button>
         </form>
 
