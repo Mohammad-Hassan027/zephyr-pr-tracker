@@ -15,6 +15,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../utils/errors.js";
+import { statusEmitter } from "../utils/statusEmitter.js";
 import cloudinary, { uploadBuffer } from "../config/cloudinary.js";
 import { requireClub, requireClubOrPRMember } from "../utils/auth.js";
 
@@ -112,7 +113,7 @@ router.post("/", registrationLimiter, upload.single("screenshot"), async (req, r
   }
 });
 
-// GET /api/registrations/queue/pending - authenticated approval queue scoped to club.
+// GET /api/registrations/queue/pending - paginated approval queue scoped to club.
 router.get("/queue/pending", requireClubOrPRMember, async (req, res) => {
   try {
     const filter = { status: "pending" };
@@ -131,7 +132,12 @@ router.get("/queue/pending", requireClubOrPRMember, async (req, res) => {
       const evFilter = { slug: String(req.query.event).trim() };
       if (req.auth.clubId) evFilter.club = req.auth.clubId;
       const ev = await Event.findOne(evFilter);
-      if (!ev) return res.json([]);
+      if (!ev) {
+        return res.json({
+          items: [],
+          pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasNextPage: false, hasPrevPage: false },
+        });
+      }
       filter.event = ev._id;
     }
 
@@ -162,10 +168,33 @@ router.get("/queue/pending", requireClubOrPRMember, async (req, res) => {
       }
     }
 
-    const pending = await Registration.find(filter)
-      .populate("event", "name slug")
-      .sort({ createdAt: 1 });
-    res.json(pending);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const [total, pending] = await Promise.all([
+      Registration.countDocuments(filter),
+      Registration.find(filter)
+        .populate("event", "name slug")
+        .sort({ createdAt: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json({
+      items: pending,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -226,19 +255,115 @@ router.get("/stats/leaderboard", requireClub, async (req, res) => {
   }
 });
 
-// GET /api/registrations/audit - club admin audit trail of reviewed registrations
+// GET /api/registrations/audit - paginated club admin audit trail of reviewed registrations
 router.get("/audit", requireClub, async (req, res) => {
   try {
     const clubId = req.auth.clubId;
-    const audit = await Registration.find({
+    const filter = {
       status: { $in: ["approved", "rejected"] },
       club: clubId,
-    })
-      .populate("event", "name slug")
-      .sort({ updatedAt: -1 });
-    res.json(audit);
+    };
+
+    if (req.query.status && ["approved", "rejected"].includes(req.query.status)) {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.reviewer) {
+      filter.reviewedBy = { $regex: String(req.query.reviewer).trim(), $options: "i" };
+    }
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const [total, audit] = await Promise.all([
+      Registration.countDocuments(filter),
+      Registration.find(filter)
+        .populate("event", "name slug")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      items: audit,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/registrations/:id/stream - Server-Sent Events (SSE) stream for real-time status updates
+router.get("/:id/stream", async (req, res) => {
+  const { id } = req.params;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders?.();
+
+  try {
+    const reg = await Registration.findById(id).populate("event", "name slug date");
+    if (!reg) {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: "Registration not found" })}\n\n`);
+      return res.end();
+    }
+
+    const payload = {
+      id: reg._id,
+      status: reg.status,
+      rejectionReason: reg.rejectionReason,
+      regNo: reg.regNo,
+      studentName: reg.studentName,
+      studentEmail: reg.studentEmail,
+      studentPhone: reg.studentPhone,
+      college: reg.college,
+      amount: reg.amount,
+      createdAt: reg.createdAt,
+      event: reg.event,
+    };
+
+    // Send initial status immediately
+    res.write(`event: status\ndata: ${JSON.stringify(payload)}\n\n`);
+
+    // If already terminal state, end stream
+    if (reg.status !== "pending") {
+      return res.end();
+    }
+
+    // Subscribe to live status transitions
+    const unsubscribe = statusEmitter.subscribe(id, (updatedData) => {
+      res.write(`event: status\ndata: ${JSON.stringify(updatedData)}\n\n`);
+      if (updatedData.status !== "pending") {
+        unsubscribe();
+        res.end();
+      }
+    });
+
+    // 15s keepalive heartbeat
+    const heartbeat = setInterval(() => {
+      res.write(": keepalive\n\n");
+    }, 15000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    });
+  } catch (err) {
+    res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
   }
 });
 
@@ -271,8 +396,8 @@ router.patch("/:id/approve", requireClubOrPRMember, async (req, res) => {
     const { id } = req.params;
 
     const result = await withTransaction(async (session) => {
-      // 1. Fetch the registration document using the transactional session
-      const reg = await Registration.findById(id).session(session);
+      // 1. Fetch registration using transactional session
+      const reg = await Registration.findById(id).populate("event", "name slug date").session(session);
 
       if (!reg) {
         throw new NotFoundError("Registration not found");
@@ -283,14 +408,15 @@ router.patch("/:id/approve", requireClubOrPRMember, async (req, res) => {
         throw new ForbiddenError("You cannot review this registration");
       }
 
-      // 3. Verify the current status (prevent double approvals / race conditions)
+      // 3. Verify the current status
       if (reg.status !== "pending") {
         throw new ConflictError(`Registration has already been reviewed (${reg.status})`);
       }
 
       // 4. Concurrency-safe event capacity validation
       if (reg.event) {
-        const event = await Event.findById(reg.event).session(session);
+        const eventId = reg.event._id || reg.event;
+        const event = await Event.findById(eventId).session(session);
         if (event && event.capacity) {
           const approvedCount = await Registration.countDocuments({
             event: event._id,
@@ -319,9 +445,17 @@ router.patch("/:id/approve", requireClubOrPRMember, async (req, res) => {
         status: reg.status,
         studentName: reg.studentName,
         studentEmail: reg.studentEmail,
+        studentPhone: reg.studentPhone,
+        college: reg.college,
+        amount: reg.amount,
+        createdAt: reg.createdAt,
+        event: reg.event,
         reviewedBy: reg.reviewedBy,
       };
     });
+
+    // Notify real-time SSE stream listeners
+    statusEmitter.emitStatusUpdate(id, result);
 
     return res.status(200).json({
       ok: true,
@@ -357,7 +491,7 @@ router.patch("/:id/reject", requireClubOrPRMember, async (req, res) => {
     const { reason } = req.body;
 
     const result = await withTransaction(async (session) => {
-      const reg = await Registration.findById(id).session(session);
+      const reg = await Registration.findById(id).populate("event", "name slug date").session(session);
       if (!reg) throw new NotFoundError("Registration not found");
 
       if (reg.status !== "pending") {
@@ -376,6 +510,10 @@ router.patch("/:id/reject", requireClubOrPRMember, async (req, res) => {
       return {
         id: reg._id,
         status: reg.status,
+        rejectionReason: reg.rejectionReason,
+        studentName: reg.studentName,
+        studentEmail: reg.studentEmail,
+        event: reg.event,
         paymentScreenshotPublicId: reg.paymentScreenshotPublicId,
       };
     });
@@ -384,6 +522,9 @@ router.patch("/:id/reject", requireClubOrPRMember, async (req, res) => {
     if (result.paymentScreenshotPublicId) {
       cloudinary.uploader.destroy(result.paymentScreenshotPublicId).catch(() => {});
     }
+
+    // Notify real-time SSE stream listeners
+    statusEmitter.emitStatusUpdate(id, result);
 
     return res.status(200).json({
       ok: true,
