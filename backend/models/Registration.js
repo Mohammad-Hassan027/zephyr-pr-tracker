@@ -30,4 +30,17 @@ const registrationSchema = new mongoose.Schema(
 // Prevent duplicate signup for same event+email
 registrationSchema.index({ event: 1, studentEmail: 1 }, { unique: true });
 
-export default mongoose.model("Registration", registrationSchema);
+// Compound Indexes for Scalable Querying & Concurrency
+// 1. Pending queue queries sorted by submission timestamp
+registrationSchema.index({ club: 1, status: 1, createdAt: 1 });
+
+// 2. Audit trail queries sorted by review timestamp
+registrationSchema.index({ club: 1, status: 1, updatedAt: -1 });
+
+// 3. Referral code analytics and leaderboard aggregations
+registrationSchema.index({ club: 1, status: 1, referralCode: 1 });
+
+// 4. Event capacity check and per-event participation statistics
+registrationSchema.index({ event: 1, status: 1 });
+
+export default mongoose.models.Registration || mongoose.model("Registration", registrationSchema);
