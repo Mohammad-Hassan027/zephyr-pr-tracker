@@ -7,6 +7,14 @@ import Event from "../models/Event.js";
 import PRMember from "../models/PRMember.js";
 import Club from "../models/Club.js";
 import { nextSequence } from "../models/Counter.js";
+import { withTransaction } from "../utils/transaction.js";
+import {
+  AppError,
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from "../utils/errors.js";
 import cloudinary, { uploadBuffer } from "../config/cloudinary.js";
 import { requireClub, requireClubOrPRMember } from "../utils/auth.js";
 
@@ -257,51 +265,143 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// PATCH /api/registrations/:id/approve - authenticated PR member or club admin approval.
+// PATCH /api/registrations/:id/approve - thread-safe atomic registration approval
 router.patch("/:id/approve", requireClubOrPRMember, async (req, res) => {
   try {
-    const reg = await Registration.findById(req.params.id);
-    if (!reg) return res.status(404).json({ error: "Not found" });
-    if (reg.status !== "pending") return res.status(400).json({ error: "Already reviewed" });
-    if (!canReviewRegistration(req.auth, reg)) {
-      return res.status(403).json({ error: "You cannot review this registration" });
+    const { id } = req.params;
+
+    const result = await withTransaction(async (session) => {
+      // 1. Fetch the registration document using the transactional session
+      const reg = await Registration.findById(id).session(session);
+
+      if (!reg) {
+        throw new NotFoundError("Registration not found");
+      }
+
+      // 2. Enforce role-based and club authorization
+      if (!canReviewRegistration(req.auth, reg)) {
+        throw new ForbiddenError("You cannot review this registration");
+      }
+
+      // 3. Verify the current status (prevent double approvals / race conditions)
+      if (reg.status !== "pending") {
+        throw new ConflictError(`Registration has already been reviewed (${reg.status})`);
+      }
+
+      // 4. Concurrency-safe event capacity validation
+      if (reg.event) {
+        const event = await Event.findById(reg.event).session(session);
+        if (event && event.capacity) {
+          const approvedCount = await Registration.countDocuments({
+            event: event._id,
+            status: "approved",
+          }).session(session);
+
+          if (approvedCount >= event.capacity) {
+            throw new ConflictError("Event capacity has already been reached");
+          }
+        }
+      }
+
+      // 5. Atomically increment sequential counter within the same session
+      const seq = await nextSequence("regNo", session);
+      const regNo = `REG-${String(seq).padStart(4, "0")}`;
+
+      // 6. Update registration document within the transaction
+      reg.regNo = regNo;
+      reg.status = "approved";
+      reg.reviewedBy = getReviewerCode(req.auth);
+      await reg.save({ session });
+
+      return {
+        id: reg._id,
+        regNo: reg.regNo,
+        status: reg.status,
+        studentName: reg.studentName,
+        studentEmail: reg.studentEmail,
+        reviewedBy: reg.reviewedBy,
+      };
+    });
+
+    return res.status(200).json({
+      ok: true,
+      message: "Registration approved successfully",
+      data: result,
+      regNo: result.regNo,
+    });
+  } catch (err) {
+    if (err instanceof AppError || err.statusCode) {
+      return res.status(err.statusCode || err.status).json({
+        error: err.message,
+        details: err.details || null,
+      });
     }
 
-    const seq = await nextSequence("regNo");
-    reg.regNo = `ZP${String(seq).padStart(4, "0")}`;
-    reg.status = "approved";
-    reg.reviewedBy = getReviewerCode(req.auth);
-    await reg.save();
+    if (err.code === 11000) {
+      return res.status(409).json({
+        error: "Registration ID conflict encountered, please retry",
+      });
+    }
 
-    res.json({ ok: true, regNo: reg.regNo });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("[Approve Route Error]:", err);
+    return res.status(500).json({
+      error: err.message || "Failed to approve registration due to an internal error",
+    });
   }
 });
 
 // PATCH /api/registrations/:id/reject - authenticated PR member or club admin rejection.
 router.patch("/:id/reject", requireClubOrPRMember, async (req, res) => {
   try {
+    const { id } = req.params;
     const { reason } = req.body;
-    const reg = await Registration.findById(req.params.id);
-    if (!reg) return res.status(404).json({ error: "Not found" });
-    if (reg.status !== "pending") return res.status(400).json({ error: "Already reviewed" });
-    if (!canReviewRegistration(req.auth, reg)) {
-      return res.status(403).json({ error: "You cannot review this registration" });
+
+    const result = await withTransaction(async (session) => {
+      const reg = await Registration.findById(id).session(session);
+      if (!reg) throw new NotFoundError("Registration not found");
+
+      if (reg.status !== "pending") {
+        throw new ConflictError(`Registration has already been reviewed (${reg.status})`);
+      }
+
+      if (!canReviewRegistration(req.auth, reg)) {
+        throw new ForbiddenError("You cannot review this registration");
+      }
+
+      reg.status = "rejected";
+      reg.reviewedBy = getReviewerCode(req.auth);
+      reg.rejectionReason = reason || "Payment could not be verified";
+      await reg.save({ session });
+
+      return {
+        id: reg._id,
+        status: reg.status,
+        paymentScreenshotPublicId: reg.paymentScreenshotPublicId,
+      };
+    });
+
+    // Cloudinary cleanup after transaction has committed
+    if (result.paymentScreenshotPublicId) {
+      cloudinary.uploader.destroy(result.paymentScreenshotPublicId).catch(() => {});
     }
 
-    reg.status = "rejected";
-    reg.reviewedBy = getReviewerCode(req.auth);
-    reg.rejectionReason = reason || "Payment could not be verified";
-    await reg.save();
-
-    if (reg.paymentScreenshotPublicId) {
-      cloudinary.uploader.destroy(reg.paymentScreenshotPublicId).catch(() => {});
-    }
-
-    res.json({ ok: true });
+    return res.status(200).json({
+      ok: true,
+      message: "Registration rejected",
+      status: result.status,
+    });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    if (err instanceof AppError || err.statusCode) {
+      return res.status(err.statusCode || err.status).json({
+        error: err.message,
+        details: err.details || null,
+      });
+    }
+
+    console.error("[Reject Route Error]:", err);
+    return res.status(500).json({
+      error: err.message || "Failed to reject registration",
+    });
   }
 });
 
