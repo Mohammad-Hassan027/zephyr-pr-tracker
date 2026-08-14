@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Header from "@/components/Header";
 
 type AuditRegistration = {
@@ -14,34 +14,70 @@ type AuditRegistration = {
   updatedAt: string;
 };
 
+type Pagination = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+};
+
+const PAGE_LIMIT = 20;
+
 export default function AuditPage() {
   const [registrations, setRegistrations] = useState<AuditRegistration[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "rejected">("all");
   const [reviewerFilter, setReviewerFilter] = useState("");
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    async function fetchAudit() {
+  const fetchAudit = useCallback(
+    async (targetPage = 1) => {
+      setLoading(true);
+      setError("");
       try {
-        setLoading(true);
-        const res = await fetch("/api/admin/registrations/audit");
+        const params = new URLSearchParams();
+        params.set("page", String(targetPage));
+        params.set("limit", String(PAGE_LIMIT));
+        if (statusFilter !== "all") params.set("status", statusFilter);
+        if (reviewerFilter.trim()) params.set("reviewer", reviewerFilter.trim());
+
+        const res = await fetch(`/api/admin/registrations/audit?${params.toString()}`);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || "Failed to load audit trail");
         }
         const data = await res.json();
-        setRegistrations(data);
+        setRegistrations(data.items ?? data);
+        if (data.pagination) {
+          setPagination(data.pagination);
+          setPage(data.pagination.page);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading audit trail");
       } finally {
         setLoading(false);
       }
-    }
-    fetchAudit();
-  }, []);
+    },
+    [statusFilter, reviewerFilter],
+  );
 
-  // Extract unique reviewer codes for filter dropdown options
+  // Re-fetch from page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+    fetchAudit(1);
+  }, [statusFilter, reviewerFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handlePageChange(newPage: number) {
+    if (!pagination) return;
+    if (newPage < 1 || newPage > pagination.totalPages) return;
+    fetchAudit(newPage);
+  }
+
+  // Extract unique reviewer codes seen in current page for datalist
   const reviewerOptions = useMemo(() => {
     const set = new Set<string>();
     registrations.forEach((r) => {
@@ -49,19 +85,6 @@ export default function AuditPage() {
     });
     return Array.from(set).sort();
   }, [registrations]);
-
-  const filteredRegistrations = useMemo(() => {
-    return registrations.filter((r) => {
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
-      if (
-        reviewerFilter &&
-        (!r.reviewedBy || !r.reviewedBy.toLowerCase().includes(reviewerFilter.trim().toLowerCase()))
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [registrations, statusFilter, reviewerFilter]);
 
   return (
     <>
@@ -79,7 +102,9 @@ export default function AuditPage() {
         <section className="surface-card p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-ink">
-              Filtered Results ({filteredRegistrations.length})
+              {pagination
+                ? `${pagination.total} total entries`
+                : "Audit Trail"}
             </h2>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -137,8 +162,11 @@ export default function AuditPage() {
           {/* Table */}
           <div className="mt-5 overflow-x-auto">
             {loading ? (
-              <div className="p-8 text-center text-sm text-slate-500">Loading audit trail...</div>
-            ) : filteredRegistrations.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 p-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                <p className="text-sm text-slate-500">Loading audit trail…</p>
+              </div>
+            ) : registrations.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
                 No reviewed registrations found matching the current filters.
               </div>
@@ -156,7 +184,7 @@ export default function AuditPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredRegistrations.map((item) => (
+                  {registrations.map((item) => (
                     <tr key={item._id} className="transition hover:bg-slate-50/50">
                       <td className="whitespace-nowrap px-4 py-3 font-mono font-medium text-ink">
                         {item.regNo || "—"}
@@ -189,6 +217,32 @@ export default function AuditPage() {
               </table>
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {!loading && pagination && pagination.totalPages > 1 && (
+            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500">
+                Page <span className="font-semibold text-ink">{pagination.page}</span> of{" "}
+                <span className="font-semibold text-ink">{pagination.totalPages}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ← Previous
+                </button>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </>

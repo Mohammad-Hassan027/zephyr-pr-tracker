@@ -10,12 +10,19 @@ import {
   rejectRegistration,
 } from "@/lib/api";
 
+const PAGE_LIMIT = 20;
+
 export default function PRQueue({ code }: { code?: string }) {
   const [items, setItems] = useState<PendingRegistration[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   // Filter state
   const [eventSlug, setEventSlug] = useState("");
@@ -31,7 +38,34 @@ export default function PRQueue({ code }: { code?: string }) {
       .catch(() => getEvents().then((data) => setEvents(Array.isArray(data) ? data : [])));
   }, []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(
+    async (targetPage = page) => {
+      setLoading(true);
+      try {
+        const data = await getPendingQueue(code, {
+          event: eventSlug || undefined,
+          college: college || undefined,
+          from: from || undefined,
+          to: to || undefined,
+          page: targetPage,
+          limit: PAGE_LIMIT,
+        });
+        setItems(data.items);
+        setTotalPages(data.pagination.totalPages);
+        setTotal(data.pagination.total);
+        setPage(data.pagination.page);
+      } catch (err) {
+        console.error("Failed to load queue", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [code, eventSlug, college, from, to, page],
+  );
+
+  // Re-fetch from page 1 whenever filters change
+  const loadFirstPage = useCallback(async () => {
+    setPage(1);
     setLoading(true);
     try {
       const data = await getPendingQueue(code, {
@@ -39,8 +73,13 @@ export default function PRQueue({ code }: { code?: string }) {
         college: college || undefined,
         from: from || undefined,
         to: to || undefined,
+        page: 1,
+        limit: PAGE_LIMIT,
       });
-      setItems(data);
+      setItems(data.items);
+      setTotalPages(data.pagination.totalPages);
+      setTotal(data.pagination.total);
+      setPage(data.pagination.page);
     } catch (err) {
       console.error("Failed to load queue", err);
     } finally {
@@ -49,14 +88,15 @@ export default function PRQueue({ code }: { code?: string }) {
   }, [code, eventSlug, college, from, to]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadFirstPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventSlug, college, from, to]);
 
   async function handleApprove(id: string) {
     setBusyId(id);
     try {
       await approveRegistration(id, code);
-      await load();
+      await load(page);
     } finally {
       setBusyId(null);
     }
@@ -67,10 +107,15 @@ export default function PRQueue({ code }: { code?: string }) {
     setBusyId(id);
     try {
       await rejectRegistration(id, code, reason);
-      await load();
+      await load(page);
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function handlePageChange(newPage: number) {
+    if (newPage < 1 || newPage > totalPages) return;
+    await load(newPage);
   }
 
   const hasActiveFilters = Boolean(eventSlug || college || from || to);
@@ -92,6 +137,11 @@ export default function PRQueue({ code }: { code?: string }) {
             {hasActiveFilters && (
               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
                 Filtered
+              </span>
+            )}
+            {!loading && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                {total} total
               </span>
             )}
           </div>
@@ -165,7 +215,12 @@ export default function PRQueue({ code }: { code?: string }) {
       </div>
 
       {/* Pending Items List or Empty State */}
-      {items.length === 0 ? (
+      {loading ? (
+        <div className="surface-card mt-4 p-8 text-center">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-slate-500">Loading queue…</p>
+        </div>
+      ) : items.length === 0 ? (
         <div className="surface-card mt-4 p-8 text-center">
           <p className="text-lg font-semibold text-ink">
             {hasActiveFilters
@@ -227,6 +282,32 @@ export default function PRQueue({ code }: { code?: string }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between gap-4">
+          <p className="text-xs text-slate-500">
+            Page <span className="font-semibold text-ink">{page}</span> of{" "}
+            <span className="font-semibold text-ink">{totalPages}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1}
+              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ← Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
 

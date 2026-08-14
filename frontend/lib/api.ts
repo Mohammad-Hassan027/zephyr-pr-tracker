@@ -53,6 +53,19 @@ export type PendingRegistration = {
   event: { name: string; slug: string };
 };
 
+/** Shape returned by all paginated endpoints */
+export type PaginatedResponse<T> = {
+  items: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+};
+
 export async function getEvents(clubSlug?: string): Promise<EventItem[]> {
   const url = clubSlug
     ? `${API_URL}/events?club=${encodeURIComponent(clubSlug)}`
@@ -115,18 +128,22 @@ export type PendingQueueFilters = {
   college?: string;
   from?: string;
   to?: string;
+  page?: number;
+  limit?: number;
 };
 
 export async function getPendingQueue(
   code?: string,
   filters?: PendingQueueFilters,
-): Promise<PendingRegistration[]> {
+): Promise<PaginatedResponse<PendingRegistration>> {
   const params = new URLSearchParams();
   if (code) params.set("code", code);
   if (filters?.event) params.set("event", filters.event);
   if (filters?.college) params.set("college", filters.college);
   if (filters?.from) params.set("from", filters.from);
   if (filters?.to) params.set("to", filters.to);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.limit) params.set("limit", String(filters.limit));
 
   const queryString = params.toString() ? `?${params.toString()}` : "";
   const baseUrl = code
