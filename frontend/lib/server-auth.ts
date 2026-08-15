@@ -40,6 +40,38 @@ export function unauthorized(message = "Authentication required") {
   return NextResponse.json({ error: message }, { status: 401 });
 }
 
+const EXCLUDED_PROXY_RESPONSE_HEADERS = new Set([
+  "connection",
+  "content-encoding",
+  "content-length",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+]);
+
+function proxiedResponseHeaders(response: Response) {
+  const headers = new Headers();
+
+  response.headers.forEach((value, key) => {
+    const normalizedKey = key.toLowerCase();
+    if (EXCLUDED_PROXY_RESPONSE_HEADERS.has(normalizedKey)) {
+      return;
+    }
+    headers.set(key, value);
+  });
+
+  return headers;
+}
+
+/**
+ * Proxy an authenticated request to the backend and stream the response body
+ * directly without buffering it in memory. Eliminates the double-handling
+ * overhead of the previous `await backendRes.text()` pattern.
+ */
 export async function proxyBackendRequest(
   path: string,
   token: string | undefined,
@@ -50,19 +82,27 @@ export async function proxyBackendRequest(
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${token}`);
 
-  const backendRes = await fetch(backendUrl(path), {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
-  const body = await backendRes.text();
-  const responseHeaders = new Headers();
-  const contentType = backendRes.headers.get("content-type");
+  try {
+    const backendRes = await fetch(backendUrl(path), {
+      ...init,
+      headers,
+      cache: "no-store",
+    });
 
-  if (contentType) responseHeaders.set("Content-Type", contentType);
+    const body =
+      backendRes.status === 204 || backendRes.status === 304
+        ? null
+        : backendRes.body;
 
-  return new NextResponse(body, {
-    status: backendRes.status,
-    headers: responseHeaders,
-  });
+    return new NextResponse(body, {
+      status: backendRes.status,
+      statusText: backendRes.statusText,
+      headers: proxiedResponseHeaders(backendRes),
+    });
+  } catch (_err) {
+    return NextResponse.json(
+      { error: "Backend request failed" },
+      { status: 502 },
+    );
+  }
 }

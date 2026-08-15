@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { EventItem, getEvents, submitRegistration } from "@/lib/api";
+import {
+  EventItem,
+  getEvents,
+  submitRegistration,
+  uploadPaymentScreenshot,
+} from "@/lib/api";
 
 type ClubDetails = {
   name: string;
@@ -34,7 +39,9 @@ export default function ClubRegisterPage({
   });
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "uploading" | "submitting" | "error"
+  >("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -79,12 +86,14 @@ export default function ClubRegisterPage({
       setStatus("error");
       return;
     }
-    setStatus("loading");
+    setStatus("uploading");
     try {
+      const upload = await uploadPaymentScreenshot(screenshot);
+      setStatus("submitting");
       const { id } = await submitRegistration({
         ...form,
         clubSlug,
-        screenshot,
+        ...upload,
       });
       router.push(`/status/${id}`);
     } catch (err) {
@@ -121,6 +130,8 @@ export default function ClubRegisterPage({
       </main>
     );
   }
+
+  const isSubmitting = status === "uploading" || status === "submitting";
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
@@ -222,10 +233,14 @@ export default function ClubRegisterPage({
 
           <button
             type="submit"
-            disabled={status === "loading"}
+            disabled={isSubmitting}
             className="btn-primary w-full"
           >
-            {status === "loading" ? "Submitting..." : "Submit for approval"}
+            {status === "uploading"
+              ? "Uploading screenshot..."
+              : status === "submitting"
+                ? "Submitting..."
+                : "Submit for approval"}
           </button>
         </form>
       </div>

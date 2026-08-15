@@ -88,7 +88,66 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return res.json();
 }
 
-// Submits the form as multipart/form-data (required for the file upload)
+type UploadSignature = {
+  timestamp: number;
+  signature: string;
+  api_key: string;
+  cloud_name: string;
+  folder: string;
+};
+
+type CloudinaryUploadResponse = {
+  secure_url?: string;
+  public_id?: string;
+  error?: { message?: string };
+};
+
+async function readJsonResponse<T>(res: Response): Promise<T> {
+  return res.json().catch(() => ({} as T));
+}
+
+export async function uploadPaymentScreenshot(file: File): Promise<{
+  paymentScreenshot: string;
+  paymentScreenshotPublicId: string;
+}> {
+  const signatureRes = await fetch(`${API_URL}/registrations/upload-signature`, {
+    method: "GET",
+    cache: "no-store",
+  });
+  const signatureData = await readJsonResponse<UploadSignature & { error?: string }>(
+    signatureRes,
+  );
+
+  if (!signatureRes.ok) {
+    throw new Error(signatureData.error || "Could not prepare image upload");
+  }
+
+  const uploadBody = new FormData();
+  uploadBody.append("file", file);
+  uploadBody.append("api_key", signatureData.api_key);
+  uploadBody.append("timestamp", String(signatureData.timestamp));
+  uploadBody.append("signature", signatureData.signature);
+  uploadBody.append("folder", signatureData.folder);
+
+  const uploadRes = await fetch(
+    `https://api.cloudinary.com/v1_1/${signatureData.cloud_name}/image/upload`,
+    { method: "POST", body: uploadBody },
+  );
+  const uploadData = await readJsonResponse<CloudinaryUploadResponse>(uploadRes);
+
+  if (!uploadRes.ok || !uploadData.secure_url || !uploadData.public_id) {
+    throw new Error(
+      uploadData.error?.message || "Payment screenshot upload failed",
+    );
+  }
+
+  return {
+    paymentScreenshot: uploadData.secure_url,
+    paymentScreenshotPublicId: uploadData.public_id,
+  };
+}
+
+// Submits registration data after the browser uploads the screenshot directly.
 export async function submitRegistration(form: {
   studentName: string;
   studentEmail: string;
@@ -98,17 +157,17 @@ export async function submitRegistration(form: {
   eventSlug: string;
   clubSlug?: string;
   referralCode: string;
-  screenshot: File;
+  paymentScreenshot: string;
+  paymentScreenshotPublicId: string;
 }): Promise<{ id: string; status: string }> {
-  const body = new FormData();
-  Object.entries(form).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      body.append(key, value);
-    }
+  const res = await fetch(`${API_URL}/registrations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(form),
   });
-
-  const res = await fetch(`${API_URL}/registrations`, { method: "POST", body });
-  const data = await res.json();
+  const data = await readJsonResponse<{ id: string; status: string; error?: string }>(
+    res,
+  );
   if (!res.ok) throw new Error(data.error || "Submission failed");
   return data;
 }
