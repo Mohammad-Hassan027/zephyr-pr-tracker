@@ -1,7 +1,6 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import rateLimit from "express-rate-limit";
-import multer from "multer";
 import Registration from "../models/Registration.js";
 import Event from "../models/Event.js";
 import PRMember from "../models/PRMember.js";
@@ -10,16 +9,16 @@ import { nextSequence } from "../models/Counter.js";
 import { withTransaction } from "../utils/transaction.js";
 import {
   AppError,
-  BadRequestError,
   ConflictError,
   ForbiddenError,
   NotFoundError,
 } from "../utils/errors.js";
 import { statusEmitter } from "../utils/statusEmitter.js";
-import cloudinary, { uploadBuffer } from "../config/cloudinary.js";
+import cloudinary from "../config/cloudinary.js";
 import { requireClub, requireClubOrPRMember } from "../utils/auth.js";
 
 const router = Router();
+const CLOUDINARY_UPLOAD_FOLDER = "zephyr-payments";
 
 const registrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -31,16 +30,47 @@ const registrationLimiter = rateLimit({
   },
 });
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Screenshot must be an image"));
-    }
-    cb(null, true);
+const uploadSignatureLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many upload attempts from this IP. Please try again shortly.",
   },
 });
+
+function toTrimmedString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isValidCloudinaryPublicId(value) {
+  const publicId = toTrimmedString(value);
+  return (
+    publicId.length > CLOUDINARY_UPLOAD_FOLDER.length + 1 &&
+    publicId.length <= 255 &&
+    publicId.startsWith(`${CLOUDINARY_UPLOAD_FOLDER}/`) &&
+    /^[A-Za-z0-9/_-]+$/.test(publicId) &&
+    !publicId.includes("..") &&
+    !publicId.includes("//")
+  );
+}
+
+function isValidCloudinaryImageUrl(value, publicId) {
+  try {
+    const url = new URL(value);
+    const pathWithoutExtension = url.pathname.replace(/\.[^/.]+$/, "");
+
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "res.cloudinary.com" &&
+      url.pathname.includes("/image/upload/") &&
+      pathWithoutExtension.endsWith(`/${publicId}`)
+    );
+  } catch (_err) {
+    return false;
+  }
+}
 
 function getReviewerCode(auth) {
   return auth.role === "club" || auth.role === "admin" ? "admin" : auth.code;
@@ -53,14 +83,51 @@ function canReviewRegistration(auth, registration) {
   return auth.role === "club" || auth.role === "admin" || registration.referralCode === auth.code;
 }
 
-// POST /api/registrations - public submission: details + referral + event + UPI screenshot.
-// Copies club from event onto registration doc.
-router.post("/", registrationLimiter, upload.single("screenshot"), async (req, res) => {
+// GET /api/registrations/upload-signature - signed direct-upload params for payment screenshots.
+router.get("/upload-signature", uploadSignatureLimiter, (_req, res) => {
   try {
-    const { studentName, studentEmail, studentPhone, college, amount, eventSlug, clubSlug, referralCode } =
-      req.body;
+    const { api_key: apiKey, api_secret: apiSecret, cloud_name: cloudName } =
+      cloudinary.config();
 
-    if (!req.file) return res.status(400).json({ error: "UPI screenshot is required" });
+    if (!apiKey || !apiSecret || !cloudName) {
+      return res.status(500).json({ error: "Cloudinary upload is not configured" });
+    }
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const paramsToSign = {
+      folder: CLOUDINARY_UPLOAD_FOLDER,
+      timestamp,
+    };
+    const signature = cloudinary.utils.api_sign_request(paramsToSign, apiSecret);
+
+    return res.json({
+      timestamp,
+      signature,
+      api_key: apiKey,
+      cloud_name: cloudName,
+      folder: CLOUDINARY_UPLOAD_FOLDER,
+    });
+  } catch (_err) {
+    return res.status(500).json({ error: "Failed to generate upload signature" });
+  }
+});
+
+// POST /api/registrations - public submission with a direct-uploaded payment screenshot.
+// Copies club from event onto registration doc.
+router.post("/", registrationLimiter, async (req, res) => {
+  try {
+    const {
+      studentName,
+      studentEmail,
+      studentPhone,
+      college,
+      amount,
+      eventSlug,
+      clubSlug,
+      referralCode,
+      paymentScreenshot,
+      paymentScreenshotPublicId,
+    } = req.body;
 
     if (!clubSlug) {
       return res.status(400).json({ error: "Club identifier is required" });
@@ -88,7 +155,22 @@ router.post("/", registrationLimiter, upload.single("screenshot"), async (req, r
       if (member) validCode = member.code;
     }
 
-    const uploadResult = await uploadBuffer(req.file.buffer);
+    const screenshotUrl = toTrimmedString(paymentScreenshot);
+    const screenshotPublicId = toTrimmedString(paymentScreenshotPublicId);
+
+    if (!screenshotUrl || !screenshotPublicId) {
+      return res.status(400).json({
+        error: "Payment screenshot URL and public ID are required",
+      });
+    }
+
+    if (!isValidCloudinaryPublicId(screenshotPublicId)) {
+      return res.status(400).json({ error: "Invalid payment screenshot public ID" });
+    }
+
+    if (!isValidCloudinaryImageUrl(screenshotUrl, screenshotPublicId)) {
+      return res.status(400).json({ error: "Invalid payment screenshot URL" });
+    }
 
     const registration = await Registration.create({
       studentName,
@@ -99,8 +181,8 @@ router.post("/", registrationLimiter, upload.single("screenshot"), async (req, r
       event: event._id,
       club: event.club,
       referralCode: validCode,
-      paymentScreenshot: uploadResult.secure_url,
-      paymentScreenshotPublicId: uploadResult.public_id,
+      paymentScreenshot: screenshotUrl,
+      paymentScreenshotPublicId: screenshotPublicId,
       status: "pending",
     });
 
