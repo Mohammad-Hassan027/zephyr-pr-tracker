@@ -162,6 +162,18 @@ router.get("/me", requireClub, async (req, res) => {
   }
 });
 
+// GET /api/clubs - list approved clubs (public directory)
+router.get("/", async (_req, res) => {
+  try {
+    const clubs = await Club.find({ status: "approved" })
+      .select("name slug")
+      .sort({ name: 1 });
+    res.json(clubs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/clubs/public/:slug - public club details (name, slug) for registration page
 router.get("/public/:slug", async (req, res) => {
   try {

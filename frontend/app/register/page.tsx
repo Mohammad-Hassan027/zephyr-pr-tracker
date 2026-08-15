@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function RegisterPage() {
@@ -58,7 +59,12 @@ function RegisterRedirect() {
           Select a Club
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Registrations are managed individually by each club. Please use a club's registration URL (e.g. <code className="font-mono text-xs">/register/club-slug</code>).
+          Browse all approved clubs on the{" "}
+          <Link href="/clubs" className="font-semibold text-accent hover:underline">
+            clubs directory
+          </Link>{" "}
+          or use a direct registration URL (e.g.{" "}
+          <code className="font-mono text-xs">/register/club-slug</code>).
         </p>
       </div>
     </main>

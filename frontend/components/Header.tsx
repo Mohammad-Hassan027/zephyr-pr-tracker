@@ -13,8 +13,12 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
             <p className="text-[11px] uppercase tracking-[0.25em] text-slate-500">PR tracker</p>
           </div>
         </Link>
-        {showNav && (
-          <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-600 sm:gap-4">
+        <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-600 sm:gap-4">
+          <Link href="/clubs" className="rounded-full px-3 py-1.5 transition hover:bg-accent/10 hover:text-accent">
+            Clubs
+          </Link>
+          {showNav && (
+            <>
             <Link href="/dashboard" className="rounded-full px-3 py-1.5 transition hover:bg-accent/10 hover:text-accent">
               Participation
             </Link>
@@ -27,8 +31,9 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
             <Link href="/admin/audit" className="rounded-full px-3 py-1.5 transition hover:bg-accent/10 hover:text-accent">
               Audit Trail
             </Link>
-          </nav>
-        )}
+            </>
+          )}
+        </nav>
       </div>
     </header>
   );
