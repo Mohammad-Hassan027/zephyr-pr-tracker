@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 import PRQueue from "@/components/PRQueue";
 
@@ -30,24 +30,36 @@ export default function AdminPage() {
     null,
   );
   const [msg, setMsg] = useState("");
+  const activeRef = useRef(true);
+  const loadAbortRef = useRef<AbortController | null>(null);
 
-  async function loadData() {
+  async function loadData(signal?: AbortSignal) {
     try {
       const [c, m, e] = await Promise.all([
-        fetch("/api/admin/club").then((r) => (r.ok ? r.json() : null)),
-        fetch("/api/admin/members").then((r) => (r.ok ? r.json() : [])),
-        fetch("/api/admin/events").then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/admin/club", { signal }).then((r) => (r.ok ? r.json() : null)),
+        fetch("/api/admin/members", { signal }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/admin/events", { signal }).then((r) => (r.ok ? r.json() : [])),
       ]);
+      if (!activeRef.current || signal?.aborted) return;
       setClub(c);
       setMembers(Array.isArray(m) ? m : []);
       setEvents(Array.isArray(e) ? e : []);
-    } catch (_err) {
+    } catch (err) {
+      if (!activeRef.current || (err instanceof DOMException && err.name === "AbortError")) return;
       setMsg("Error loading club admin data");
     }
   }
 
   useEffect(() => {
-    loadData();
+    activeRef.current = true;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    loadData(controller.signal);
+    return () => {
+      activeRef.current = false;
+      controller.abort();
+    };
   }, []);
 
   async function createEvent(e: React.FormEvent) {
@@ -63,7 +75,10 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setEventForm({ name: "", slug: "", date: "", capacity: "" });
-      loadData();
+      loadAbortRef.current?.abort();
+      const controller = new AbortController();
+      loadAbortRef.current = controller;
+      loadData(controller.signal);
     } else {
       const body = await res.json();
       setMsg(body.error || "Failed to create event");
@@ -83,7 +98,10 @@ export default function AdminPage() {
     if (res.ok) {
       setMemberForm({ name: "", code: "", password: "" });
       setNewPin({ code: body.code, pin: body.pin });
-      loadData();
+      loadAbortRef.current?.abort();
+      const controller = new AbortController();
+      loadAbortRef.current = controller;
+      loadData(controller.signal);
     } else {
       setMsg(body.error || "Failed to create member");
     }

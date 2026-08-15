@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 
 type PendingClub = {
@@ -21,32 +21,47 @@ export default function PlatformClubsPage() {
   const [loadingClubs, setLoadingClubs] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const activeRef = useRef(true);
+  const loadAbortRef = useRef<AbortController | null>(null);
 
-  async function loadPendingClubs() {
+  async function loadPendingClubs(signal?: AbortSignal) {
     setLoadingClubs(true);
     setMsg("");
     try {
-      const res = await fetch("/api/platform/clubs/pending");
+      const res = await fetch("/api/platform/clubs/pending", { signal });
+      if (!activeRef.current || signal?.aborted) return;
       if (res.status === 401 || res.status === 403) {
         setIsAuthenticated(false);
         return;
       }
       const data = await res.json();
+      if (!activeRef.current || signal?.aborted) return;
       if (res.ok && Array.isArray(data)) {
         setIsAuthenticated(true);
         setClubs(data);
       } else {
         setMsg(data.error || "Failed to load pending clubs");
       }
-    } catch (_err) {
+    } catch (err) {
+      if (!activeRef.current || (err instanceof DOMException && err.name === "AbortError")) return;
       setMsg("Failed to connect to platform admin endpoint");
     } finally {
-      setLoadingClubs(false);
+      if (activeRef.current && !signal?.aborted) {
+        setLoadingClubs(false);
+      }
     }
   }
 
   useEffect(() => {
-    loadPendingClubs();
+    activeRef.current = true;
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    loadPendingClubs(controller.signal);
+    return () => {
+      activeRef.current = false;
+      controller.abort();
+    };
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
@@ -64,7 +79,10 @@ export default function PlatformClubsPage() {
 
       if (res.ok) {
         setIsAuthenticated(true);
-        loadPendingClubs();
+        loadAbortRef.current?.abort();
+        const controller = new AbortController();
+        loadAbortRef.current = controller;
+        loadPendingClubs(controller.signal);
       } else {
         setLoginError(data.error || "Invalid password");
       }
@@ -82,7 +100,10 @@ export default function PlatformClubsPage() {
         method: "PATCH",
       });
       if (res.ok) {
-        loadPendingClubs();
+        loadAbortRef.current?.abort();
+        const controller = new AbortController();
+        loadAbortRef.current = controller;
+        loadPendingClubs(controller.signal);
       } else {
         const body = await res.json();
         alert(body.error || "Approval failed");
@@ -100,7 +121,10 @@ export default function PlatformClubsPage() {
         method: "PATCH",
       });
       if (res.ok) {
-        loadPendingClubs();
+        loadAbortRef.current?.abort();
+        const controller = new AbortController();
+        loadAbortRef.current = controller;
+        loadPendingClubs(controller.signal);
       } else {
         const body = await res.json();
         alert(body.error || "Rejection failed");
@@ -182,7 +206,12 @@ export default function PlatformClubsPage() {
               Pending Queue ({clubs.length})
             </h2>
             <button
-              onClick={loadPendingClubs}
+              onClick={() => {
+                loadAbortRef.current?.abort();
+                const controller = new AbortController();
+                loadAbortRef.current = controller;
+                loadPendingClubs(controller.signal);
+              }}
               className="text-xs font-semibold text-accent hover:underline"
             >
               Refresh queue

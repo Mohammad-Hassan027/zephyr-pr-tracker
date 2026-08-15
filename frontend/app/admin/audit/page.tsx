@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Header from "@/components/Header";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 type AuditRegistration = {
   _id: string;
@@ -32,10 +33,13 @@ export default function AuditPage() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "rejected">("all");
   const [reviewerFilter, setReviewerFilter] = useState("");
+  const debouncedReviewerFilter = useDebouncedValue(reviewerFilter, 300);
   const [page, setPage] = useState(1);
 
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
   const fetchAudit = useCallback(
-    async (targetPage = 1) => {
+    async (targetPage: number, signal: AbortSignal) => {
       setLoading(true);
       setError("");
       try {
@@ -43,38 +47,57 @@ export default function AuditPage() {
         params.set("page", String(targetPage));
         params.set("limit", String(PAGE_LIMIT));
         if (statusFilter !== "all") params.set("status", statusFilter);
-        if (reviewerFilter.trim()) params.set("reviewer", reviewerFilter.trim());
+        if (debouncedReviewerFilter.trim()) {
+          params.set("reviewer", debouncedReviewerFilter.trim());
+        }
 
-        const res = await fetch(`/api/admin/registrations/audit?${params.toString()}`);
+        const res = await fetch(
+          `/api/admin/registrations/audit?${params.toString()}`,
+          { cache: "no-store", signal },
+        );
+        if (signal.aborted) return;
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || "Failed to load audit trail");
         }
         const data = await res.json();
+        if (signal.aborted) return;
         setRegistrations(data.items ?? data);
         if (data.pagination) {
           setPagination(data.pagination);
           setPage(data.pagination.page);
         }
       } catch (err) {
+        if (signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
         setError(err instanceof Error ? err.message : "Error loading audit trail");
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
     },
-    [statusFilter, reviewerFilter],
+    [statusFilter, debouncedReviewerFilter],
   );
 
   // Re-fetch from page 1 when filters change
   useEffect(() => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     setPage(1);
-    fetchAudit(1);
-  }, [statusFilter, reviewerFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchAudit(1, controller.signal);
+    return () => controller.abort();
+  }, [fetchAudit]);
 
   function handlePageChange(newPage: number) {
     if (!pagination) return;
     if (newPage < 1 || newPage > pagination.totalPages) return;
-    fetchAudit(newPage);
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    fetchAudit(newPage, controller.signal);
   }
 
   // Extract unique reviewer codes seen in current page for datalist

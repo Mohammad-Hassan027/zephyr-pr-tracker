@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   approveRegistration,
   getEvents,
@@ -9,6 +10,7 @@ import {
   PendingRegistration,
   rejectRegistration,
 } from "@/lib/api";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 const PAGE_LIMIT = 20;
 
@@ -29,6 +31,9 @@ export default function PRQueue({ code }: { code?: string }) {
   const [college, setCollege] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const debouncedCollege = useDebouncedValue(college, 300);
+
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   // Fetch available events on mount
   useEffect(() => {
@@ -38,59 +43,60 @@ export default function PRQueue({ code }: { code?: string }) {
       .catch(() => getEvents().then((data) => setEvents(Array.isArray(data) ? data : [])));
   }, []);
 
-  const load = useCallback(
-    async (targetPage = page) => {
+  const fetchQueue = useCallback(
+    async (targetPage: number, signal: AbortSignal) => {
       setLoading(true);
       try {
-        const data = await getPendingQueue(code, {
-          event: eventSlug || undefined,
-          college: college || undefined,
-          from: from || undefined,
-          to: to || undefined,
-          page: targetPage,
-          limit: PAGE_LIMIT,
-        });
+        const data = await getPendingQueue(
+          code,
+          {
+            event: eventSlug || undefined,
+            college: debouncedCollege || undefined,
+            from: from || undefined,
+            to: to || undefined,
+            page: targetPage,
+            limit: PAGE_LIMIT,
+          },
+          signal,
+        );
+        if (signal.aborted) return;
         setItems(data.items);
         setTotalPages(data.pagination.totalPages);
         setTotal(data.pagination.total);
         setPage(data.pagination.page);
       } catch (err) {
+        if (signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
         console.error("Failed to load queue", err);
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
     },
-    [code, eventSlug, college, from, to, page],
+    [code, eventSlug, debouncedCollege, from, to],
   );
 
   // Re-fetch from page 1 whenever filters change
-  const loadFirstPage = useCallback(async () => {
-    setPage(1);
-    setLoading(true);
-    try {
-      const data = await getPendingQueue(code, {
-        event: eventSlug || undefined,
-        college: college || undefined,
-        from: from || undefined,
-        to: to || undefined,
-        page: 1,
-        limit: PAGE_LIMIT,
-      });
-      setItems(data.items);
-      setTotalPages(data.pagination.totalPages);
-      setTotal(data.pagination.total);
-      setPage(data.pagination.page);
-    } catch (err) {
-      console.error("Failed to load queue", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [code, eventSlug, college, from, to]);
-
   useEffect(() => {
-    loadFirstPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventSlug, college, from, to]);
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    setPage(1);
+    fetchQueue(1, controller.signal);
+    return () => controller.abort();
+  }, [fetchQueue]);
+
+  const load = useCallback(
+    async (targetPage = page) => {
+      fetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      fetchAbortRef.current = controller;
+      await fetchQueue(targetPage, controller.signal);
+    },
+    [fetchQueue, page],
+  );
 
   async function handleApprove(id: string) {
     setBusyId(id);
@@ -257,12 +263,20 @@ export default function PRQueue({ code }: { code?: string }) {
                     {r.referralCode ? ` · ref ${r.referralCode}` : ""}
                   </p>
                 </div>
-                <img
-                  src={r.paymentScreenshot}
-                  alt="UPI screenshot"
-                  className="h-24 w-24 cursor-pointer rounded-2xl border border-slate-200 object-cover shadow-sm sm:h-28 sm:w-28"
+                <button
+                  type="button"
                   onClick={() => setZoomed(r.paymentScreenshot)}
-                />
+                  className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-slate-200 shadow-sm sm:h-28 sm:w-28"
+                >
+                  <Image
+                    src={r.paymentScreenshot}
+                    alt="UPI screenshot"
+                    fill
+                    sizes="(max-width: 640px) 96px, 112px"
+                    loading="lazy"
+                    className="object-cover"
+                  />
+                </button>
               </div>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <button
@@ -316,11 +330,16 @@ export default function PRQueue({ code }: { code?: string }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6"
           onClick={() => setZoomed(null)}
         >
-          <img
-            src={zoomed}
-            alt="UPI screenshot full size"
-            className="max-h-full max-w-full rounded-[24px] border border-white/20 shadow-2xl"
-          />
+          <div className="relative h-[min(90vh,800px)] w-[min(90vw,800px)]">
+            <Image
+              src={zoomed}
+              alt="UPI screenshot full size"
+              fill
+              sizes="(max-width: 800px) 90vw, 800px"
+              priority
+              className="rounded-[24px] border border-white/20 object-contain shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </>

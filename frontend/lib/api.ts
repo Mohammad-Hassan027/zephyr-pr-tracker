@@ -66,25 +66,29 @@ export type PaginatedResponse<T> = {
   };
 };
 
+const REVALIDATE_60 = { next: { revalidate: 60 } } as const;
+
 export async function getEvents(clubSlug?: string): Promise<EventItem[]> {
   const url = clubSlug
     ? `${API_URL}/events?club=${encodeURIComponent(clubSlug)}`
     : `${API_URL}/events`;
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, REVALIDATE_60);
   return res.json();
 }
 
 export async function getStats(): Promise<EventStat[]> {
-  const res = await fetch("/api/admin/registrations/stats/summary", {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    "/api/admin/registrations/stats/summary",
+    REVALIDATE_60,
+  );
   return res.json();
 }
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-  const res = await fetch("/api/admin/registrations/stats/leaderboard", {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    "/api/admin/registrations/stats/leaderboard",
+    REVALIDATE_60,
+  );
   return res.json();
 }
 
@@ -194,6 +198,7 @@ export type PendingQueueFilters = {
 export async function getPendingQueue(
   code?: string,
   filters?: PendingQueueFilters,
+  signal?: AbortSignal,
 ): Promise<PaginatedResponse<PendingRegistration>> {
   const params = new URLSearchParams();
   if (code) params.set("code", code);
@@ -209,7 +214,10 @@ export async function getPendingQueue(
     ? "/api/pr/registrations/pending"
     : "/api/admin/registrations/pending";
 
-  const res = await fetch(`${baseUrl}${queryString}`, { cache: "no-store" });
+  const res = await fetch(`${baseUrl}${queryString}`, {
+    cache: "no-store",
+    signal,
+  });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Queue load failed");
   return data;
