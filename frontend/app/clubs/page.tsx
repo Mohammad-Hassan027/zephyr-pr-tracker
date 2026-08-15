@@ -46,7 +46,7 @@ export default function ClubsPage() {
 
   return (
     <>
-      <Header showNav />
+      <Header />
       <main className="page-shell space-y-6">
         <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
           <p className="pill-chip">Discover</p>
