@@ -12,7 +12,7 @@ export default async function ClubRegisterPage({
   searchParams,
 }: {
   params: { clubSlug: string };
-  searchParams: { ref?: string };
+  searchParams: { ref?: string; event?: string; email?: string; name?: string };
 }) {
   const clubSlug = params.clubSlug;
 
@@ -53,6 +53,9 @@ export default async function ClubRegisterPage({
       events={events}
       clubSlug={clubSlug}
       initialReferralCode={searchParams.ref || ""}
+      initialEventSlug={searchParams.event || ""}
+      initialEmail={searchParams.email || ""}
+      initialName={searchParams.name || ""}
     />
   );
 }

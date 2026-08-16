@@ -8,8 +8,10 @@ export type EventItem = {
   _id: string;
   name: string;
   slug: string;
-  description: string;
-  date: string;
+  description?: string;
+  venue?: string;
+  fee?: number;
+  date?: string;
   capacity: number | null;
 };
 
@@ -28,6 +30,7 @@ export type LeaderboardEntry = {
 };
 
 export type RegistrationStatus = {
+  id?: string;
   status: "pending" | "approved" | "rejected";
   rejectionReason: string | null;
   regNo: string | null;
@@ -37,7 +40,19 @@ export type RegistrationStatus = {
   college?: string;
   amount?: number;
   createdAt: string;
-  event: { name: string; slug: string };
+  event: {
+    name: string;
+    slug: string;
+    date?: string;
+    venue?: string;
+    fee?: number;
+    description?: string;
+  };
+  club?: {
+    name: string;
+    slug: string;
+    email: string;
+  };
 };
 
 export type PendingRegistration = {
@@ -248,6 +263,94 @@ export async function rejectRegistration(
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Reject failed");
+  return data;
+}
+
+export async function checkDuplicateRegistration(params: {
+  clubSlug: string;
+  eventSlug: string;
+  studentEmail: string;
+}): Promise<{ exists: boolean; registrationId?: string; status?: string }> {
+  const res = await fetch(`${API_URL}/registrations/check-duplicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  return res.json();
+}
+
+export type LookupResult = {
+  id: string;
+  regNo: string | null;
+  status: "pending" | "approved" | "rejected";
+  studentName: string;
+  studentEmail: string;
+  studentPhone?: string;
+  college?: string;
+  amount?: number;
+  createdAt: string;
+  rejectionReason?: string;
+  event: {
+    name: string;
+    slug: string;
+    date?: string;
+    venue?: string;
+    fee?: number;
+    description?: string;
+  };
+  club: {
+    name: string;
+    slug: string;
+    email: string;
+  };
+};
+
+export async function lookupRegistrations(params: {
+  studentEmail: string;
+  clubSlug?: string;
+}): Promise<{ registrations: LookupResult[] }> {
+  const res = await fetch(`${API_URL}/registrations/lookup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Lookup failed");
+  return data;
+}
+
+export async function bulkApproveRegistrations(
+  ids: string[],
+  reviewerCode?: string,
+): Promise<{ ok: boolean; processed: number; failed: number; errors?: any[] }> {
+  const url = reviewerCode
+    ? "/api/pr/registrations/bulk-approve"
+    : "/api/admin/registrations/bulk-approve";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Bulk approve failed");
+  return data;
+}
+
+export async function bulkRejectRegistrations(
+  ids: string[],
+  reason?: string,
+  reviewerCode?: string,
+): Promise<{ ok: boolean; processed: number; failed: number; errors?: any[] }> {
+  const url = reviewerCode
+    ? "/api/pr/registrations/bulk-reject"
+    : "/api/admin/registrations/bulk-reject";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, reason }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Bulk reject failed");
   return data;
 }
 

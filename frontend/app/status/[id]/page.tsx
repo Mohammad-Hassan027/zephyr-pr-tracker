@@ -109,6 +109,26 @@ export default function StatusPage() {
     };
   }, [params.id]);
 
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  }
+
+  function handleWhatsAppShare() {
+    if (typeof window === "undefined" || !data) return;
+    const url = window.location.href;
+    const text =
+      data.status === "approved"
+        ? `I just got confirmed for ${data.event?.name}! Reg No: ${data.regNo}. Check details: ${url}`
+        : `Tracking my registration for ${data.event?.name}: ${url}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
   if (error) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
@@ -118,6 +138,11 @@ export default function StatusPage() {
             Registration not found
           </h1>
           <p className="mt-2 text-sm text-slate-600">{error}</p>
+          <div className="mt-5">
+            <a href="/my-status" className="btn-primary inline-block text-xs">
+              Look up with your email
+            </a>
+          </div>
         </div>
       </main>
     );
@@ -162,12 +187,39 @@ export default function StatusPage() {
             Your payment screenshot is being verified by the PR team. This page
             updates instantly upon review — keep it open.
           </p>
+
+          <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200/80 p-3 text-xs text-slate-600">
+            <p className="font-semibold text-ink mb-1">Save this tracking link</p>
+            <p className="text-[11px] text-slate-500 truncate mb-2">
+              {typeof window !== "undefined" ? window.location.href : ""}
+            </p>
+            <div className="flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="rounded-full bg-white border border-slate-200 px-3 py-1 font-semibold text-slate-700 hover:bg-slate-100 transition"
+              >
+                {copied ? "✓ Copied Link" : "Copy Link"}
+              </button>
+              <button
+                type="button"
+                onClick={handleWhatsAppShare}
+                className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 font-semibold text-emerald-700 hover:bg-emerald-100 transition"
+              >
+                Share
+              </button>
+            </div>
+          </div>
         </div>
       </main>
     );
   }
 
   if (data.status === "rejected") {
+    const reapplyUrl = data.club?.slug
+      ? `/register/${data.club.slug}?event=${data.event?.slug || ""}&email=${encodeURIComponent(data.studentEmail || "")}&name=${encodeURIComponent(data.studentName || "")}`
+      : "/clubs";
+
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
         <div className="surface-card w-full p-8 text-center">
@@ -175,9 +227,31 @@ export default function StatusPage() {
           <h1 className="mt-4 text-xl font-semibold text-red-600">
             Registration rejected
           </h1>
-          <p className="mt-2 text-sm text-slate-600">{data.rejectionReason}</p>
+          <div className="mt-3 rounded-2xl border border-red-200 bg-red-50/70 p-3 text-sm text-red-700">
+            <p className="font-semibold">Reason provided:</p>
+            <p className="mt-0.5">{data.rejectionReason || "Payment verification failed"}</p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {data.club?.email && (
+              <a
+                href={`mailto:${data.club.email}?subject=Registration%20Inquiry%20-%20${encodeURIComponent(data.event?.name || "")}`}
+                className="block w-full rounded-2xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+              >
+                ✉ Contact Club Admin ({data.club.email})
+              </a>
+            )}
+
+            <a
+              href={reapplyUrl}
+              className="btn-primary block w-full"
+            >
+              Re-apply / Fix Submission →
+            </a>
+          </div>
+
           <p className="mt-4 text-xs text-slate-500">
-            Contact the PR team if you think this is a mistake.
+            You can re-submit with a clear screenshot or corrected payment details.
           </p>
         </div>
       </main>
@@ -187,25 +261,49 @@ export default function StatusPage() {
   // approved
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-      <div className="ticket-card w-full">
-        <div className="ticket-top">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-600">
-            Zephyr · Registration confirmed
-          </p>
-          <p className="mt-1 font-display text-xl font-semibold text-ink">
-            {data.event?.name}
-          </p>
+      <div className="w-full space-y-4">
+        <div className="ticket-card w-full">
+          <div className="ticket-top">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-600">
+              Zephyr · Registration confirmed
+            </p>
+            <p className="mt-1 font-display text-xl font-semibold text-ink">
+              {data.event?.name}
+            </p>
+            {data.event?.venue && (
+              <p className="text-xs text-slate-600 mt-0.5">
+                📍 {data.event.venue}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2 bg-white p-5 text-sm">
+            <Row label="Reg No" value={data.regNo || "—"} bold />
+            <Row label="Name" value={data.studentName} />
+            <Row label="College" value={data.college || "—"} />
+            <Row label="Contact" value={data.studentPhone || data.studentEmail} />
+            <Row label="Amount Paid" value={data.amount ? `₹${data.amount}` : "—"} />
+            <Row
+              label="Date"
+              value={data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—"}
+            />
+          </div>
         </div>
-        <div className="space-y-2 bg-white p-5 text-sm">
-          <Row label="Reg No" value={data.regNo || "—"} bold />
-          <Row label="Name" value={data.studentName} />
-          <Row label="College" value={data.college || "—"} />
-          <Row label="Contact" value={data.studentPhone || data.studentEmail} />
-          <Row label="Amount" value={data.amount ? `₹${data.amount}` : "—"} />
-          <Row
-            label="Date"
-            value={data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—"}
-          />
+
+        <div className="flex gap-2 justify-center">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex-1 rounded-2xl border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+          >
+            {copied ? "✓ Copied Link" : "Copy Ticket Link"}
+          </button>
+          <button
+            type="button"
+            onClick={handleWhatsAppShare}
+            className="flex-1 rounded-2xl border border-emerald-200 bg-emerald-50 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition shadow-sm"
+          >
+            Share on WhatsApp
+          </button>
         </div>
       </div>
     </main>

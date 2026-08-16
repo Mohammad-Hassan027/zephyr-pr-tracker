@@ -189,9 +189,104 @@ router.post("/", registrationLimiter, async (req, res) => {
     res.status(201).json({ id: registration._id, status: registration.status });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ error: "You already registered for this event" });
+      try {
+        const club = await Club.findOne({ slug: String(req.body.clubSlug || "").trim().toLowerCase() });
+        const event = club ? await Event.findOne({ slug: req.body.eventSlug, club: club._id }) : null;
+        const existing = event ? await Registration.findOne({
+          event: event._id,
+          studentEmail: String(req.body.studentEmail || "").trim().toLowerCase(),
+        }).select("_id status") : null;
+
+        return res.status(409).json({
+          error: "You already registered for this event",
+          registrationId: existing?._id || null,
+          status: existing?.status || null,
+        });
+      } catch (_lookupErr) {
+        return res.status(409).json({ error: "You already registered for this event" });
+      }
     }
     res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/registrations/check-duplicate - check if student already registered
+router.post("/check-duplicate", async (req, res) => {
+  try {
+    const { clubSlug, eventSlug, studentEmail } = req.body;
+    if (!clubSlug || !eventSlug || !studentEmail) {
+      return res.status(400).json({ error: "clubSlug, eventSlug, and studentEmail are required" });
+    }
+
+    const club = await Club.findOne({ slug: String(clubSlug).trim().toLowerCase() });
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    const event = await Event.findOne({ slug: String(eventSlug).trim(), club: club._id });
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    const existing = await Registration.findOne({
+      event: event._id,
+      studentEmail: String(studentEmail).trim().toLowerCase(),
+    });
+
+    if (existing) {
+      return res.json({
+        exists: true,
+        registrationId: existing._id,
+        status: existing.status,
+        regNo: existing.regNo || null,
+      });
+    }
+
+    return res.json({ exists: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/registrations/lookup - student status lookup by email
+router.post("/lookup", async (req, res) => {
+  try {
+    const { studentEmail, clubSlug } = req.body;
+    if (!studentEmail) {
+      return res.status(400).json({ error: "Student email is required" });
+    }
+
+    const filter = {
+      studentEmail: String(studentEmail).trim().toLowerCase(),
+    };
+
+    if (clubSlug) {
+      const club = await Club.findOne({ slug: String(clubSlug).trim().toLowerCase() });
+      if (club) {
+        filter.club = club._id;
+      }
+    }
+
+    const registrations = await Registration.find(filter)
+      .populate("event", "name slug date venue fee description")
+      .populate("club", "name slug email")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json({
+      registrations: registrations.map((r) => ({
+        id: r._id,
+        regNo: r.regNo || null,
+        status: r.status,
+        studentName: r.studentName,
+        studentEmail: r.studentEmail,
+        studentPhone: r.studentPhone,
+        college: r.college,
+        amount: r.amount,
+        createdAt: r.createdAt,
+        rejectionReason: r.rejectionReason,
+        event: r.event,
+        club: r.club,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -397,7 +492,9 @@ router.get("/:id/stream", async (req, res) => {
   res.flushHeaders?.();
 
   try {
-    const reg = await Registration.findById(id).populate("event", "name slug date");
+    const reg = await Registration.findById(id)
+      .populate("event", "name slug date venue fee description")
+      .populate("club", "name slug email");
     if (!reg) {
       res.write(`event: error\ndata: ${JSON.stringify({ error: "Registration not found" })}\n\n`);
       return res.end();
@@ -415,6 +512,7 @@ router.get("/:id/stream", async (req, res) => {
       amount: reg.amount,
       createdAt: reg.createdAt,
       event: reg.event,
+      club: reg.club,
     };
 
     // Send initial status immediately
@@ -452,10 +550,13 @@ router.get("/:id/stream", async (req, res) => {
 // GET /api/registrations/:id - status check
 router.get("/:id", async (req, res) => {
   try {
-    const reg = await Registration.findById(req.params.id).populate("event", "name slug date");
+    const reg = await Registration.findById(req.params.id)
+      .populate("event", "name slug date venue fee description")
+      .populate("club", "name slug email");
     if (!reg) return res.status(404).json({ error: "Not found" });
 
     res.json({
+      id: reg._id,
       status: reg.status,
       rejectionReason: reg.rejectionReason,
       regNo: reg.regNo,
@@ -466,9 +567,182 @@ router.get("/:id", async (req, res) => {
       amount: reg.amount,
       createdAt: reg.createdAt,
       event: reg.event,
+      club: reg.club,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/registrations/bulk-approve - batch approve registrations
+router.post("/bulk-approve", requireClubOrPRMember, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "ids must be a non-empty array" });
+    }
+
+    const results = [];
+    const errors = [];
+
+    await withTransaction(async (session) => {
+      for (const id of ids) {
+        try {
+          const reg = await Registration.findById(id)
+            .populate("event", "name slug date")
+            .session(session);
+
+          if (!reg) {
+            errors.push({ id, error: "Registration not found" });
+            continue;
+          }
+
+          if (!canReviewRegistration(req.auth, reg)) {
+            errors.push({ id, error: "Unauthorized to review this registration" });
+            continue;
+          }
+
+          if (reg.status !== "pending") {
+            errors.push({ id, error: `Already reviewed (${reg.status})` });
+            continue;
+          }
+
+          if (reg.event) {
+            const eventId = reg.event._id || reg.event;
+            const event = await Event.findById(eventId).session(session);
+            if (event && event.capacity) {
+              const approvedCount = await Registration.countDocuments({
+                event: event._id,
+                status: "approved",
+              }).session(session);
+
+              if (approvedCount >= event.capacity) {
+                errors.push({ id, error: "Event capacity reached" });
+                continue;
+              }
+            }
+          }
+
+          const seq = await nextSequence("regNo", session);
+          const regNo = `REG-${String(seq).padStart(4, "0")}`;
+
+          reg.regNo = regNo;
+          reg.status = "approved";
+          reg.reviewedBy = getReviewerCode(req.auth);
+          await reg.save({ session });
+
+          results.push({
+            id: reg._id,
+            regNo: reg.regNo,
+            status: reg.status,
+            studentName: reg.studentName,
+            studentEmail: reg.studentEmail,
+            studentPhone: reg.studentPhone,
+            college: reg.college,
+            amount: reg.amount,
+            createdAt: reg.createdAt,
+            event: reg.event,
+            reviewedBy: reg.reviewedBy,
+          });
+        } catch (itemErr) {
+          errors.push({ id, error: itemErr.message });
+        }
+      }
+    });
+
+    for (const item of results) {
+      statusEmitter.emitStatusUpdate(item.id, item);
+    }
+
+    return res.json({
+      ok: true,
+      processed: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    });
+  } catch (err) {
+    console.error("[Bulk Approve Error]:", err);
+    return res.status(500).json({ error: err.message || "Bulk approval failed" });
+  }
+});
+
+// POST /api/registrations/bulk-reject - batch reject registrations
+router.post("/bulk-reject", requireClubOrPRMember, async (req, res) => {
+  try {
+    const { ids, reason } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "ids must be a non-empty array" });
+    }
+
+    const rejectionReason = reason || "Payment could not be verified";
+    const results = [];
+    const errors = [];
+    const publicIdsToClean = [];
+
+    await withTransaction(async (session) => {
+      for (const id of ids) {
+        try {
+          const reg = await Registration.findById(id)
+            .populate("event", "name slug date")
+            .session(session);
+
+          if (!reg) {
+            errors.push({ id, error: "Registration not found" });
+            continue;
+          }
+
+          if (!canReviewRegistration(req.auth, reg)) {
+            errors.push({ id, error: "Unauthorized to review this registration" });
+            continue;
+          }
+
+          if (reg.status !== "pending") {
+            errors.push({ id, error: `Already reviewed (${reg.status})` });
+            continue;
+          }
+
+          reg.status = "rejected";
+          reg.reviewedBy = getReviewerCode(req.auth);
+          reg.rejectionReason = rejectionReason;
+          await reg.save({ session });
+
+          if (reg.paymentScreenshotPublicId) {
+            publicIdsToClean.push(reg.paymentScreenshotPublicId);
+          }
+
+          results.push({
+            id: reg._id,
+            status: reg.status,
+            rejectionReason: reg.rejectionReason,
+            studentName: reg.studentName,
+            studentEmail: reg.studentEmail,
+            event: reg.event,
+          });
+        } catch (itemErr) {
+          errors.push({ id, error: itemErr.message });
+        }
+      }
+    });
+
+    for (const pubId of publicIdsToClean) {
+      cloudinary.uploader.destroy(pubId).catch(() => {});
+    }
+
+    for (const item of results) {
+      statusEmitter.emitStatusUpdate(item.id, item);
+    }
+
+    return res.json({
+      ok: true,
+      processed: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    });
+  } catch (err) {
+    console.error("[Bulk Reject Error]:", err);
+    return res.status(500).json({ error: err.message || "Bulk rejection failed" });
   }
 });
 
