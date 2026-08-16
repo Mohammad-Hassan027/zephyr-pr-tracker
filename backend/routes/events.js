@@ -85,4 +85,45 @@ router.post("/", requireClub, async (req, res) => {
   }
 });
 
+// PUT /api/events/:id - update event (club admin required)
+router.put("/:id", requireClub, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, venue, fee, date, capacity } = req.body;
+
+    const event = await Event.findOne({ _id: id, club: req.auth.clubId });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (name) event.name = String(name).trim();
+    if (description !== undefined) event.description = String(description).trim();
+    if (venue !== undefined) event.venue = String(venue).trim();
+    if (fee !== undefined) event.fee = Number(fee) || 0;
+    if (date !== undefined) event.date = date ? new Date(date) : undefined;
+    if (capacity !== undefined) event.capacity = capacity ? Number(capacity) : null;
+
+    await event.save();
+    return res.json(event);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/events/:id - delete event (club admin required)
+router.delete("/:id", requireClub, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const event = await Event.findOne({ _id: id, club: req.auth.clubId });
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    await Event.deleteOne({ _id: id, club: req.auth.clubId });
+    return res.json({ ok: true, message: "Event deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

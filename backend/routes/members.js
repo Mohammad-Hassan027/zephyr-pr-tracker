@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import PRMember from "../models/PRMember.js";
 import Club from "../models/Club.js";
-import { createSessionToken, requireClub, verifySessionToken } from "../utils/auth.js";
+import { createSessionToken, requireClub, requireClubOrPRMember, verifySessionToken } from "../utils/auth.js";
 
 const router = Router();
 
@@ -70,6 +70,88 @@ router.post("/", requireClub, async (req, res) => {
       return res.status(400).json({ error: "A PR member with this code already exists in your club" });
     }
     res.status(400).json({ error: err.message });
+  }
+});
+
+// PUT /api/members/:id - edit member name or code (club admin required)
+router.put("/:id", requireClub, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, code } = req.body;
+
+    const member = await PRMember.findOne({ _id: id, club: req.auth.clubId });
+    if (!member) return res.status(404).json({ error: "Member not found" });
+
+    if (name) member.name = String(name).trim();
+    if (code) member.code = String(code).trim().toUpperCase();
+
+    await member.save();
+    res.json({ _id: member._id, name: member.name, code: member.code });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "A PR member with this code already exists in your club" });
+    }
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/members/:id/reset-pin - generate new PIN for member (club admin required)
+router.post("/:id/reset-pin", requireClub, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const member = await PRMember.findOne({ _id: id, club: req.auth.clubId });
+    if (!member) return res.status(404).json({ error: "Member not found" });
+
+    const newPin = String(Math.floor(100000 + Math.random() * 900000));
+    member.passwordHash = await bcrypt.hash(newPin, 10);
+    await member.save();
+
+    res.json({ ok: true, name: member.name, code: member.code, pin: newPin });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/members/:id - delete member (club admin required)
+router.delete("/:id", requireClub, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const member = await PRMember.findOne({ _id: id, club: req.auth.clubId });
+    if (!member) return res.status(404).json({ error: "Member not found" });
+
+    await PRMember.deleteOne({ _id: id, club: req.auth.clubId });
+    res.json({ ok: true, message: "Member removed successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/members/change-pin - PR member self-service change PIN
+router.post("/change-pin", requireClubOrPRMember, async (req, res) => {
+  try {
+    const { oldPin, newPin } = req.body;
+    if (!newPin || String(newPin).length < 4) {
+      return res.status(400).json({ error: "New PIN must be at least 4 digits" });
+    }
+
+    if (req.auth.role !== "pr") {
+      return res.status(400).json({ error: "Only PR members can use this endpoint" });
+    }
+
+    const member = await PRMember.findOne({ code: req.auth.code, club: req.auth.clubId });
+    if (!member) return res.status(404).json({ error: "Member not found" });
+
+    if (oldPin) {
+      const ok = await bcrypt.compare(String(oldPin), member.passwordHash);
+      if (!ok) return res.status(400).json({ error: "Current PIN is incorrect" });
+    }
+
+    member.passwordHash = await bcrypt.hash(String(newPin).trim(), 10);
+    await member.save();
+
+    res.json({ ok: true, message: "PIN updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
