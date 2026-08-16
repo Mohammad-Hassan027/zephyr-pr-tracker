@@ -78,6 +78,17 @@ export default function AdminPage() {
     code: string;
     pin: string;
   } | null>(null);
+  const [copiedMemberCode, setCopiedMemberCode] = useState<string | null>(null);
+
+  async function handleCopyMemberLink(code: string, link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedMemberCode(code);
+      setTimeout(() => setCopiedMemberCode(null), 2500);
+    } catch (err) {
+      console.error("Failed to copy link:", err);
+    }
+  }
 
   const activeRef = useRef(true);
   const loadAbortRef = useRef<AbortController | null>(null);
@@ -567,10 +578,15 @@ export default function AdminPage() {
                     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm">
                       <span className="truncate text-xs text-slate-600">{link}</span>
                       <button
-                        className="shrink-0 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent transition hover:bg-accent/20"
-                        onClick={() => navigator.clipboard.writeText(link)}
+                        type="button"
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                          copiedMemberCode === m.code
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-accent/10 text-accent hover:bg-accent/20"
+                        }`}
+                        onClick={() => handleCopyMemberLink(m.code, link)}
                       >
-                        Copy Link
+                        {copiedMemberCode === m.code ? "✓ Copied" : "Copy Link"}
                       </button>
                     </div>
                   </div>
