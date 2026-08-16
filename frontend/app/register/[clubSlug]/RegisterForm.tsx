@@ -41,6 +41,7 @@ export default function RegisterForm({
     studentPhone: "",
     college: "",
     amount: "",
+    utr: "",
     eventSlug: initialEventSlug,
     referralCode: initialReferralCode,
   });
@@ -283,6 +284,12 @@ export default function RegisterForm({
             label="Referral code (optional)"
             value={form.referralCode}
             onChange={(v) => setForm({ ...form, referralCode: v })}
+          />
+
+          <Field
+            label="UPI Ref / UTR / Transaction ID (optional)"
+            value={form.utr || ""}
+            onChange={(v) => setForm({ ...form, utr: v })}
           />
 
           <div>

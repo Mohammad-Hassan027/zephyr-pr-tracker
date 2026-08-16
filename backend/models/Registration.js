@@ -7,6 +7,7 @@ const registrationSchema = new mongoose.Schema(
     studentPhone: { type: String },
     college: { type: String, default: "" },
     amount: { type: Number, default: 0 },
+    utr: { type: String, trim: true, default: "" }, // UPI transaction reference number
     regNo: { type: String, unique: true, sparse: true }, // assigned on approval only
     event: { type: mongoose.Schema.Types.ObjectId, ref: "Event", required: true },
     club: { type: mongoose.Schema.Types.ObjectId, ref: "Club", required: true },

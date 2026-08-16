@@ -62,10 +62,18 @@ export type PendingRegistration = {
   studentPhone?: string;
   college?: string;
   amount?: number;
+  utr?: string;
   referralCode: string | null;
   paymentScreenshot: string;
   createdAt: string;
-  event: { name: string; slug: string };
+  event: {
+    name: string;
+    slug: string;
+    venue?: string;
+    fee?: number;
+    date?: string;
+    description?: string;
+  };
 };
 
 /** Shape returned by all paginated endpoints */
@@ -173,6 +181,7 @@ export async function submitRegistration(form: {
   studentPhone: string;
   college: string;
   amount: string;
+  utr?: string;
   eventSlug: string;
   clubSlug?: string;
   referralCode: string;
@@ -363,4 +372,46 @@ export async function prLogin(code: string, password: string) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Login failed");
   return data as { name: string; code: string };
+}
+
+export type PRMemberReferral = {
+  id: string;
+  regNo: string | null;
+  studentName: string;
+  studentEmail: string;
+  studentPhone?: string;
+  college?: string;
+  amount?: number;
+  utr?: string;
+  status: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  event?: { name: string; slug: string; fee?: number };
+  createdAt: string;
+};
+
+export type PRMemberStats = {
+  code: string;
+  totalApproved: number;
+  totalPending: number;
+  totalRejected: number;
+  totalRevenue: number;
+  referrals: PRMemberReferral[];
+};
+
+export async function getPRMemberStats(): Promise<PRMemberStats> {
+  const res = await fetch("/api/pr/stats", { cache: "no-store" });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to load PR stats");
+  return data;
+}
+
+export async function changePRPin(newPin: string, oldPin?: string) {
+  const res = await fetch("/api/pr/change-pin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ newPin, oldPin }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to update PIN");
+  return data;
 }

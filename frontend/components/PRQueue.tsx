@@ -414,6 +414,11 @@ export default function PRQueue({ code }: { code?: string }) {
                         <span className="rounded-full bg-accentSoft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
                           Pending
                         </span>
+                        {r.event.fee !== undefined && r.amount !== undefined && r.amount !== r.event.fee && (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-400/30">
+                            ⚠️ Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})
+                          </span>
+                        )}
                       </div>
                       <p className="mt-1 text-slate-600 font-medium">{r.event.name}</p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -423,6 +428,11 @@ export default function PRQueue({ code }: { code?: string }) {
                         ₹{r.amount ?? 0}
                         {r.referralCode ? ` · Ref: ${r.referralCode}` : " · Direct"}
                       </p>
+                      {r.utr && (
+                        <p className="mt-1 text-xs text-slate-400">
+                          UTR: <span className="font-mono font-medium text-slate-600">{r.utr}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
