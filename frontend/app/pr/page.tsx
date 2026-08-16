@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PRLoginPage() {
+function PRLoginForm() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const isExpired = searchParams.get("expired") === "1" || searchParams.get("expired") === "true";
+  const isLoggedOut = searchParams.get("logout") === "1";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,6 +43,18 @@ export default function PRLoginPage() {
           Use the referral code and PIN the admin gave you.
         </p>
 
+        {isExpired && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
+            Your session has expired. Please sign in again.
+          </div>
+        )}
+
+        {isLoggedOut && !isExpired && (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-800">
+            You have been signed out safely.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <input
             required
@@ -66,5 +82,13 @@ export default function PRLoginPage() {
         </form>
       </div>
     </main>
+  );
+}
+
+export default function PRLoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading...</div>}>
+      <PRLoginForm />
+    </Suspense>
   );
 }
