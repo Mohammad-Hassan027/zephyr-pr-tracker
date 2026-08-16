@@ -121,6 +121,56 @@ router.get("/pending", requirePlatformAdmin, async (_req, res) => {
   }
 });
 
+// GET /api/clubs/platform/all - paginated, searchable list of clubs for platform admin
+router.get("/platform/all", requirePlatformAdmin, async (req, res) => {
+  try {
+    const filter = {};
+    const status = req.query.status ? String(req.query.status).trim().toLowerCase() : "all";
+    if (status !== "all" && ["pending", "approved", "rejected"].includes(status)) {
+      filter.status = status;
+    }
+
+    if (req.query.q) {
+      const q = String(req.query.q).trim();
+      filter.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { slug: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+      ];
+    }
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const [total, clubs] = await Promise.all([
+      Club.countDocuments(filter),
+      Club.find(filter)
+        .select("-passwordHash")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      items: clubs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PATCH /api/clubs/:id/approve - approve a pending club application
 router.patch("/:id/approve", requirePlatformAdmin, async (req, res) => {
   try {
@@ -136,7 +186,7 @@ router.patch("/:id/approve", requirePlatformAdmin, async (req, res) => {
   }
 });
 
-// PATCH /api/clubs/:id/reject - reject a pending club application
+// PATCH /api/clubs/:id/reject - reject a club application
 router.patch("/:id/reject", requirePlatformAdmin, async (req, res) => {
   try {
     const club = await Club.findById(req.params.id);
