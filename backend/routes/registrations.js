@@ -122,6 +122,7 @@ router.post("/", registrationLimiter, async (req, res) => {
       studentPhone,
       college,
       amount,
+      utr,
       eventSlug,
       clubSlug,
       referralCode,
@@ -178,6 +179,7 @@ router.post("/", registrationLimiter, async (req, res) => {
       studentPhone,
       college,
       amount: amount ? Number(amount) : 0,
+      utr: toTrimmedString(utr),
       event: event._id,
       club: event.club,
       referralCode: validCode,
@@ -352,7 +354,7 @@ router.get("/queue/pending", requireClubOrPRMember, async (req, res) => {
     const [total, pending] = await Promise.all([
       Registration.countDocuments(filter),
       Registration.find(filter)
-        .populate("event", "name slug")
+        .populate("event", "name slug venue fee date")
         .sort({ createdAt: 1 })
         .skip(skip)
         .limit(limit)
@@ -432,6 +434,62 @@ router.get("/stats/leaderboard", requireClub, async (req, res) => {
   }
 });
 
+// GET /api/registrations/stats/member - personal referral performance metrics for PR member
+router.get("/stats/member", requireClubOrPRMember, async (req, res) => {
+  try {
+    const code = req.auth.role === "pr" ? req.auth.code : (req.query.code ? String(req.query.code).toUpperCase() : null);
+    if (!code) {
+      return res.status(400).json({ error: "Referral code required" });
+    }
+
+    const filter = { referralCode: code };
+    if (req.auth.clubId) {
+      filter.club = req.auth.clubId;
+    }
+
+    const [totalApproved, totalPending, totalRejected, revenueAgg, referrals] = await Promise.all([
+      Registration.countDocuments({ ...filter, status: "approved" }),
+      Registration.countDocuments({ ...filter, status: "pending" }),
+      Registration.countDocuments({ ...filter, status: "rejected" }),
+      Registration.aggregate([
+        { $match: { ...filter, status: "approved" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Registration.find(filter)
+        .populate("event", "name slug venue fee date")
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .lean(),
+    ]);
+
+    const totalRevenue = revenueAgg[0]?.total || 0;
+
+    res.json({
+      code,
+      totalApproved,
+      totalPending,
+      totalRejected,
+      totalRevenue,
+      referrals: referrals.map((r) => ({
+        id: r._id,
+        regNo: r.regNo || null,
+        studentName: r.studentName,
+        studentEmail: r.studentEmail,
+        studentPhone: r.studentPhone,
+        college: r.college,
+        amount: r.amount,
+        utr: r.utr || "",
+        status: r.status,
+        rejectionReason: r.rejectionReason,
+        event: r.event,
+        createdAt: r.createdAt,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/registrations/audit - paginated club admin audit trail of reviewed registrations
 router.get("/audit", requireClub, async (req, res) => {
   try {
@@ -449,6 +507,29 @@ router.get("/audit", requireClub, async (req, res) => {
       filter.reviewedBy = { $regex: String(req.query.reviewer).trim(), $options: "i" };
     }
 
+    if (req.query.from || req.query.to) {
+      const updatedAtFilter = {};
+      if (req.query.from) {
+        const fromDate = new Date(String(req.query.from).trim());
+        if (!isNaN(fromDate.getTime())) {
+          updatedAtFilter.$gte = fromDate;
+        }
+      }
+      if (req.query.to) {
+        const toStr = String(req.query.to).trim();
+        let toDate = new Date(toStr);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(toStr)) {
+          toDate = new Date(`${toStr}T23:59:59.999Z`);
+        }
+        if (!isNaN(toDate.getTime())) {
+          updatedAtFilter.$lte = toDate;
+        }
+      }
+      if (Object.keys(updatedAtFilter).length > 0) {
+        filter.updatedAt = updatedAtFilter;
+      }
+    }
+
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
@@ -456,7 +537,7 @@ router.get("/audit", requireClub, async (req, res) => {
     const [total, audit] = await Promise.all([
       Registration.countDocuments(filter),
       Registration.find(filter)
-        .populate("event", "name slug")
+        .populate("event", "name slug venue fee date")
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
