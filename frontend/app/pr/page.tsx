@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 function PRLoginForm() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,14 +64,24 @@ function PRLoginForm() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-          <input
-            type="password"
-            required
-            placeholder="PIN"
-            className="field-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              placeholder="PIN"
+              className="field-input pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+              aria-label={showPassword ? "Hide PIN" : "Show PIN"}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
           {error && (
             <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}

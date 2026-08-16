@@ -24,6 +24,7 @@ type Pagination = {
 
 export default function PlatformClubsPage() {
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loadingLogin, setLoadingLogin] = useState(false);
@@ -197,14 +198,24 @@ export default function PlatformClubsPage() {
               <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
                 Platform Admin Password
               </label>
-              <input
-                type="password"
-                required
-                placeholder="Platform password"
-                className="field-input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Platform password"
+                  className="field-input pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
             </div>
 
             {loginError && (

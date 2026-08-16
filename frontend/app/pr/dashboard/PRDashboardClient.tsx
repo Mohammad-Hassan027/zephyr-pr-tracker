@@ -14,6 +14,8 @@ export default function PRDashboardClient({ code }: { code: string }) {
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [oldPin, setOldPin] = useState("");
   const [newPin, setNewPin] = useState("");
+  const [showOldPin, setShowOldPin] = useState(false);
+  const [showNewPin, setShowNewPin] = useState(false);
   const [pinError, setPinError] = useState("");
   const [pinSuccess, setPinSuccess] = useState("");
   const [changingPin, setChangingPin] = useState(false);
@@ -261,28 +263,48 @@ export default function PRDashboardClient({ code }: { code: string }) {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
                     Current PIN (Optional if unknown)
                   </label>
-                  <input
-                    type="password"
-                    value={oldPin}
-                    onChange={(e) => setOldPin(e.target.value)}
-                    placeholder="Enter current PIN"
-                    className="field-input text-sm"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showOldPin ? "text" : "password"}
+                      value={oldPin}
+                      onChange={(e) => setOldPin(e.target.value)}
+                      placeholder="Enter current PIN"
+                      className="field-input text-sm pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOldPin(!showOldPin)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                      aria-label={showOldPin ? "Hide PIN" : "Show PIN"}
+                    >
+                      {showOldPin ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
                     New PIN (min 4 digits)
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="e.g. 123456"
-                    className="field-input text-sm"
-                    autoFocus
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPin ? "text" : "password"}
+                      required
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value)}
+                      placeholder="e.g. 123456"
+                      className="field-input text-sm pr-10"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPin(!showNewPin)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                      aria-label={showNewPin ? "Hide PIN" : "Show PIN"}
+                    >
+                      {showNewPin ? "🙈" : "👁️"}
+                    </button>
+                  </div>
                 </div>
 
                 {pinError && (
