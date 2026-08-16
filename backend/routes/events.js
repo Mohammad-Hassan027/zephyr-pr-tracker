@@ -56,7 +56,7 @@ router.get("/:slug", async (req, res) => {
 // POST /api/events - create event (club admin required)
 router.post("/", requireClub, async (req, res) => {
   try {
-    const { name, slug, description, date, capacity } = req.body;
+    const { name, slug, description, venue, fee, date, capacity } = req.body;
     if (!name || !slug) {
       return res.status(400).json({ error: "Name and slug are required" });
     }
@@ -69,7 +69,9 @@ router.post("/", requireClub, async (req, res) => {
     const event = await Event.create({
       name,
       slug: String(slug).trim().toLowerCase(),
-      description,
+      description: description ? String(description).trim() : "",
+      venue: venue ? String(venue).trim() : "",
+      fee: fee ? Number(fee) : 0,
       date,
       capacity: capacity ? Number(capacity) : null,
       club: clubId,

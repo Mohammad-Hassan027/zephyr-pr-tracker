@@ -12,6 +12,9 @@ type BackendEvent = {
   name: string;
   slug: string;
   date?: string | null;
+  venue?: string;
+  fee?: number;
+  description?: string;
 };
 
 export type ClubDirectoryEntry = {
@@ -21,6 +24,9 @@ export type ClubDirectoryEntry = {
     title: string;
     slug: string;
     date: string | null;
+    venue?: string;
+    fee?: number;
+    description?: string;
   }>;
 };
 
@@ -59,6 +65,9 @@ export async function GET() {
             title: event.name,
             slug: event.slug,
             date: event.date ?? null,
+            venue: event.venue || "",
+            fee: event.fee ?? 0,
+            description: event.description || "",
           })),
         };
       }),

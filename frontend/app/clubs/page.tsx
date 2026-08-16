@@ -103,12 +103,21 @@ export default function ClubsPage() {
                         return (
                           <li
                             key={event.slug}
-                            className="rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-sm"
+                            className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 text-sm"
                           >
-                            <p className="font-medium text-ink">{event.title}</p>
-                            {formattedDate && (
-                              <p className="mt-0.5 text-xs text-slate-500">
-                                {formattedDate}
+                            <div className="flex justify-between items-start gap-2">
+                              <p className="font-medium text-ink">{event.title}</p>
+                              <span className="text-xs font-semibold text-accent whitespace-nowrap">
+                                {event.fee ? `₹${event.fee}` : "Free"}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-slate-500">
+                              {formattedDate && <span>📅 {formattedDate}</span>}
+                              {event.venue && <span>📍 {event.venue}</span>}
+                            </div>
+                            {event.description && (
+                              <p className="mt-1 text-xs text-slate-600 line-clamp-2">
+                                {event.description}
                               </p>
                             )}
                           </li>

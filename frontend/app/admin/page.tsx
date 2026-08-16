@@ -7,7 +7,15 @@ import PRQueue from "@/components/PRQueue";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type Member = { name: string; code: string };
-type EventItem = { name: string; slug: string };
+type EventItem = {
+  name: string;
+  slug: string;
+  description?: string;
+  venue?: string;
+  fee?: number;
+  date?: string;
+  capacity?: number | null;
+};
 type ClubInfo = { name: string; slug: string; email: string };
 
 export default function AdminPage() {
@@ -18,6 +26,9 @@ export default function AdminPage() {
   const [eventForm, setEventForm] = useState({
     name: "",
     slug: "",
+    description: "",
+    venue: "",
+    fee: "",
     date: "",
     capacity: "",
   });
@@ -70,11 +81,20 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...eventForm,
+        fee: eventForm.fee ? Number(eventForm.fee) : 0,
         capacity: eventForm.capacity ? Number(eventForm.capacity) : null,
       }),
     });
     if (res.ok) {
-      setEventForm({ name: "", slug: "", date: "", capacity: "" });
+      setEventForm({
+        name: "",
+        slug: "",
+        description: "",
+        venue: "",
+        fee: "",
+        date: "",
+        capacity: "",
+      });
       loadAbortRef.current?.abort();
       const controller = new AbortController();
       loadAbortRef.current = controller;
@@ -152,6 +172,23 @@ export default function AdminPage() {
               }
             />
             <input
+              type="number"
+              placeholder="Registration Fee in ₹ (e.g. 100, 0 if free)"
+              className="field-input"
+              value={eventForm.fee}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, fee: e.target.value })
+              }
+            />
+            <input
+              placeholder="Venue / Location (e.g. Audi 2 / Online)"
+              className="field-input"
+              value={eventForm.venue}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, venue: e.target.value })
+              }
+            />
+            <input
               type="date"
               className="field-input"
               value={eventForm.date}
@@ -168,6 +205,15 @@ export default function AdminPage() {
                 setEventForm({ ...eventForm, capacity: e.target.value })
               }
             />
+            <textarea
+              placeholder="Event description / details (optional)"
+              rows={2}
+              className="field-input sm:col-span-2"
+              value={eventForm.description}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, description: e.target.value })
+              }
+            />
             <button className="btn-primary sm:col-span-2">Create event</button>
           </form>
 
@@ -175,12 +221,26 @@ export default function AdminPage() {
             {events.map((e) => (
               <li
                 key={e.slug}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3"
               >
-                <span className="font-medium text-ink">{e.name}</span>
-                <span className="font-mono text-xs text-slate-500">
-                  {e.slug}
-                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-ink">{e.name}</span>
+                    <span className="font-mono text-xs text-slate-500">
+                      {e.slug}
+                    </span>
+                  </div>
+                  {(e.venue || e.fee !== undefined) && (
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {e.fee ? `₹${e.fee}` : "Free"} {e.venue ? `· 📍 ${e.venue}` : ""}
+                    </p>
+                  )}
+                </div>
+                {e.capacity && (
+                  <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-xs text-slate-600">
+                    Cap: {e.capacity}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
