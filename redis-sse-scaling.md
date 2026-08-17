@@ -23,7 +23,7 @@ The fix is to replace the process-local event bus with a **shared event bus** th
 
 **Layer 1 — Redis Pub/Sub for live fan-out.** Every instance holds a dedicated subscriber connection that subscribes to channels of the form `zephyr:reg:<registrationId>` (using Redis *channel namespacing*, so traffic is scoped per registration rather than one global channel). The moment instance B publishes an approval, instance A's subscriber receives it and emits a local event, which pushes the `event: status` SSE frame to the connected student. Pub/Sub delivery latency is sub-millisecond, so SSE clients see updates essentially instantly regardless of which replica processed the request.
 
-**Layer 2 — Redis Stream for reconnect durability.** Pub/Sub is fire-and-forget: if the student's device sleeps or the connection drops for even a few seconds, any event published during the outage is lost, and the client never learns its final state. To close that gap, every emitted message is also appended to a Redis Stream at `zephyr:reg:stream:<registrationId>`, capped at ~100 entries via `XADD MAXLEN ~100`. On reconnect, the client passes its last known stream ID (tracked as the SSE `Last-Event-ID` / `retry` mechanism) and `XRANGE` returns everything it missed — this also gives you the "last event ID resume" semantics SSE is designed around. Terminal-state events (approved/rejected) are written to the stream *before* the stream ends, so a reconnecting client always sees the final outcome.
+**Layer 2 — Redis Stream for reconnect durability.** Pub/Sub is fire-and-forget: if the student's device sleeps or the connection drops for even a few seconds, any event published during the outage is lost, and the client never learns its final state. To close that gap, every emitted message is also appended to a Redis Stream at `zephyr:reg:stream:<registrationId>`, capped at `MAXLEN 10` via an explicit `XTRIM` call after each `XADD`. Two implementation traps were caught and fixed while validating against a live Redis 7.0 server: the original code used an `XADD_OPTIONS` object that redis@4 does not recognize at all (silently producing unbounded streams), and redis@4.7.1's documented `TRIM` option emits its arguments **before** the stream id (`XADD key MAXLEN 10 * ...`) while the Redis server expects modifiers **after** the id — so Redis 7.0 rejects the trim and the stream again grows unbounded. Verified via `MONITOR` and a 150-entry stress test: the `XTRIM` approach caps streams at exactly 10. The cap is deliberately tight because a full registration lifecycle emits at most ~6 events (initial pending snapshot plus approve/reject), so 10 entries covers the entire pending window with headroom. On reconnect, the client passes its last known stream ID (the SSE `Last-Event-ID` header, sent automatically by the browser on reconnect) and `XRANGE` returns everything strictly after it — the anchor id itself is excluded so no frame is ever re-delivered. If the anchor was already trimmed out, the handler falls back to the newest tail entries so the client still sees the latest state. Terminal-state events (approved/rejected) are written to the stream *before* the stream ends, so a reconnecting client always sees the final outcome.
 
 **Layer 3 — Graceful degradation.** If `REDIS_URL` is not set or the Redis connection fails, the emitter falls back to the in-process behaviour, so local development without Redis keeps working. A publish failure on one path does not block the other, and local listeners are still notified as a last resort, guaranteeing a same-instance client is never notified twice.
 
@@ -105,9 +105,23 @@ Then set `REDIS_URL` in the backend service's environment variables (Render's da
 cd backend && npm install redis@^4
 ```
 
-The module's `redis@4` client automatically uses `noeviction`-safe channels and streams; the `XADD` entries are self-capping via `MAXLEN ~100`, so Redis memory usage stays bounded by the number of concurrently watched registrations.
+The module's `redis@4` client automatically uses `noeviction`-safe channels and streams; the `XADD` entries are self-capped by `XTRIM MAXLEN 10` after every write (roughly 500 bytes per entry — about 5 KB worst case per concurrently watched registration), so Redis memory usage stays negligible even under heavy load.
 
-### 3.5 Operational notes
+### 3.5 Retention and reconnect guarantees (validated against live Redis 7.0)
+
+The retention policy was stress-tested end-to-end with 150 entries and live reconnect replays. The validated guarantees are:
+
+| Property | Guarantee |
+|----------|-----------|
+| Stream cap | Exactly `MAXLEN 10` per registration (Redis 7.0 exact trim; ~5 KB worst case per watched registration) |
+| Reconnect resume | `XRANGE` strictly after the `Last-Event-ID` anchor — the anchor is excluded, so no frame is ever delivered twice |
+| Trimmed-away anchor | `getMissed` falls back to the newest tail entries so a long-absent client still sees the latest state |
+| Live vs replay overlap | Pub/Sub delivers live events; stream replay only runs on reconnect, and anchor-exclusion prevents duplicates |
+| Redis config | `noeviction` recommended (Render free-tier default) — streams self-cap, so the main keyspace is unaffected |
+
+The retention policy is also covered by `backend/scripts/test-redis-stream-config.js`, which reproduces the historical `xAdd`-trim bug (redis@4 serializes trim args before the stream id, rejected by Redis 7.0) and verifies the current `XTRIM` behavior caps streams correctly.
+
+### 3.6 Operational notes
 
 SSE holds long-lived connections, so watch two Render settings: make sure the plan supports the desired replica count (the free web tier runs a single instance, which is why you have not seen the bug in testing yet — it surfaces the moment you scale to *Starter* or above with multiple instances), and ensure the load balancer / CDN between the client and your instances does not buffer `text/event-stream` bodies — the existing `X-Accel-Buffering: no` header handles Nginx, and Vercel's proxy passes SSE through when the response is not compressed; if you ever put Cloudflare in front, enable `Cache-Control: no-cache` (already set) and avoid "Auto Minify" on the API path.
 
