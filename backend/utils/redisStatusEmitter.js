@@ -86,8 +86,13 @@ class RedisStatusEmitter extends EventEmitter {
       });
     }
 
-    this.sub.on("message", (raw, channel) => {
-      // redis@4 PubSubListener signature is (message, channel) — NOT (channel, message)
+        await this.pub.connect();
+    await this.sub.connect();
+    // CRITICAL: subscribe to every registration channel via pattern.
+    // Without this, the message handler above never fires and SSE clients
+    // would receive NOTHING across instances — the single biggest flaw in
+    // the original implementation (subscribed channels were never added).
+    await this.sub.pSubscribe(`${CHANNEL_PREFIX}*`, (raw, channel) => {
       if (!String(channel).startsWith(CHANNEL_PREFIX)) return;
       let payload;
       try {
@@ -95,12 +100,8 @@ class RedisStatusEmitter extends EventEmitter {
       } catch (_err) {
         return;
       }
-      // payload.data mirrors the shape previously emitted by statusEmitter
       this.emit(`registration:${payload.id}`, payload.data);
     });
-
-    await this.pub.connect();
-    await this.sub.connect();
     this.ready = true;
     this.degraded = false;
     console.log(
@@ -218,3 +219,10 @@ class RedisStatusEmitter extends EventEmitter {
 
 export const redisStatusEmitter = new RedisStatusEmitter();
 export default redisStatusEmitter;
+
+// Test-only export: the load-test harness (scripts/test-cluster-load.js)
+// needs to spin up N independent emitters to simulate N API instances.
+// Uses a distinct export name to avoid a duplicate-declaration error with
+// the class declaration above.
+export const RedisStatusEmitterClass =
+  process.env.TEST_EXPORT_CLASS === "1" ? RedisStatusEmitter : undefined;
