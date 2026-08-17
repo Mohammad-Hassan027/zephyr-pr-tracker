@@ -28,7 +28,18 @@ import crypto from "node:crypto";
 
 const CHANNEL_PREFIX = "zephyr:reg:";
 const STREAM_PREFIX = "zephyr:reg:stream:";
-const STREAM_MAX_LEN = 100;
+// Per-registration streams are capped aggressively: a full registration
+// lifecycle (pending updates + approve/reject) emits at most ~6 events.
+// MAXLEN 10 keeps memory bounded (~10 x ~500 bytes per watched registration)
+// while still covering long-lived pending windows.
+//
+// IMPORTANT (Redis 7.0 compatibility):
+// redis@4.7.1 serializes xAdd's TRIM option as `XADD key MAXLEN <n> id ...`,
+// but the server expects modifiers AFTER the id (`XADD key id [[~] MAXLEN <n>]`),
+// so Redis 7.0 rejects/ignores the trim args and streams grow UNBOUNDED —
+// verified against a live Redis 7.0 server via MONITOR.
+// Fix: pass NO trim options to xAdd, then call XTRIM (which Redis 7.0 honors).
+const STREAM_MAX_LEN = 10;
 const RECONNECT_BACKOFF_MS = [1000, 2000, 4000, 8000, 15000];
 
 class RedisStatusEmitter extends EventEmitter {
@@ -75,8 +86,9 @@ class RedisStatusEmitter extends EventEmitter {
       });
     }
 
-    this.sub.on("message", (channel, raw) => {
-      if (!channel.startsWith(CHANNEL_PREFIX)) return;
+    this.sub.on("message", (raw, channel) => {
+      // redis@4 PubSubListener signature is (message, channel) — NOT (channel, message)
+      if (!String(channel).startsWith(CHANNEL_PREFIX)) return;
       let payload;
       try {
         payload = JSON.parse(raw);
@@ -128,10 +140,11 @@ class RedisStatusEmitter extends EventEmitter {
       // a failure on one does not block the other.
       await Promise.all([
         this.pub.publish(channel, raw),
-        this.pub.xAdd(`${STREAM_PREFIX}${registrationId}`, "*", [
-          ["payload", raw],
-        ],
-        { XADD_OPTIONS: { MAXLEN: "~", elementsThreshold: STREAM_MAX_LEN } }),
+        // No TRIM options on xAdd — redis@4.7.1 emits them BEFORE the stream id,
+        // which Redis 7.0 rejects (modifiers must follow the id). We trim
+        // explicitly with XTRIM instead, then cap worst case with MAXLEN.
+        this.pub.xAdd(`${STREAM_PREFIX}${registrationId}`, "*", { payload: raw }),
+        this.pub.xTrim(`${STREAM_PREFIX}${registrationId}`, "MAXLEN", STREAM_MAX_LEN).catch(() => {}),
       ]);
     } catch (err) {
       // Pub/Sub publish failure -> still deliver to local listeners so the
@@ -154,12 +167,27 @@ class RedisStatusEmitter extends EventEmitter {
   async getMissed(registrationId, afterId = "0", count = 50) {
     if (!this.ready) return [];
     try {
-      const entries = await this.sub.xRange(
+      // Replay STRICTLY after the anchor id: the anchor (last id the client
+      // already received) is excluded so a reconnect never re-delivers a
+      // duplicate frame. If the anchor has already been trimmed out of the
+      // stream (client was gone longer than MAXLEN events), fall back to a
+      // fresh pull of the last event — the browser SSE client then
+      // re-fetches state normally.
+      let entries = await this.sub.xRange(
         `${STREAM_PREFIX}${registrationId}`,
         afterId,
         "+",
         { COUNT: count }
       );
+      if (entries.length === 0 && afterId !== "0") {
+        // Anchor trimmed out -> read the newest tail entries only.
+        entries = await this.sub.xRevRange(
+          `${STREAM_PREFIX}${registrationId}`,
+          "+",
+          "-",
+          { COUNT: Math.min(count, STREAM_MAX_LEN) }
+        ).then((arr) => [...arr].reverse());
+      }
       return entries
         .filter((entry) => entry.id !== afterId)
         .map((entry) => {
