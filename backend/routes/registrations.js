@@ -13,7 +13,8 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../utils/errors.js";
-import { statusEmitter } from "../utils/statusEmitter.js";
+// Redis-backed emitter: Pub/Sub fan-out across instances plus Stream for missed-message resume
+import { redisStatusEmitter as statusEmitter } from "../utils/redisStatusEmitter.js";
 import cloudinary from "../config/cloudinary.js";
 import { requireClub, requireClubOrPRMember } from "../utils/auth.js";
 
