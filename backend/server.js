@@ -9,6 +9,7 @@ import clubRoutes from "./routes/clubs.js";
 import eventRoutes from "./routes/events.js";
 import memberRoutes from "./routes/members.js";
 import registrationRoutes from "./routes/registrations.js";
+import { getAuthSecret } from "./utils/auth.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -57,8 +58,16 @@ const isMainModule = process.argv[1]
   : false;
 
 if (isMainModule) {
+  if (!process.env.AUTH_SECRET || !process.env.PLATFORM_ADMIN_PASSWORD) {
+    console.error(
+      "FATAL: Required auth secrets not configured. Refusing to start.",
+    );
+    process.exit(1);
+  }
+
   connectDB()
     .then(() => {
+      getAuthSecret();
       app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     })
     .catch((err) => {

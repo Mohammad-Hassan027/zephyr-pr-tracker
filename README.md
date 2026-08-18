@@ -1,76 +1,151 @@
 # Zephyr PR Tracker
 
-Tracks per-event participation and referral attribution for the PR team, with a payment-approval workflow.
+<p align="center">
+<b>A robust multi-tenant event participation, referral attribution, and payment verification system built for student clubs and organizational PR teams.</b>
+</p> <p align="center">
+  <img src="https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/Node.js-Express-green?style=for-the-badge&logo=node.js" alt="Node.js">
+  <img src="https://img.shields.io/badge/MongoDB-Mongoose-brightgreen?style=for-the-badge&logo=mongodb" alt="MongoDB">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-blue?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/Cloudinary-Integration-orange?style=for-the-badge&logo=cloudinary" alt="Cloudinary">
+</p>
 
-## Workflow
+---
 
-1. **Student fills one form** at `/register` — name, contact, college, event (dropdown), referral code (optional), amount, and a UPI transaction screenshot. Submitting sends them to `/status/[id]`, which shows "pending".
-2. **The submission lands in a queue**, tagged to whichever PR member's referral code was used (if any).
-3. **That PR member logs in** at `/pr` (their referral code + a PIN) and sees only their own pending submissions on `/pr/dashboard` — with the screenshot, amount, and Approve/Reject buttons.
-4. **On approve**, a sequential reg no (`ZP0001`, `ZP0002`, ...) is generated. The student's `/status/[id]` page is polling every 5s, so it flips to a confirmed registration card automatically — no refresh needed on their end.
-5. **On reject**, the student sees the reason on the same page.
-6. Submissions with no referral code, or an unmatched one, only show up in the admin's global queue at `/admin` (not tied to any PR member).
+## Overview
 
-`/dashboard` and `/dashboard/leaderboard` only count **approved** registrations, so participation and referral numbers reflect verified payments, not raw submissions.
+**Zephyr PR Tracker** is a comprehensive, production-ready web application designed to streamline event registrations, public relations (PR ) referral tracking, and payment verification workflows. It bridges the gap between student event registration and manual or automated payment approvals via UPI screenshot uploads.
 
-## Accounts
+The platform features a multi-tenant club architecture allowing multiple student organizations or clubs to operate independently, manage their own events, onboard PR team members, review pending submissions, and monitor verified registration analytics and leaderboards.
 
-- **Admin** (`/login`, single shared password `PR_ADMIN_PASSWORD`) — creates events and PR members, sees the global pending queue, can approve/reject anything.
-- **PR member** (`/pr`, referral code + PIN) — created by the admin in `/admin`; the PIN is shown once at creation time, share it with them directly. Sees only submissions tagged with their own code.
+---
 
-## Run locally
+## Core Workflow
 
-**Backend**
+1. **Student Registration**: Participants fill out the registration form at `/register`, providing personal details, selecting an event from the active dropdown, supplying an optional referral code, entering the payment amount, and uploading a UPI transaction screenshot.
 
-```
-cd backend
-cp .env.example .env   # fill in MONGO_URI, PR_ADMIN_PASSWORD, AUTH_SECRET, and Cloudinary credentials
-npm install
-npm run dev             # http://localhost:5000
-```
+1. **Status Tracking**: Upon submission, the student receives a tracking ID and is redirected to `/status/[id]`, which continuously polls for verification updates.
 
-**Frontend**
+1. **Queue Attribution**: Submissions tagged with a valid PR member referral code land directly in that specific PR member's review queue. Unmatched or un-referred submissions route to the club or platform admin queue.
 
-```
-cd frontend
-cp .env.local.example .env.local   # set the frontend and backend API URLs
-npm install
-npm run dev              # http://localhost:3000
-```
+1. **PR Member & Admin Review**: PR team members log in securely at `/pr` using their assigned referral code and PIN. They inspect the transaction screenshot, payment amount, and student details to approve or reject the submission.
 
-## Seed data (quick start)
+1. **Automated Confirmation & Registration Number**: Upon approval, the system automatically generates a sequential registration number (e.g., `REG-0001`, `REG-0002`). The student's polling status page instantly reflects confirmation without requiring a manual refresh. Rejected submissions display the specific rejection reason provided by the reviewer.
 
-```
-cd backend
-npm run seed
-```
+1. **Analytics & Leaderboards**: Public dashboards and leaderboards calculate metrics strictly from **approved** registrations, ensuring referral stats reflect verified payments rather than raw pending entries.
 
-For manual setup, log in at `/login`, then create events and PR members from `/admin`. Those write actions are admin-only.
+---
 
-## Migrating to Multi-Tenant Model
+## Architecture & Tech Stack
 
-Immediately after deploying the multi-tenant update, run the migration script once on the backend to backfill any existing single-tenant events, PR members, and registrations to a default "Zephyr" club:
+### Frontend
+
+- **Framework**: Next.js 14 (App Router) with TypeScript
+
+- **Styling**: Tailwind CSS (featuring a signature orange `#EA580C` brand palette)
+
+- **State Management & Routing**: Server Actions, App Router layouts, and secure proxy handlers
+
+### Backend
+
+- **Runtime**: Node.js with Express
+
+- **Database**: MongoDB with Mongoose ODM
+
+- **File Storage**: Cloudinary (secure cloud storage for payment proof screenshots with automatic cleanup on rejection)
+
+- **Security**: Bcryptjs for PIN hashing, rate-limiting (`express-rate-limit`), HTTP-only cookies, and token-based session management
+
+---
+
+## Key Account Types & Roles
+
+| Role | Access URL | Authentication Method | Capabilities |
+| --- | --- | --- | --- |
+| **Platform / Club Admin** | `/login` or `/platform` | Shared Admin Password / Club Email & Password | Create events, manage PR team members, approve/reject global queues, oversee club multi-tenant settings. |
+| **PR Team Member** | `/pr` | Referral Code + 6-digit PIN | View and review pending submissions tagged to their specific referral code. |
+| **Student Participant** | `/register` & `/status/[id]` | Public Tracking ID | Submit event registrations, upload payment proofs, and monitor real-time verification status. |
+
+---
+
+## Local Development Setup
+
+To run Zephyr PR Tracker locally for development or testing, follow the instructions below.
+
+### Prerequisites
+
+- Node.js (v18+ recommended)
+
+- MongoDB instance (local or MongoDB Atlas)
+
+- Cloudinary account credentials
+
+### 1. Backend Setup
 
 ```bash
 cd backend
-npm run migrate
+cp .env.example .env
 ```
 
-You can set `ZEPHYR_ADMIN_EMAIL` and `ZEPHYR_ADMIN_PASSWORD` in environment variables before running the migration. The script is idempotent and skips any documents that already have a `club` assigned.
+Configure your `.env` file with the following variables:
 
-## Design
+```
+PORT=5000
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/zephyr
+CLIENT_ORIGIN=http://localhost:3000
+CLIENT_URL=http://localhost:3000
+PR_ADMIN_PASSWORD=your_secure_admin_password
+AUTH_SECRET=your_long_random_secret_string
 
-Orange (`#EA580C`) brand color matching the Zephyr/TCET card, shared header across PR-facing pages, card-style layout throughout.
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
 
-## Stack
+Install dependencies and start the backend development server:
 
-- Backend: Node/Express + MongoDB (Mongoose) + Multer (file upload) + bcryptjs (PR member PINs)
-- Frontend: Next.js (App Router) + TypeScript + Tailwind
+```bash
+npm install
+npm run dev
+```
 
-## Notes / trade-offs
+*(The backend server will run on **`http://localhost:5000`** )*
 
-- UPI screenshots are uploaded to Cloudinary (folder `zephyr-payments`) and only the URL is stored in MongoDB. Rejected submissions have their Cloudinary image deleted automatically.
-- Admin and PR sessions are signed, expiring backend-issued tokens stored in httpOnly cookies. Protected frontend actions proxy through Next route handlers, and the backend re-checks each PR member token against the database before serving queues or review actions.
+### 2. Frontend Setup
+
+In a new terminal window, navigate to the frontend directory:
+
+```bash
+cd frontend
+cp .env.local.example .env.local
+```
+
+Configure your `.env.local` file:
+
+```
+BACKEND_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Install dependencies and start the Next.js development server:
+
+```bash
+npm install
+npm run dev
+```
+
+*(The frontend application will run on **`http://localhost:3000`** )*
+
+---
+
+## Security & Architectural Trade-offs
+
+- **Screenshot Handling**: UPI transaction receipts are uploaded securely to Cloudinary under the `zephyr-payments` folder, storing only the secure asset URL in MongoDB. Rejected submissions trigger an automated background deletion of the corresponding Cloudinary asset to preserve storage hygiene.
+
+- **Session Management**: Administrative and PR member sessions utilize secure, signed, expiration-controlled tokens stored in HTTP-only cookies. Frontend actions proxy requests through Next.js route handlers where the backend re-validates tokens against database records prior to executing sensitive queue operations.
+
+- **Rate Limiting**: Express rate limiters protect authentication and submission endpoints against brute-force attacks and automated spam.
 
 ### PR member logins:
 
@@ -79,29 +154,3 @@ Orange (`#EA580C`) brand color matching the Zephyr/TCET card, shared header acro
 - **Aman Khan** code=AMAN126 pin=741051
 - **Priya Desai** code=PRIYA114 pin=687901
 - **Hassan** code=HASSAN653 pin=330807
-
-## Deploying to Vercel
-
-### Frontend on Vercel
-
-1. Import the frontend folder into Vercel.
-2. Set these environment variables in Vercel:
-   - BACKEND_API_URL: your deployed backend URL ending in /api, for example https://your-backend-url.com/api
-   - NEXT_PUBLIC_API_URL: /api if using the included Next rewrites, or your deployed backend URL ending in /api
-   - NEXT_PUBLIC_SITE_URL: your Vercel frontend URL, for example https://your-app.vercel.app
-3. Deploy.
-
-### Backend
-
-Deploy the backend separately on a Node host such as Render or Railway with:
-
-- MONGO_URI
-- PR_ADMIN_PASSWORD=your-admin-password
-- AUTH_SECRET=replace-with-a-long-random-secret
-- CLIENT_ORIGIN=https://your-vercel-app-url
-- CLIENT_URL=https://your-vercel-app-url
-- CLOUDINARY_CLOUD_NAME
-- CLOUDINARY_API_KEY
-- CLOUDINARY_API_SECRET
-
-The backend includes a health endpoint at /health.

@@ -3,8 +3,19 @@ import PRMember from "../models/PRMember.js";
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-function getAuthSecret() {
-  const secret = process.env.AUTH_SECRET || process.env.PR_ADMIN_PASSWORD || "zephyr_club_default_secret_key";
+const MIN_SECRET_LENGTH = 32;
+let cachedSecret = null;
+
+export function getAuthSecret() {
+  if (cachedSecret) return cachedSecret;
+  const secret = process.env.AUTH_SECRET;
+  if (!secret)
+    throw new Error("FATAL: AUTH_SECRET is not configured. Refusing to start.");
+  if (secret.length < MIN_SECRET_LENGTH)
+    throw new Error(
+      `FATAL: AUTH_SECRET must be at least ${MIN_SECRET_LENGTH} characters.`,
+    );
+  cachedSecret = secret;
   return secret;
 }
 
@@ -17,7 +28,10 @@ function timingSafeEqualString(a, b) {
 }
 
 function sign(data) {
-  return crypto.createHmac("sha256", getAuthSecret()).update(data).digest("base64url");
+  return crypto
+    .createHmac("sha256", getAuthSecret())
+    .update(data)
+    .digest("base64url");
 }
 
 function getBearerToken(req) {
@@ -67,7 +81,11 @@ export async function requireClub(req, res, next) {
       return res.status(403).json({ error: "Club admin access required" });
     }
 
-    req.auth = { role: "club", clubId: session.clubId, clubSlug: session.clubSlug };
+    req.auth = {
+      role: "club",
+      clubId: session.clubId,
+      clubSlug: session.clubSlug,
+    };
     return next();
   } catch (_err) {
     return res.status(401).json({ error: "Authentication required" });
@@ -83,12 +101,18 @@ export async function requireAdminOrPRMember(req, res, next) {
     const session = verifySessionToken(token);
 
     if (session.role === "club" || session.role === "admin") {
-      req.auth = { role: "club", clubId: session.clubId, clubSlug: session.clubSlug };
+      req.auth = {
+        role: "club",
+        clubId: session.clubId,
+        clubSlug: session.clubSlug,
+      };
       return next();
     }
 
     if (session.role === "pr" && session.code) {
-      const member = await PRMember.findOne({ code: String(session.code).toUpperCase() });
+      const member = await PRMember.findOne({
+        code: String(session.code).toUpperCase(),
+      });
       if (!member) {
         return res.status(401).json({ error: "Authentication required" });
       }
@@ -106,7 +130,8 @@ export async function requireAdminOrPRMember(req, res, next) {
 export const requireClubOrPRMember = requireAdminOrPRMember;
 
 export function isValidPlatformAdminPassword(password) {
-  const configuredPassword = process.env.PLATFORM_ADMIN_PASSWORD || "platformadminsecret123";
+  const configuredPassword = process.env.PLATFORM_ADMIN_PASSWORD;
+  if (!configuredPassword) return false;
   return timingSafeEqualString(password || "", configuredPassword);
 }
 
