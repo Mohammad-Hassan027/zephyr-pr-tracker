@@ -7,53 +7,70 @@
 }
 
 body {
-  @apply min-h-screen bg-canvas text-ink font-body antialiased;
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(245, 247, 251, 0.9)), radial-gradient(circle at top left, rgba(255, 122, 26, 0.16), transparent 30%), radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.16), transparent 24%);
-}
-
-::selection {
-  background-color: rgba(255, 122, 26, 0.25);
-  color: #0f172a;
+  @apply min-h-screen bg-surface-50 text-zinc-900 font-sans antialiased;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 @layer components {
   .page-shell {
-    @apply mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8;
+    @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8;
   }
 
   .surface-card {
-    @apply rounded-[24px] border border-slate-200/80 bg-card shadow-soft;
+    @apply rounded-xl border border-zinc-200/80 bg-white shadow-card;
   }
 
   .page-title {
-    @apply font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl;
+    @apply font-sans text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl;
   }
 
   .page-subtitle {
-    @apply mt-2 text-sm text-slate-600 sm:text-base;
+    @apply mt-1.5 text-sm font-normal leading-relaxed text-zinc-500 max-w-2xl;
   }
 
   .field-input {
-    @apply w-full rounded-2xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-ink shadow-sm transition outline-none focus:border-accent focus:ring-4 focus:ring-accent/15;
+    @apply w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-subtle placeholder:text-zinc-400 transition outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-500/15 disabled:bg-zinc-50 disabled:text-zinc-400;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_-18px_rgba(255,122,26,0.9)] transition hover:-translate-y-0.5 hover:bg-[#f36a13] focus:outline-none focus:ring-4 focus:ring-accent/20 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-sm font-medium text-white shadow-subtle transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white shadow-subtle transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-accent/40 hover:text-accent focus:outline-none focus:ring-4 focus:ring-accent/15;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-subtle transition hover:bg-zinc-50 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .pill-chip {
-    @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600;
+    @apply inline-flex items-center gap-1 rounded-md border border-zinc-200/90 bg-zinc-100/70 px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-zinc-600;
+  }
+
+  .badge-approved {
+    @apply inline-flex items-center gap-1 rounded-md border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-emerald-700;
+  }
+
+  .badge-pending {
+    @apply inline-flex items-center gap-1 rounded-md border border-amber-200/80 bg-amber-50 px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-amber-700;
+  }
+
+  .badge-rejected {
+    @apply inline-flex items-center gap-1 rounded-md border border-rose-200/80 bg-rose-50 px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-wider text-rose-700;
   }
 
   .ticket-card {
-    @apply overflow-hidden rounded-[24px] border border-slate-200 bg-card shadow-soft;
+    @apply overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-card relative;
   }
 
   .ticket-top {
-    @apply border-b border-slate-200 bg-gradient-to-r from-accent/10 via-white to-accentAlt/10 px-4 py-3 sm:px-5;
+    @apply border-b border-zinc-200/80 bg-zinc-50/80 px-5 py-4;
+  }
+
+  .kbd-shortcut {
+    @apply inline-flex items-center justify-center rounded border border-zinc-200 bg-zinc-100/80 px-1.5 py-0.5 font-mono text-[10px] font-medium text-zinc-500 shadow-subtle;
   }
 }
+
