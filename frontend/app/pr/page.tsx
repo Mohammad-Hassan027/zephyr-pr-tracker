@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function PRLoginForm() {
@@ -8,6 +9,7 @@ function PRLoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -17,80 +19,110 @@ function PRLoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const res = await fetch("/api/pr-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, password }),
-    });
-    if (res.ok) {
-      router.push("/pr/dashboard");
-      router.refresh();
-    } else {
-      const body = await res.json();
-      setError(body.error || "Login failed");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/pr-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, password }),
+      });
+      if (res.ok) {
+        router.push("/pr/dashboard");
+        router.refresh();
+      } else {
+        const body = await res.json();
+        setError(body.error || "Authentication failed. Check your member code and PIN.");
+      }
+    } catch {
+      setError("Network error. Could not connect to server.");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-6">
-      <div className="surface-card w-full max-w-sm p-6 sm:p-7">
-        <p className="text-center text-sm font-semibold uppercase tracking-[0.25em] text-accent">
-          Zephyr
-        </p>
-        <h1 className="mt-2 text-center text-2xl font-semibold text-ink">
-          PR member login
-        </h1>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Use the referral code and PIN the admin gave you.
-        </p>
+    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <div className="surface-card w-full max-w-sm p-6 sm:p-8 space-y-5">
+        <div className="text-center">
+          <span className="pill-chip">PR Command Portal</span>
+          <h1 className="text-xl font-bold text-zinc-900 mt-2">
+            PR Member Sign In
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Access your assigned review queue with your member referral code and 6-digit PIN.
+          </p>
+        </div>
 
         {isExpired && (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
-            Your session has expired. Please sign in again.
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-center text-xs font-medium text-amber-800">
+            Your session expired. Please sign in again.
           </div>
         )}
 
         {isLoggedOut && !isExpired && (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-800">
-            You have been signed out safely.
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-center text-xs font-medium text-emerald-800">
+            Signed out securely.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <input
-            required
-            placeholder="Referral code"
-            className="field-input uppercase"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-          <div className="relative">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          <div>
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Member Referral Code
+            </label>
             <input
-              type={showPassword ? "text" : "password"}
               required
-              placeholder="PIN"
-              className="field-input pr-10"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              placeholder="e.g. AMAN12"
+              className="field-input text-xs uppercase font-mono tracking-wider"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
-              aria-label={showPassword ? "Hide PIN" : "Show PIN"}
-            >
-              {showPassword ? "🙈" : "👁️"}
-            </button>
           </div>
+
+          <div>
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Security PIN
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                placeholder="6-digit PIN"
+                className="field-input text-xs font-mono pr-10"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
+                aria-label={showPassword ? "Hide PIN" : "Show PIN"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+
           {error && (
-            <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
               {error}
-            </p>
+            </div>
           )}
-          <button type="submit" className="btn-primary w-full">
-            Log in
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-2.5 text-xs font-semibold mt-2"
+          >
+            {loading ? "Verifying credentials..." : "Sign In to Workspace →"}
           </button>
         </form>
+
+        <div className="border-t border-zinc-100 pt-3 text-center text-xs text-zinc-400">
+          <Link href="/clubs" className="hover:text-zinc-700 transition">
+            ← Return to public directory
+          </Link>
+        </div>
       </div>
     </main>
   );
@@ -98,7 +130,7 @@ function PRLoginForm() {
 
 export default function PRLoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-xs text-zinc-400 font-mono">Loading portal...</div>}>
       <PRLoginForm />
     </Suspense>
   );

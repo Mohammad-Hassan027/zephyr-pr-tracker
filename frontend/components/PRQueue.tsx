@@ -238,18 +238,18 @@ export default function PRQueue({ code }: { code?: string }) {
   return (
     <>
       {/* Filter Bar */}
-      <div className="surface-card mt-6 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-3 mb-4">
+      <div className="surface-card mt-4 p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-3 mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-ink">Filter Queue</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Filter Queue
+            </h3>
             {hasActiveFilters && (
-              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
-                Filtered
-              </span>
+              <span className="badge-pending">Filtered</span>
             )}
             {!loading && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
-                {total} total
+              <span className="pill-chip font-mono">
+                {total} {total === 1 ? "entry" : "entries"}
               </span>
             )}
           </div>
@@ -257,16 +257,16 @@ export default function PRQueue({ code }: { code?: string }) {
             <button
               type="button"
               onClick={handleClearFilters}
-              className="text-xs font-semibold text-accent hover:underline"
+              className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
             >
-              Clear filters
+              Reset filters
             </button>
           )}
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
               Event
             </label>
             <select
@@ -284,12 +284,12 @@ export default function PRQueue({ code }: { code?: string }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
               College
             </label>
             <input
               type="text"
-              placeholder="Search college..."
+              placeholder="Search college name..."
               value={college}
               onChange={(e) => setCollege(e.target.value)}
               className="field-input text-xs"
@@ -297,7 +297,7 @@ export default function PRQueue({ code }: { code?: string }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
               From Date
             </label>
             <input
@@ -309,7 +309,7 @@ export default function PRQueue({ code }: { code?: string }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
               To Date
             </label>
             <input
@@ -324,44 +324,44 @@ export default function PRQueue({ code }: { code?: string }) {
 
       {/* Batch Select Controls Bar */}
       {!loading && items.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1">
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50/80 px-3.5 py-2">
+          <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={handleToggleSelectAll}
-              className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
+              className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
             />
-            Select All on this page ({items.length})
+            Select All ({items.length})
           </label>
 
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-accent">
+              <span className="font-mono text-xs font-medium text-brand-700">
                 {selectedIds.size} selected
               </span>
               <button
                 type="button"
                 onClick={handleBulkApprove}
                 disabled={isBulkBusy}
-                className="rounded-full bg-emerald-600 px-3.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-subtle hover:bg-emerald-700 disabled:opacity-50 transition"
               >
-                {isBulkBusy ? "Approving..." : `✓ Approve Selected (${selectedIds.size})`}
+                {isBulkBusy ? "Approving..." : `✓ Approve (${selectedIds.size})`}
               </button>
               <button
                 type="button"
                 onClick={openBulkRejectModal}
                 disabled={isBulkBusy}
-                className="rounded-full bg-red-600 px-3.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-subtle hover:bg-rose-700 disabled:opacity-50 transition"
               >
-                {isBulkBusy ? "Processing..." : `✕ Reject Selected (${selectedIds.size})`}
+                {isBulkBusy ? "Rejecting..." : `✕ Reject (${selectedIds.size})`}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="text-xs text-slate-500 hover:text-slate-800"
+                className="text-xs text-zinc-500 hover:text-zinc-800"
               >
-                Clear
+                Deselect
               </button>
             </div>
           )}
@@ -370,34 +370,46 @@ export default function PRQueue({ code }: { code?: string }) {
 
       {/* Pending Items List or Empty State */}
       {loading ? (
-        <div className="surface-card mt-4 p-8 text-center">
-          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          <p className="text-sm text-slate-500">Loading queue…</p>
+        <div className="mt-3 space-y-3">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className="surface-card p-4 sm:p-5 animate-pulse flex flex-col sm:flex-row justify-between gap-4"
+            >
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-zinc-200 rounded w-1/3" />
+                <div className="h-3 bg-zinc-100 rounded w-1/2" />
+                <div className="h-3 bg-zinc-100 rounded w-1/4" />
+              </div>
+              <div className="h-20 w-20 bg-zinc-200 rounded-lg shrink-0" />
+            </div>
+          ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="surface-card mt-4 p-8 text-center">
-          <p className="text-lg font-semibold text-ink">
+        <div className="surface-card mt-3 p-10 text-center">
+          <div className="mx-auto mb-2 text-2xl">✨</div>
+          <p className="text-sm font-semibold text-zinc-900">
             {hasActiveFilters
-              ? "No matching pending registrations."
-              : "Nothing pending right now."}
+              ? "No pending registrations match your active filters."
+              : "Queue is empty — all registrations reviewed!"}
           </p>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
             {hasActiveFilters
-              ? "Try adjusting or clearing your filters to see more results."
-              : "New approvals will appear here as soon as a payment is submitted."}
+              ? "Try adjusting or clearing your date/college filters above."
+              : "New registration submissions with UPI payment proofs will appear here in real-time."}
           </p>
         </div>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-3 space-y-3">
           {items.map((r) => {
             const isSelected = selectedIds.has(r._id);
             return (
               <div
                 key={r._id}
-                className={`surface-card border transition p-4 sm:p-5 ${
+                className={`surface-card p-4 sm:p-5 transition ${
                   isSelected
-                    ? "border-accent/60 bg-accent/5 ring-1 ring-accent/30"
-                    : "border-accent/15 bg-white/90"
+                    ? "border-brand-500/60 bg-brand-50/20 ring-1 ring-brand-500/30"
+                    : "hover:border-zinc-300"
                 }`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -406,68 +418,77 @@ export default function PRQueue({ code }: { code?: string }) {
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => handleToggleSelect(r._id)}
-                      className="mt-1 h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent cursor-pointer"
+                      className="mt-1 h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                     />
                     <div className="min-w-0 text-sm">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-ink">{r.studentName}</p>
-                        <span className="rounded-full bg-accentSoft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
-                          Pending
+                        <span className="font-semibold text-zinc-900">
+                          {r.studentName}
                         </span>
-                        {r.event.fee !== undefined && r.amount !== undefined && r.amount !== r.event.fee && (
-                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-400/30">
-                            ⚠️ Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})
+                        <span className="badge-pending">Pending Review</span>
+                        {r.event.fee !== undefined &&
+                          r.amount !== undefined &&
+                          r.amount !== r.event.fee && (
+                            <span className="badge-rejected">
+                              ⚠️ Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})
+                            </span>
+                          )}
+                      </div>
+                      <p className="mt-1 text-xs font-medium text-zinc-700">
+                        {r.event.name}
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        {r.college || "—"} · {r.studentPhone || r.studentEmail}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="font-mono font-semibold text-zinc-900 bg-zinc-100 rounded px-1.5 py-0.5">
+                          ₹{r.amount ?? 0}
+                        </span>
+                        <span className="font-mono text-zinc-500 text-[11px]">
+                          {r.referralCode ? `Ref: ${r.referralCode}` : "Direct submission"}
+                        </span>
+                        {r.utr && (
+                          <span className="font-mono text-zinc-500 text-[11px]">
+                            UTR: <strong className="text-zinc-700">{r.utr}</strong>
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-slate-600 font-medium">{r.event.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {r.college || "—"} · {r.studentPhone || r.studentEmail}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500 font-medium">
-                        ₹{r.amount ?? 0}
-                        {r.referralCode ? ` · Ref: ${r.referralCode}` : " · Direct"}
-                      </p>
-                      {r.utr && (
-                        <p className="mt-1 text-xs text-slate-400">
-                          UTR: <span className="font-mono font-medium text-slate-600">{r.utr}</span>
-                        </p>
-                      )}
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setZoomed(r.paymentScreenshot)}
-                    className="relative h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-slate-200 shadow-sm sm:h-28 sm:w-28 group"
+                    className="relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-200 shadow-subtle group hover:border-zinc-400 transition"
                   >
                     <Image
                       src={r.paymentScreenshot}
                       alt="UPI screenshot"
                       fill
-                      sizes="(max-width: 640px) 96px, 112px"
+                      sizes="80px"
                       loading="lazy"
                       className="object-cover group-hover:scale-105 transition duration-200"
                     />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-semibold">
-                      🔍 Zoom
+                    <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-medium">
+                      Inspect 🔍
                     </div>
                   </button>
                 </div>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+
+                <div className="mt-3.5 pt-3 border-t border-zinc-100 flex flex-col gap-2 sm:flex-row">
                   <button
                     disabled={busyId === r._id || isBulkBusy}
                     onClick={() => handleApprove(r._id)}
-                    className="btn-primary flex-1 py-2 text-xs"
+                    className="btn-primary flex-1 py-1.5 text-xs font-medium"
                   >
-                    {busyId === r._id ? "Approving..." : "Approve"}
+                    {busyId === r._id ? "Approving..." : "✓ Approve Registration"}
                   </button>
                   <button
                     disabled={busyId === r._id || isBulkBusy}
                     onClick={() => openRejectModal(r._id)}
-                    className="btn-secondary flex-1 py-2 text-xs"
+                    className="btn-secondary flex-1 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:border-rose-200"
                   >
-                    Reject
+                    ✕ Reject
                   </button>
                 </div>
               </div>
@@ -478,23 +499,23 @@ export default function PRQueue({ code }: { code?: string }) {
 
       {/* Pagination Controls */}
       {!loading && totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
-            Page <span className="font-semibold text-ink">{page}</span> of{" "}
-            <span className="font-semibold text-ink">{totalPages}</span>
+        <div className="mt-5 flex items-center justify-between gap-4">
+          <p className="text-xs text-zinc-500">
+            Page <span className="font-mono font-semibold text-zinc-900">{page}</span> of{" "}
+            <span className="font-mono font-semibold text-zinc-900">{totalPages}</span>
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handlePageChange(page - 1)}
               disabled={page <= 1}
-              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
             >
               ← Previous
             </button>
             <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPages}
-              className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
             >
               Next →
             </button>
@@ -502,22 +523,24 @@ export default function PRQueue({ code }: { code?: string }) {
         </div>
       )}
 
-      {/* Rejection Modal Dialog (Replaces keyboard-hostile browser prompt) */}
+      {/* Rejection Modal Dialog */}
       {rejectModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div className="surface-card w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <h3 className="text-lg font-semibold text-ink">
-              {rejectModal.isBulk
-                ? `Reject ${selectedIds.size} Selected Registrations`
-                : "Reject Registration"}
-            </h3>
-            <p className="text-xs text-slate-500">
-              Provide a reason for rejection. This explanation will be displayed to the student on their status ticket.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm">
+          <div className="surface-card w-full max-w-md p-6 space-y-4 shadow-popover">
+            <div>
+              <h3 className="text-base font-bold text-zinc-900">
+                {rejectModal.isBulk
+                  ? `Reject ${selectedIds.size} Selected Registrations`
+                  : "Reject Registration"}
+              </h3>
+              <p className="text-xs text-zinc-500 mt-1">
+                Provide a reason for rejection. This note will appear on the student&apos;s status ticket.
+              </p>
+            </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Reason
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Rejection Reason
               </label>
               <input
                 type="text"
@@ -539,7 +562,7 @@ export default function PRQueue({ code }: { code?: string }) {
                     key={chip}
                     type="button"
                     onClick={() => setRejectionReason(chip)}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100 transition"
+                    className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-100 transition"
                   >
                     {chip}
                   </button>
@@ -547,20 +570,20 @@ export default function PRQueue({ code }: { code?: string }) {
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-2">
+            <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
               <button
                 type="button"
                 onClick={() =>
                   setRejectModal({ isOpen: false, isBulk: false, targetId: null })
                 }
-                className="btn-secondary py-1.5 px-4 text-xs"
+                className="btn-secondary py-1.5 px-3 text-xs"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmRejection}
-                className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700 shadow-sm transition"
+                className="inline-flex items-center justify-center rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-subtle hover:bg-rose-700 transition"
               >
                 Confirm Rejection
               </button>
@@ -572,17 +595,17 @@ export default function PRQueue({ code }: { code?: string }) {
       {/* Screenshot Zoom Lightbox */}
       {zoomed && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 sm:p-6 cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 sm:p-6 cursor-pointer backdrop-blur-sm"
           onClick={() => setZoomed(null)}
         >
-          <div className="relative h-[min(90vh,800px)] w-[min(90vw,800px)]">
+          <div className="relative h-[min(90vh,760px)] w-[min(90vw,760px)] overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl">
             <Image
               src={zoomed}
               alt="UPI screenshot full size"
               fill
-              sizes="(max-width: 800px) 90vw, 800px"
+              sizes="(max-width: 760px) 90vw, 760px"
               priority
-              className="rounded-[24px] border border-white/20 object-contain shadow-2xl"
+              className="object-contain"
             />
           </div>
         </div>

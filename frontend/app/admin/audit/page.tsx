@@ -216,31 +216,32 @@ export default function AuditPage() {
     <>
       <Header showNav />
       <main className="page-shell space-y-6">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
+        <section className="surface-card p-6 sm:p-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="pill-chip">Admin audit</p>
-              <h1 className="page-title mt-3">Registration Audit Trail</h1>
+              <span className="pill-chip">Historical Ledger</span>
+              <h1 className="page-title mt-2">Registration Audit Trail</h1>
               <p className="page-subtitle">
-                Review historical decisions, inspect payment receipts, track reviewer actions, and export reports.
+                Inspect historical verification decisions, reviewer notes, payment proofs, and export audit datasets.
               </p>
             </div>
             <button
               type="button"
               onClick={handleExportCsv}
               disabled={exporting || loading}
-              className="btn-primary self-start sm:self-auto text-xs py-2 px-4 shrink-0 flex items-center gap-1.5 shadow-sm"
+              className="btn-primary self-start sm:self-auto text-xs py-2 px-3.5 shrink-0 flex items-center gap-1.5"
             >
-              📥 {exporting ? "Generating CSV..." : "Export CSV"}
+              <span>📥</span>
+              <span>{exporting ? "Generating CSV..." : "Export CSV"}</span>
             </button>
           </div>
         </section>
 
         {/* Filters */}
         <section className="surface-card p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/70 pb-4">
-            <h2 className="text-base font-semibold text-ink">
-              {pagination ? `${pagination.total} reviewed entries` : "Audit Trail"}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
+              {pagination ? `${pagination.total} Logged Registrations` : "Audit Records"}
             </h2>
 
             {hasActiveFilters && (
@@ -251,16 +252,16 @@ export default function AuditPage() {
                   setFromDate("");
                   setToDate("");
                 }}
-                className="text-xs font-semibold text-accent hover:underline"
+                className="text-xs font-medium text-brand-600 hover:underline"
               >
-                Clear all filters
+                Reset filters
               </button>
             )}
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                 Status
               </label>
               <select
@@ -270,22 +271,22 @@ export default function AuditPage() {
                 }
                 className="field-input text-xs"
               >
-                <option value="all">All Statuses</option>
+                <option value="all">All Records</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                 Reviewer Code
               </label>
               <input
                 type="text"
-                placeholder="Filter reviewer (e.g. AMAN126)"
+                placeholder="Filter code (e.g. AMAN12)"
                 value={reviewerFilter}
                 onChange={(e) => setReviewerFilter(e.target.value)}
-                className="field-input text-xs"
+                className="field-input text-xs font-mono uppercase"
                 list="reviewer-list"
               />
               <datalist id="reviewer-list">
@@ -296,101 +297,105 @@ export default function AuditPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                 From Date
               </label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="field-input text-xs"
+                className="field-input text-xs font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">
+              <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                 To Date
               </label>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="field-input text-xs"
+                className="field-input text-xs font-mono"
               />
             </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700">
               {error}
-            </p>
+            </div>
           )}
 
           {/* Table */}
-          <div className="mt-5 overflow-x-auto">
+          <div className="mt-5 overflow-x-auto rounded-lg border border-zinc-200">
             {loading ? (
-              <div className="flex flex-col items-center gap-3 p-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                <p className="text-sm text-slate-500">Loading audit trail…</p>
+              <div className="flex flex-col items-center gap-2 p-10">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                <p className="text-xs text-zinc-400 font-mono">Loading audit logs…</p>
               </div>
             ) : registrations.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-                No reviewed registrations found matching the current filters.
+              <div className="p-8 text-center text-xs text-zinc-400 font-mono">
+                No matching entries found for current filter criteria.
               </div>
             ) : (
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <table className="w-full text-left text-xs text-zinc-600">
+                <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                   <tr>
-                    <th className="px-4 py-3">Reg No</th>
-                    <th className="px-4 py-3">Student</th>
-                    <th className="px-4 py-3">Event</th>
-                    <th className="px-4 py-3">Amount</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Reviewed By</th>
-                    <th className="px-4 py-3">Reviewed At</th>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <th className="px-3.5 py-2.5">Reg No</th>
+                    <th className="px-3.5 py-2.5">Student</th>
+                    <th className="px-3.5 py-2.5">Event</th>
+                    <th className="px-3.5 py-2.5">Amount</th>
+                    <th className="px-3.5 py-2.5">Status</th>
+                    <th className="px-3.5 py-2.5">Reviewer</th>
+                    <th className="px-3.5 py-2.5">Reviewed Date</th>
+                    <th className="px-3.5 py-2.5 text-right">Details</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-zinc-100 bg-white">
                   {registrations.map((item) => (
                     <tr
                       key={item._id}
                       onClick={() => setSelectedRecord(item)}
-                      className="cursor-pointer transition hover:bg-slate-50/70"
+                      className="cursor-pointer transition hover:bg-zinc-50/80"
                     >
-                      <td className="whitespace-nowrap px-4 py-3 font-mono font-medium text-ink">
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-zinc-900">
                         {item.regNo || "—"}
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-ink">{item.studentName}</p>
-                        <p className="text-xs text-slate-400">{item.college || item.studentEmail}</p>
+                      <td className="px-3.5 py-2.5">
+                        <p className="font-medium text-zinc-900 font-sans">{item.studentName}</p>
+                        <p className="text-[11px] text-zinc-400 font-mono">{item.college || item.studentEmail}</p>
                       </td>
-                      <td className="px-4 py-3">{item.event?.name || "—"}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-medium text-ink">
+                      <td className="px-3.5 py-2.5 font-medium text-zinc-800">{item.event?.name || "—"}</td>
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono font-bold text-zinc-900">
                         ₹{item.amount ?? 0}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3">
+                      <td className="whitespace-nowrap px-3.5 py-2.5">
                         {item.status === "approved" ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                          <span className="badge-approved">
                             Approved
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">
+                          <span className="badge-rejected">
                             Rejected
                           </span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600">
-                        {item.reviewedBy || "—"}
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-zinc-700">
+                        {item.reviewedBy ? (
+                          <span className="bg-zinc-100 border border-zinc-200/80 rounded px-1.5 py-0.5">
+                            {item.reviewedBy}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                      <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-[11px] text-zinc-500">
                         {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—"}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right">
-                        <span className="text-xs font-semibold text-accent hover:underline">
-                          View details →
-                        </span>
+                      <td className="whitespace-nowrap px-3.5 py-2.5 text-right font-medium text-brand-600 hover:underline">
+                        View →
                       </td>
                     </tr>
                   ))}
@@ -401,23 +406,23 @@ export default function AuditPage() {
 
           {/* Pagination Controls */}
           {!loading && pagination && pagination.totalPages > 1 && (
-            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-              <p className="text-xs text-slate-500">
-                Page <span className="font-semibold text-ink">{pagination.page}</span> of{" "}
-                <span className="font-semibold text-ink">{pagination.totalPages}</span>
+            <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+              <p className="text-xs font-mono text-zinc-400">
+                Page <span className="font-bold text-zinc-900">{pagination.page}</span> of{" "}
+                <span className="font-bold text-zinc-900">{pagination.totalPages}</span>
               </p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!pagination.hasPrevPage}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
                 >
-                  ← Previous
+                  ← Prev
                 </button>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!pagination.hasNextPage}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
                 >
                   Next →
                 </button>
@@ -426,28 +431,28 @@ export default function AuditPage() {
           )}
         </section>
 
-        {/* Drill-down Detail Modal (Gap 2.2) */}
+        {/* Drill-down Detail Modal */}
         {selectedRecord && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-elevated space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-ink">
+                    <h3 className="text-base font-bold text-zinc-900 font-sans">
                       {selectedRecord.studentName}
                     </h3>
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      className={
                         selectedRecord.status === "approved"
-                          ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                          : "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20"
-                      }`}
+                          ? "badge-approved"
+                          : "badge-rejected"
+                      }
                     >
                       {selectedRecord.status === "approved" ? "Approved" : "Rejected"}
                     </span>
                   </div>
                   {selectedRecord.regNo && (
-                    <p className="font-mono text-xs text-accent font-semibold mt-0.5">
+                    <p className="font-mono text-xs text-brand-700 font-semibold mt-0.5">
                       Reg No: {selectedRecord.regNo}
                     </p>
                   )}
@@ -455,65 +460,65 @@ export default function AuditPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedRecord(null)}
-                  className="rounded-full bg-slate-100 p-1.5 text-slate-500 hover:bg-slate-200 transition"
+                  className="text-zinc-400 hover:text-zinc-600 text-xs"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
+                <div className="space-y-2.5">
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">Event</span>
-                    <p className="font-medium text-ink">{selectedRecord.event?.name}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">Event</span>
+                    <p className="font-medium text-zinc-900 font-sans mt-0.5">{selectedRecord.event?.name}</p>
                   </div>
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">Email</span>
-                    <p className="text-slate-700">{selectedRecord.studentEmail || "—"}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">Email</span>
+                    <p className="text-zinc-700 font-mono mt-0.5">{selectedRecord.studentEmail || "—"}</p>
                   </div>
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">Phone</span>
-                    <p className="text-slate-700">{selectedRecord.studentPhone || "—"}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">Phone</span>
+                    <p className="text-zinc-700 font-mono mt-0.5">{selectedRecord.studentPhone || "—"}</p>
                   </div>
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">College</span>
-                    <p className="text-slate-700">{selectedRecord.college || "—"}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">College</span>
+                    <p className="text-zinc-700 mt-0.5">{selectedRecord.college || "—"}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">Amount Paid</span>
-                    <p className="font-bold text-ink">₹{selectedRecord.amount ?? 0}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">Amount Paid</span>
+                    <p className="font-mono font-bold text-zinc-900 mt-0.5">₹{selectedRecord.amount ?? 0}</p>
                   </div>
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">UTR / Ref Number</span>
-                    <p className="font-mono text-slate-700">{selectedRecord.utr || "—"}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">UTR / Ref Number</span>
+                    <p className="font-mono text-zinc-700 mt-0.5">{selectedRecord.utr || "—"}</p>
                   </div>
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">Referral Code</span>
-                    <p className="font-mono text-slate-700">{selectedRecord.referralCode || "Direct (None)"}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">Referral Code</span>
+                    <p className="font-mono text-zinc-700 mt-0.5">{selectedRecord.referralCode || "Direct (None)"}</p>
                   </div>
                   <div>
-                    <span className="text-xs uppercase font-semibold text-slate-400">Reviewed By</span>
-                    <p className="font-mono text-slate-700">{selectedRecord.reviewedBy || "—"}</p>
+                    <span className="text-[10px] font-mono uppercase text-zinc-400">Reviewed By</span>
+                    <p className="font-mono text-zinc-700 mt-0.5">{selectedRecord.reviewedBy || "—"}</p>
                   </div>
                 </div>
               </div>
 
               {selectedRecord.rejectionReason && (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800">
-                  <span className="font-bold uppercase tracking-wider">Rejection Reason:</span>{" "}
+                <div className="rounded-lg border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-800">
+                  <span className="font-bold uppercase tracking-wider text-[10px]">Rejection Reason:</span>{" "}
                   {selectedRecord.rejectionReason}
                 </div>
               )}
 
               {selectedRecord.paymentScreenshot && (
                 <div>
-                  <span className="block text-xs uppercase font-semibold text-slate-400 mb-2">
+                  <span className="block text-[10px] font-mono uppercase text-zinc-400 mb-1.5">
                     Payment Verification Screenshot
                   </span>
-                  <div className="relative h-64 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-900">
+                  <div className="relative h-64 w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900">
                     <Image
                       src={selectedRecord.paymentScreenshot}
                       alt="Payment screenshot"
@@ -525,7 +530,7 @@ export default function AuditPage() {
                 </div>
               )}
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-2 border-t border-zinc-100">
                 <button
                   type="button"
                   onClick={() => setSelectedRecord(null)}

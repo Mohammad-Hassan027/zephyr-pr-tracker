@@ -71,13 +71,18 @@ export default function PRDashboardClient({ code }: { code: string }) {
       <PRHeader code={code} />
       <main className="page-shell max-w-5xl space-y-6 py-6 sm:py-8">
         {/* Hero Section */}
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
+        <section className="surface-card p-6 sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="pill-chip">PR Member Dashboard</p>
-              <h1 className="page-title mt-2">Welcome, {code}</h1>
+              <div className="flex items-center gap-2">
+                <span className="pill-chip">PR Operations</span>
+                <span className="font-mono text-xs font-bold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.5">
+                  {code}
+                </span>
+              </div>
+              <h1 className="page-title mt-2">PR Review Station</h1>
               <p className="page-subtitle">
-                Track your event referrals, verify incoming payments, and manage your access credentials.
+                Verify payment proofs for student submissions, monitor your referral pipeline, and track conversions.
               </p>
             </div>
             <button
@@ -87,65 +92,65 @@ export default function PRDashboardClient({ code }: { code: string }) {
                 setPinSuccess("");
                 setPinModalOpen(true);
               }}
-              className="btn-secondary self-start sm:self-auto text-xs py-2 px-4 shrink-0"
+              className="btn-secondary self-start sm:self-auto text-xs py-2 px-3.5 shrink-0"
             >
-              🔒 Change My PIN
+              Update PIN
             </button>
           </div>
 
-          {/* Stats Bar */}
+          {/* Stats Bento */}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3.5">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                 Approved
               </p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600">
+              <p className="mt-1 font-mono text-2xl font-bold text-emerald-600">
                 {loadingStats ? "…" : stats?.totalApproved ?? 0}
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-400">Confirmed seats</p>
+              <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">Confirmed seats</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3.5">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                 Pending Queue
               </p>
-              <p className="mt-1 text-2xl font-bold text-amber-600">
+              <p className="mt-1 font-mono text-2xl font-bold text-amber-600">
                 {loadingStats ? "…" : stats?.totalPending ?? 0}
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-400">Needs review</p>
+              <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">Awaiting review</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Total Revenue
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3.5">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                Revenue Credited
               </p>
-              <p className="mt-1 text-2xl font-bold text-accent">
+              <p className="mt-1 font-mono text-2xl font-bold text-brand-700">
                 {loadingStats ? "…" : `₹${stats?.totalRevenue ?? 0}`}
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-400">From approvals</p>
+              <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">Via your approvals</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                Total Referrals
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-3.5">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                Total Submissions
               </p>
-              <p className="mt-1 text-2xl font-bold text-ink">
+              <p className="mt-1 font-mono text-2xl font-bold text-zinc-900">
                 {loadingStats ? "…" : totalReferrals}
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-400">Lifetime submissions</p>
+              <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">Lifetime referrals</p>
             </div>
           </div>
         </section>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-slate-200/80 pb-1">
+        <div className="flex gap-2 border-b border-zinc-200 pb-2">
           <button
             type="button"
             onClick={() => setActiveTab("queue")}
-            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
               activeTab === "queue"
-                ? "bg-accent text-white shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-zinc-900 text-white shadow-subtle"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
             }`}
           >
             Pending Verification Queue ({stats?.totalPending ?? 0})
@@ -156,13 +161,13 @@ export default function PRDashboardClient({ code }: { code: string }) {
               setActiveTab("referrals");
               loadStats();
             }}
-            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition ${
               activeTab === "referrals"
-                ? "bg-accent text-white shadow-sm"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                ? "bg-zinc-900 text-white shadow-subtle"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
             }`}
           >
-            My Referrals History ({stats?.referrals?.length ?? 0})
+            Referral Attribution Log ({stats?.referrals?.length ?? 0})
           </button>
         </div>
 
@@ -173,71 +178,73 @@ export default function PRDashboardClient({ code }: { code: string }) {
           </section>
         ) : (
           <section className="surface-card p-5 sm:p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink">Referrals Using Your Code ({code})</h2>
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
+                Registrations Referred by {code}
+              </h2>
               <button
                 type="button"
                 onClick={loadStats}
-                className="text-xs font-semibold text-accent hover:underline"
+                className="text-xs font-medium text-brand-600 hover:underline"
               >
-                Refresh
+                Refresh Log
               </button>
             </div>
 
             {loadingStats ? (
-              <div className="flex flex-col items-center gap-3 p-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                <p className="text-sm text-slate-500">Loading your referral history…</p>
+              <div className="flex flex-col items-center gap-2 p-10">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                <p className="text-xs text-zinc-400 font-mono">Loading referral history…</p>
               </div>
             ) : !stats?.referrals || stats.referrals.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-                No registrations have used your referral code yet. Share your code with students to start tracking!
+              <div className="rounded-lg border border-dashed border-zinc-200 p-8 text-center text-xs text-zinc-400 font-mono">
+                No student registrations linked with your code yet. Share your referral link to build momentum!
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-600">
-                  <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <div className="overflow-x-auto rounded-lg border border-zinc-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                     <tr>
-                      <th className="px-4 py-3">Reg No</th>
-                      <th className="px-4 py-3">Student Name</th>
-                      <th className="px-4 py-3">Event</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Date</th>
+                      <th className="px-3.5 py-2.5">Reg No</th>
+                      <th className="px-3.5 py-2.5">Candidate</th>
+                      <th className="px-3.5 py-2.5">Event</th>
+                      <th className="px-3.5 py-2.5">Fee</th>
+                      <th className="px-3.5 py-2.5">Status</th>
+                      <th className="px-3.5 py-2.5">Submitted Date</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-zinc-100 bg-white">
                     {stats.referrals.map((item) => (
-                      <tr key={item.id} className="transition hover:bg-slate-50/50">
-                        <td className="whitespace-nowrap px-4 py-3 font-mono font-medium text-ink">
+                      <tr key={item.id} className="transition hover:bg-zinc-50/70">
+                        <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-zinc-900">
                           {item.regNo || "—"}
                         </td>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-ink">{item.studentName}</p>
-                          <p className="text-xs text-slate-400">{item.studentEmail}</p>
+                        <td className="px-3.5 py-3">
+                          <p className="font-medium text-zinc-900 font-sans">{item.studentName}</p>
+                          <p className="text-[11px] text-zinc-400 font-mono">{item.studentEmail}</p>
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-700">
+                        <td className="px-3.5 py-3 font-medium text-zinc-700 font-sans">
                           {item.event?.name || "—"}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-ink">
+                        <td className="whitespace-nowrap px-3.5 py-3 font-mono font-bold text-zinc-900">
                           ₹{item.amount ?? 0}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3">
+                        <td className="whitespace-nowrap px-3.5 py-3">
                           {item.status === "approved" ? (
-                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                            <span className="badge-approved">
                               Approved
                             </span>
                           ) : item.status === "rejected" ? (
-                            <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20" title={item.rejectionReason}>
+                            <span className="badge-rejected" title={item.rejectionReason || undefined}>
                               Rejected
                             </span>
                           ) : (
-                            <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            <span className="badge-pending">
                               Pending
                             </span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-400">
+                        <td className="whitespace-nowrap px-3.5 py-3 text-[11px] font-mono text-zinc-500">
                           {new Date(item.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -251,39 +258,49 @@ export default function PRDashboardClient({ code }: { code: string }) {
 
         {/* Change PIN Modal */}
         {pinModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-semibold text-ink">Change Your PIN</h3>
-              <p className="text-xs text-slate-500">
-                Update the PIN you use to log in to the PR member portal.
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 className="text-sm font-bold text-zinc-900">Update Security PIN</h3>
+                <button
+                  type="button"
+                  onClick={() => setPinModalOpen(false)}
+                  className="text-zinc-400 hover:text-zinc-600 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-zinc-500">
+                Update the 6-digit access PIN you use to authenticate into this portal.
               </p>
 
               <form onSubmit={handlePinChange} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                    Current PIN (Optional if unknown)
+                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                    Current PIN (Optional if resetting)
                   </label>
                   <div className="relative">
                     <input
                       type={showOldPin ? "text" : "password"}
                       value={oldPin}
                       onChange={(e) => setOldPin(e.target.value)}
-                      placeholder="Enter current PIN"
-                      className="field-input text-sm pr-10"
+                      placeholder="Current PIN"
+                      className="field-input text-xs font-mono pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowOldPin(!showOldPin)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
                       aria-label={showOldPin ? "Hide PIN" : "Show PIN"}
                     >
-                      {showOldPin ? "🙈" : "👁️"}
+                      {showOldPin ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                     New PIN (min 4 digits)
                   </label>
                   <div className="relative">
@@ -292,47 +309,47 @@ export default function PRDashboardClient({ code }: { code: string }) {
                       required
                       value={newPin}
                       onChange={(e) => setNewPin(e.target.value)}
-                      placeholder="e.g. 123456"
-                      className="field-input text-sm pr-10"
+                      placeholder="e.g. 849201"
+                      className="field-input text-xs font-mono pr-10"
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPin(!showNewPin)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
                       aria-label={showNewPin ? "Hide PIN" : "Show PIN"}
                     >
-                      {showNewPin ? "🙈" : "👁️"}
+                      {showNewPin ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
 
                 {pinError && (
-                  <p className="rounded-xl border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
                     {pinError}
-                  </p>
+                  </div>
                 )}
 
                 {pinSuccess && (
-                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-700">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-700">
                     {pinSuccess}
-                  </p>
+                  </div>
                 )}
 
-                <div className="flex gap-2 justify-end pt-2">
+                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
                   <button
                     type="button"
                     onClick={() => setPinModalOpen(false)}
-                    className="btn-secondary py-1.5 px-4 text-xs"
+                    className="btn-secondary py-1.5 px-3 text-xs"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={changingPin}
-                    className="btn-primary py-1.5 px-4 text-xs"
+                    className="btn-primary py-1.5 px-4 text-xs font-medium"
                   >
-                    {changingPin ? "Updating..." : "Update PIN"}
+                    {changingPin ? "Saving..." : "Save PIN"}
                   </button>
                 </div>
               </form>

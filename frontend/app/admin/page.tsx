@@ -286,34 +286,61 @@ export default function AdminPage() {
     <>
       <Header showNav />
       <main className="page-shell space-y-6">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
-          <p className="pill-chip">Admin control</p>
-          <h1 className="page-title mt-3">
-            {club ? `${club.name} Dashboard` : "Manage events and approvals"}
-          </h1>
-          <p className="page-subtitle">
-            Create new fest opportunities, issue referral access, track seat limits, and keep the
-            approval queue moving for {club ? club.name : "your club"}.
-          </p>
+        <section className="surface-card p-6 sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="pill-chip">Admin Workspace</span>
+                {club && (
+                  <span className="font-mono text-xs text-zinc-400">
+                    /{club.slug}
+                  </span>
+                )}
+              </div>
+              <h1 className="page-title mt-2">
+                {club ? `${club.name} Control Center` : "Manage events and approvals"}
+              </h1>
+              <p className="page-subtitle">
+                Publish events, manage PR member access codes, monitor seat capacity, and process the verification queue.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3.5 py-2 text-center">
+                <p className="font-mono text-base font-bold text-zinc-900">{events.length}</p>
+                <p className="text-[10px] font-mono uppercase text-zinc-400">Events</p>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-3.5 py-2 text-center">
+                <p className="font-mono text-base font-bold text-zinc-900">{members.length}</p>
+                <p className="text-[10px] font-mono uppercase text-zinc-400">PR Members</p>
+              </div>
+            </div>
+          </div>
         </section>
+
         {msg && (
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
             {msg}
-          </p>
+          </div>
         )}
 
         {/* Events Section */}
         <section className="surface-card p-5 sm:p-6 space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-ink">New event</h2>
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-900">
+                Publish New Event
+              </h2>
+            </div>
+
             <form
               onSubmit={createEvent}
               className="mt-4 grid gap-3 sm:grid-cols-2"
             >
               <input
                 required
-                placeholder="Name (e.g. Coding War)"
-                className="field-input"
+                placeholder="Event Title (e.g. Coding War)"
+                className="field-input text-xs"
                 value={eventForm.name}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, name: e.target.value })
@@ -322,7 +349,7 @@ export default function AdminPage() {
               <input
                 required
                 placeholder="Slug (e.g. coding-war)"
-                className="field-input"
+                className="field-input text-xs font-mono"
                 value={eventForm.slug}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, slug: e.target.value })
@@ -330,8 +357,8 @@ export default function AdminPage() {
               />
               <input
                 type="number"
-                placeholder="Registration Fee in ₹ (e.g. 100, 0 if free)"
-                className="field-input"
+                placeholder="Registration Fee in ₹ (0 if free)"
+                className="field-input text-xs font-mono"
                 value={eventForm.fee}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, fee: e.target.value })
@@ -339,7 +366,7 @@ export default function AdminPage() {
               />
               <input
                 placeholder="Venue / Location (e.g. Audi 2 / Online)"
-                className="field-input"
+                className="field-input text-xs"
                 value={eventForm.venue}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, venue: e.target.value })
@@ -347,7 +374,7 @@ export default function AdminPage() {
               />
               <input
                 type="date"
-                className="field-input"
+                className="field-input text-xs font-mono"
                 value={eventForm.date}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, date: e.target.value })
@@ -355,266 +382,302 @@ export default function AdminPage() {
               />
               <input
                 type="number"
-                placeholder="Capacity (optional)"
-                className="field-input"
+                placeholder="Seat Capacity (leave empty for unlimited)"
+                className="field-input text-xs font-mono"
                 value={eventForm.capacity}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, capacity: e.target.value })
                 }
               />
               <textarea
-                placeholder="Event description / details (optional)"
+                placeholder="Event summary & rules (optional)"
                 rows={2}
-                className="field-input sm:col-span-2"
+                className="field-input text-xs sm:col-span-2"
                 value={eventForm.description}
                 onChange={(e) =>
                   setEventForm({ ...eventForm, description: e.target.value })
                 }
               />
-              <button className="btn-primary sm:col-span-2">Create event</button>
+              <button className="btn-primary sm:col-span-2 py-2 text-xs font-medium">
+                + Create Event
+              </button>
             </form>
           </div>
 
-          <div className="border-t border-slate-200/80 pt-5">
-            <h3 className="text-base font-semibold text-ink mb-3">
-              Existing Events & Live Capacities ({events.length})
-            </h3>
+          <div className="border-t border-zinc-100 pt-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Active Events &amp; Capacities ({events.length})
+              </h3>
+            </div>
 
-            <div className="space-y-3">
-              {events.map((e) => {
-                const registeredCount = stats[e.slug] ?? (e._id ? stats[e._id] : 0) ?? 0;
-                const capacity = e.capacity || null;
-                const fillPercent = capacity
-                  ? Math.min(100, Math.round((registeredCount / capacity) * 100))
-                  : null;
+            {events.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-zinc-200 p-6 text-center text-xs text-zinc-400">
+                No events created yet. Use the form above to publish your first event.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {events.map((e) => {
+                  const registeredCount = stats[e.slug] ?? (e._id ? stats[e._id] : 0) ?? 0;
+                  const capacity = e.capacity || null;
+                  const fillPercent = capacity
+                    ? Math.min(100, Math.round((registeredCount / capacity) * 100))
+                    : null;
 
-                return (
-                  <div
-                    key={e.slug}
-                    className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-ink text-base">{e.name}</span>
-                          <span className="font-mono text-xs text-slate-500">
-                            /{e.slug}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
-                          <span className="font-semibold text-accent">
-                            {e.fee ? `₹${e.fee}` : "Free"}
-                          </span>
-                          {e.venue && <span>· 📍 {e.venue}</span>}
-                          {e.date && (
-                            <span>· 📅 {new Date(e.date).toLocaleDateString()}</span>
+                  return (
+                    <div
+                      key={e.slug}
+                      className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 space-y-3 transition hover:border-zinc-300"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-sans font-bold text-zinc-900 text-sm">{e.name}</span>
+                            <span className="font-mono text-[11px] text-zinc-400">
+                              /{e.slug}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 font-mono">
+                            <span className="font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.2">
+                              {e.fee ? `₹${e.fee}` : "Free"}
+                            </span>
+                            {e.venue && <span>· 📍 {e.venue}</span>}
+                            {e.date && (
+                              <span>· 📅 {new Date(e.date).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                          {e.description && (
+                            <p className="mt-1 text-xs text-zinc-500 max-w-xl font-sans line-clamp-2">
+                              {e.description}
+                            </p>
                           )}
                         </div>
-                        {e.description && (
-                          <p className="mt-1 text-xs text-slate-600 max-w-xl">
-                            {e.description}
-                          </p>
-                        )}
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEditEvent(e)}
-                          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteEvent(e._id, e.name)}
-                          className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Capacity Progress Bar (Gap 2.4) */}
-                    <div className="rounded-xl border border-slate-200/80 bg-white p-3">
-                      <div className="flex justify-between items-center text-xs mb-1.5">
-                        <span className="font-medium text-slate-600">
-                          Confirmed Registrations:{" "}
-                          <strong className="text-ink">{registeredCount}</strong>
-                          {capacity ? ` / ${capacity} seats` : " (Unlimited)"}
-                        </span>
-                        {fillPercent !== null && (
-                          <span
-                            className={`font-semibold ${
-                              fillPercent >= 90
-                                ? "text-red-600"
-                                : fillPercent >= 70
-                                ? "text-amber-600"
-                                : "text-emerald-600"
-                            }`}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditEvent(e)}
+                            className="btn-secondary py-1 px-2.5 text-xs"
                           >
-                            {fillPercent}% filled
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvent(e._id, e.name)}
+                            className="rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 transition"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Capacity Progress Bar */}
+                      <div className="rounded-lg border border-zinc-200/80 bg-white p-3">
+                        <div className="flex justify-between items-center text-xs mb-1.5 font-mono">
+                          <span className="text-zinc-600">
+                            Registrations:{" "}
+                            <strong className="text-zinc-900">{registeredCount}</strong>
+                            {capacity ? ` / ${capacity}` : " (Unlimited)"}
                           </span>
+                          {fillPercent !== null && (
+                            <span
+                              className={`font-semibold ${
+                                fillPercent >= 90
+                                  ? "text-rose-600"
+                                  : fillPercent >= 70
+                                  ? "text-amber-600"
+                                  : "text-emerald-600"
+                              }`}
+                            >
+                              {fillPercent}% capacity
+                            </span>
+                          )}
+                        </div>
+                        {capacity && (
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                            <div
+                              className={`h-full transition-all duration-500 ${
+                                fillPercent! >= 90
+                                  ? "bg-rose-500"
+                                  : fillPercent! >= 70
+                                  ? "bg-amber-500"
+                                  : "bg-brand-600"
+                              }`}
+                              style={{ width: `${fillPercent}%` }}
+                            />
+                          </div>
                         )}
                       </div>
-                      {capacity && (
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className={`h-full transition-all duration-500 ${
-                              fillPercent! >= 90
-                                ? "bg-red-500"
-                                : fillPercent! >= 70
-                                ? "bg-amber-500"
-                                : "bg-accent"
-                            }`}
-                            style={{ width: `${fillPercent}%` }}
-                          />
-                        </div>
-                      )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 
         {/* PR Members Section */}
         <section className="surface-card p-5 sm:p-6 space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-ink">New PR member</h2>
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-900">
+                Onboard PR Member
+              </h2>
+            </div>
+
             <form
               onSubmit={createMember}
               className="mt-4 grid gap-3 sm:grid-cols-2"
             >
               <input
                 required
-                placeholder="Name"
-                className="field-input"
+                placeholder="Full Name (e.g. Aman Gupta)"
+                className="field-input text-xs"
                 value={memberForm.name}
                 onChange={(e) =>
                   setMemberForm({ ...memberForm, name: e.target.value })
                 }
               />
               <input
-                placeholder="Code (optional, auto-generated)"
-                className="field-input"
+                placeholder="Referral Code (optional, e.g. AMAN12)"
+                className="field-input text-xs uppercase font-mono"
                 value={memberForm.code}
                 onChange={(e) =>
                   setMemberForm({ ...memberForm, code: e.target.value })
                 }
               />
               <input
-                placeholder="PIN (optional, auto-generated)"
-                className="field-input sm:col-span-2"
+                placeholder="Login PIN (optional, auto-generated if empty)"
+                className="field-input text-xs font-mono sm:col-span-2"
                 value={memberForm.password}
                 onChange={(e) =>
                   setMemberForm({ ...memberForm, password: e.target.value })
                 }
               />
-              <button className="btn-primary sm:col-span-2">Add member</button>
+              <button className="btn-primary sm:col-span-2 py-2 text-xs font-medium">
+                + Add PR Member
+              </button>
             </form>
 
             {newPin && (
-              <div className="mt-4 rounded-2xl border border-accent/20 bg-accent/10 p-3 text-sm text-slate-700">
-                Share these with{" "}
-                <span className="font-semibold text-ink">{newPin.code}</span> —
-                they log in at{" "}
-                <code className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs">
-                  /pr
-                </code>{" "}
-                with code <strong>{newPin.code}</strong> and PIN{" "}
-                <strong>{newPin.pin}</strong>. This PIN is shown only once.
+              <div className="mt-4 rounded-lg border border-brand-200 bg-brand-50/70 p-3.5 text-xs text-zinc-800 space-y-1">
+                <p className="font-semibold text-brand-900">Member Created Successfully:</p>
+                <p>
+                  Share credentials with <strong className="font-mono">{newPin.code}</strong> — they sign in at{" "}
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs border border-brand-200">
+                    /pr
+                  </code>{" "}
+                  with code <strong className="font-mono">{newPin.code}</strong> and PIN{" "}
+                  <strong className="font-mono text-brand-700">{newPin.pin}</strong>.
+                </p>
               </div>
             )}
           </div>
 
-          <div className="border-t border-slate-200/80 pt-5">
-            <h3 className="text-base font-semibold text-ink mb-3">
-              Active PR Members ({members.length})
+          <div className="border-t border-zinc-100 pt-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
+              PR Team Roster ({members.length})
             </h3>
-            <div className="space-y-3">
-              {members.map((m) => {
-                const link = club
-                  ? `${SITE_URL}/register/${club.slug}?ref=${m.code}`
-                  : `${SITE_URL}/register?ref=${m.code}`;
-                return (
-                  <div
-                    key={m.code}
-                    className="rounded-[20px] border border-slate-200 bg-slate-50/80 p-4 space-y-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold text-ink text-base">
-                        {m.name}{" "}
-                        <span className="font-mono text-xs font-normal text-slate-500">
-                          ({m.code})
-                        </span>
-                      </p>
-                      <div className="flex items-center gap-2">
+            {members.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-zinc-200 p-6 text-center text-xs text-zinc-400">
+                No PR members registered yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {members.map((m) => {
+                  const link = club
+                    ? `${SITE_URL}/register/${club.slug}?ref=${m.code}`
+                    : `${SITE_URL}/register?ref=${m.code}`;
+                  return (
+                    <div
+                      key={m.code}
+                      className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 space-y-3 transition hover:border-zinc-300"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-bold text-zinc-900 text-sm">
+                          {m.name}{" "}
+                          <span className="font-mono text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.5 ml-1">
+                            {m.code}
+                          </span>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditMember(m)}
+                            className="btn-secondary py-1 px-2.5 text-xs"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResetPin(m)}
+                            className="rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-50 transition"
+                          >
+                            Reset PIN
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMember(m)}
+                            className="rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200/80 bg-white px-3 py-2 text-xs">
+                        <span className="truncate font-mono text-[11px] text-zinc-500">{link}</span>
                         <button
                           type="button"
-                          onClick={() => openEditMember(m)}
-                          className="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                          className={`shrink-0 rounded px-2.5 py-1 text-xs font-mono font-medium transition ${
+                            copiedMemberCode === m.code
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                          }`}
+                          onClick={() => handleCopyMemberLink(m.code, link)}
                         >
-                          ✏️ Edit Name
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleResetPin(m)}
-                          className="rounded-full border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50 transition"
-                        >
-                          🔑 Reset PIN
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteMember(m)}
-                          className="rounded-full border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
-                        >
-                          🗑️
+                          {copiedMemberCode === m.code ? "✓ Copied" : "Copy Link"}
                         </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm">
-                      <span className="truncate text-xs text-slate-600">{link}</span>
-                      <button
-                        type="button"
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
-                          copiedMemberCode === m.code
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-accent/10 text-accent hover:bg-accent/20"
-                        }`}
-                        onClick={() => handleCopyMemberLink(m.code, link)}
-                      >
-                        {copiedMemberCode === m.code ? "✓ Copied" : "Copy Link"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </section>
 
         {/* Approvals Queue */}
-        <section>
-          <h2 className="text-lg font-semibold text-ink">
-            Pending Queue
-          </h2>
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-900">
+              Registration Verification Queue
+            </h2>
+          </div>
           <PRQueue />
         </section>
 
         {/* Edit Event Modal */}
         {editEventModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-lg p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-semibold text-ink">
-                Edit Event ({editEventModal.event?.name})
-              </h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-lg p-6 shadow-elevated space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 className="text-sm font-bold text-zinc-900">
+                  Edit Event: {editEventModal.event?.name}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditEventModal({ isOpen: false, event: null })}
+                  className="text-zinc-400 hover:text-zinc-600 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+
               <form onSubmit={handleSaveEvent} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
-                    Event Name
+                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                    Event Title
                   </label>
                   <input
                     required
@@ -622,13 +685,13 @@ export default function AdminPage() {
                     onChange={(e) =>
                       setEditEventForm({ ...editEventForm, name: e.target.value })
                     }
-                    className="field-input text-sm"
+                    className="field-input text-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                       Fee (₹)
                     </label>
                     <input
@@ -637,16 +700,16 @@ export default function AdminPage() {
                       onChange={(e) =>
                         setEditEventForm({ ...editEventForm, fee: e.target.value })
                       }
-                      className="field-input text-sm"
+                      className="field-input text-xs font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
-                      Capacity
+                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                      Seat Capacity
                     </label>
                     <input
                       type="number"
-                      placeholder="Unlimited if empty"
+                      placeholder="Unlimited"
                       value={editEventForm.capacity}
                       onChange={(e) =>
                         setEditEventForm({
@@ -654,14 +717,14 @@ export default function AdminPage() {
                           capacity: e.target.value,
                         })
                       }
-                      className="field-input text-sm"
+                      className="field-input text-xs font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                       Venue
                     </label>
                     <input
@@ -672,11 +735,11 @@ export default function AdminPage() {
                           venue: e.target.value,
                         })
                       }
-                      className="field-input text-sm"
+                      className="field-input text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                       Date
                     </label>
                     <input
@@ -688,13 +751,13 @@ export default function AdminPage() {
                           date: e.target.value,
                         })
                       }
-                      className="field-input text-sm"
+                      className="field-input text-xs font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                     Description
                   </label>
                   <textarea
@@ -706,17 +769,17 @@ export default function AdminPage() {
                         description: e.target.value,
                       })
                     }
-                    className="field-input text-sm"
+                    className="field-input text-xs"
                   />
                 </div>
 
-                <div className="flex gap-2 justify-end pt-2">
+                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
                   <button
                     type="button"
                     onClick={() =>
                       setEditEventModal({ isOpen: false, event: null })
                     }
-                    className="btn-secondary py-1.5 px-4 text-xs"
+                    className="btn-secondary py-1.5 px-3 text-xs"
                   >
                     Cancel
                   </button>
@@ -731,36 +794,36 @@ export default function AdminPage() {
 
         {/* Edit Member Modal */}
         {editMemberModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-semibold text-ink">
-                Edit PR Member ({editMemberModal.member?.code})
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
+              <h3 className="text-sm font-bold text-zinc-900">
+                Edit PR Member: {editMemberModal.member?.code}
               </h3>
               <form onSubmit={handleSaveMember} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
+                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                     Full Name
                   </label>
                   <input
                     required
                     value={editMemberName}
                     onChange={(e) => setEditMemberName(e.target.value)}
-                    className="field-input text-sm"
+                    className="field-input text-xs"
                     autoFocus
                   />
                 </div>
-                <div className="flex gap-2 justify-end pt-2">
+                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
                   <button
                     type="button"
                     onClick={() =>
                       setEditMemberModal({ isOpen: false, member: null })
                     }
-                    className="btn-secondary py-1.5 px-4 text-xs"
+                    className="btn-secondary py-1.5 px-3 text-xs"
                   >
                     Cancel
                   </button>
                   <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
-                    Save
+                    Save Member
                   </button>
                 </div>
               </form>
@@ -770,27 +833,27 @@ export default function AdminPage() {
 
         {/* Reset PIN Result Dialog */}
         {resetPinResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-semibold text-ink">
-                🔑 New PIN Generated
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
+              <h3 className="text-sm font-bold text-zinc-900">
+                New PIN Generated
               </h3>
-              <p className="text-xs text-slate-600">
-                A new 6-digit PIN has been assigned to{" "}
-                <strong>{resetPinResult.name}</strong> ({resetPinResult.code}):
+              <p className="text-xs text-zinc-500">
+                A new 6-digit login PIN was generated for{" "}
+                <strong className="text-zinc-800">{resetPinResult.name}</strong> ({resetPinResult.code}):
               </p>
-              <div className="rounded-2xl border border-accent/30 bg-accent/10 p-4 text-center">
-                <p className="text-xs uppercase tracking-wider text-slate-500">
-                  New Login PIN
+              <div className="rounded-lg border border-brand-200 bg-brand-50/70 p-4 text-center">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-brand-600">
+                  Temporary Access PIN
                 </p>
-                <p className="font-mono text-3xl font-bold tracking-widest text-ink mt-1">
+                <p className="font-mono text-2xl font-bold tracking-widest text-brand-900 mt-1">
                   {resetPinResult.pin}
                 </p>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Share this PIN directly with the member. It will not be shown again.
+              <p className="text-[11px] text-zinc-400 font-mono">
+                Share this PIN directly with the member. It will not be displayed again.
               </p>
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-2 border-t border-zinc-100">
                 <button
                   type="button"
                   onClick={() => setResetPinResult(null)}

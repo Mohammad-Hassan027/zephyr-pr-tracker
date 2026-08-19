@@ -181,55 +181,55 @@ export default function PlatformClubsPage() {
 
   if (!isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-6">
-        <div className="surface-card w-full max-w-sm p-6 sm:p-7">
-          <p className="text-center text-sm font-semibold uppercase tracking-[0.25em] text-accent">
-            Zephyr Platform
-          </p>
-          <h1 className="mt-2 text-center text-2xl font-semibold text-ink">
-            Platform admin login
-          </h1>
-          <p className="mt-1 text-center text-sm text-slate-500">
-            Enter platform password to review pending club signups.
-          </p>
+      <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div className="surface-card w-full max-w-sm p-6 sm:p-8 space-y-5">
+          <div className="text-center">
+            <span className="pill-chip">Super Admin</span>
+            <h1 className="text-xl font-bold text-zinc-900 mt-2">
+              Platform Governance
+            </h1>
+            <p className="text-xs text-zinc-500 mt-1">
+              Enter platform master key to review pending club activation requests.
+            </p>
+          </div>
 
-          <form onSubmit={handleLogin} className="mt-6 space-y-4">
+          <form onSubmit={handleLogin} className="space-y-3.5">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-                Platform Admin Password
+              <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                Platform Master Password
               </label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  placeholder="Platform password"
-                  className="field-input pr-10"
+                  placeholder="Master key"
+                  className="field-input text-xs font-mono pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
             </div>
 
             {loginError && (
-              <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
                 {loginError}
-              </p>
+              </div>
             )}
 
             <button
               type="submit"
               disabled={loadingLogin}
-              className="btn-primary w-full"
+              className="btn-primary w-full py-2.5 text-xs font-semibold mt-2"
             >
-              {loadingLogin ? "Authenticating..." : "Access platform admin"}
+              {loadingLogin ? "Authenticating..." : "Access Platform Console →"}
             </button>
           </form>
         </div>
@@ -241,18 +241,20 @@ export default function PlatformClubsPage() {
     <>
       <Header />
       <main className="page-shell space-y-6">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
-          <p className="pill-chip">Platform Control</p>
-          <h1 className="page-title mt-3">Club Application Management</h1>
+        <section className="surface-card p-6 sm:p-7">
+          <div className="flex items-center gap-2">
+            <span className="pill-chip">Super Admin</span>
+          </div>
+          <h1 className="page-title mt-2">Club Application Governance</h1>
           <p className="page-subtitle">
-            Review new club registrations, grant access to host events, and monitor platform activity.
+            Review incoming club onboarding applications, verify administrative credentials, and grant portal access.
           </p>
         </section>
 
         {msg && (
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
             {msg}
-          </p>
+          </div>
         )}
 
         {/* Filter Controls & Search */}
@@ -261,7 +263,7 @@ export default function PlatformClubsPage() {
             {/* Status Tabs */}
             <div className="flex flex-wrap gap-1.5">
               {[
-                { label: "Pending", value: "pending" as const },
+                { label: "Pending Review", value: "pending" as const },
                 { label: "Approved", value: "approved" as const },
                 { label: "Rejected", value: "rejected" as const },
                 { label: "All Clubs", value: "all" as const },
@@ -270,10 +272,10 @@ export default function PlatformClubsPage() {
                   key={tab.value}
                   type="button"
                   onClick={() => setStatusFilter(tab.value)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                     statusFilter === tab.value
-                      ? "bg-accent text-white shadow-sm"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? "bg-zinc-900 text-white shadow-subtle"
+                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                   }`}
                 >
                   {tab.label}
@@ -288,70 +290,65 @@ export default function PlatformClubsPage() {
                 placeholder="Search name, slug, email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="field-input text-xs py-1.5"
+                className="field-input text-xs"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-            <h2 className="text-sm font-semibold text-ink">
-              {pagination ? `${pagination.total} clubs found` : "Club List"}
+          <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
+              {pagination ? `${pagination.total} Applications` : "Club Registry"}
             </h2>
             <button
               onClick={() => reload()}
-              className="text-xs font-semibold text-accent hover:underline"
+              className="text-xs font-medium text-brand-600 hover:underline"
             >
-              Refresh
+              Refresh Table
             </button>
           </div>
 
           {loadingClubs ? (
-            <div className="p-8 text-center text-sm text-slate-500">
-              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-              Loading clubs...
+            <div className="flex flex-col items-center gap-2 p-10">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+              <p className="text-xs text-zinc-400 font-mono">Loading club applications…</p>
             </div>
           ) : clubs.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 rounded-2xl border border-dashed border-slate-200">
-              <p className="text-base font-semibold text-ink">
-                No clubs found.
-              </p>
-              <p className="mt-1 text-xs">
-                No applications match the current filter or search criteria.
-              </p>
+            <div className="p-8 text-center text-xs text-zinc-400 font-mono rounded-lg border border-dashed border-zinc-200">
+              No club records match current query parameters.
             </div>
           ) : (
             <div className="space-y-3">
               {clubs.map((c) => (
                 <div
                   key={c._id}
-                  className="surface-card border-accent/15 bg-white/90 p-4 sm:p-5"
+                  className="surface-card p-4 sm:p-5 transition hover:border-zinc-300"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 text-sm">
+                    <div className="min-w-0 text-xs">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-ink text-base">{c.name}</p>
+                        <span className="font-bold text-zinc-900 text-sm font-sans">{c.name}</span>
                         {c.status === "approved" ? (
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                          <span className="badge-approved">
                             Approved
                           </span>
                         ) : c.status === "rejected" ? (
-                          <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/20">
+                          <span className="badge-rejected">
                             Rejected
                           </span>
                         ) : (
-                          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                            Pending Approval
+                          <span className="badge-pending">
+                            Pending Review
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 font-mono text-xs text-slate-500">
-                        URL Slug: <span className="font-semibold text-ink">/register/{c.slug}</span>
+                      <p className="mt-1 font-mono text-[11px] text-zinc-500">
+                        URL Slug: <span className="font-semibold text-zinc-900">/register/{c.slug}</span>
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Admin Email: <span className="text-slate-700 font-medium">{c.email}</span>
+                      <p className="mt-0.5 text-zinc-500 font-mono text-[11px]">
+                        Admin Email: <span className="text-zinc-700">{c.email}</span>
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Registered: {new Date(c.createdAt).toLocaleDateString()}
+                      <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">
+                        Applied: {new Date(c.createdAt).toLocaleDateString()}
                       </p>
                     </div>
 
@@ -360,7 +357,7 @@ export default function PlatformClubsPage() {
                         <button
                           disabled={busyId === c._id}
                           onClick={() => handleApprove(c._id)}
-                          className="rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition"
+                          className="btn-primary py-1 px-3 text-xs"
                         >
                           {busyId === c._id ? "Processing..." : "✓ Approve Club"}
                         </button>
@@ -369,7 +366,7 @@ export default function PlatformClubsPage() {
                         <button
                           disabled={busyId === c._id}
                           onClick={() => setRejectModal({ isOpen: true, club: c })}
-                          className="rounded-full border border-red-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 transition"
+                          className="rounded-lg border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50 transition"
                         >
                           ✕ Reject
                         </button>
@@ -383,23 +380,23 @@ export default function PlatformClubsPage() {
 
           {/* Pagination */}
           {!loadingClubs && pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-              <p className="text-xs text-slate-500">
-                Page <span className="font-semibold text-ink">{pagination.page}</span> of{" "}
-                <span className="font-semibold text-ink">{pagination.totalPages}</span>
+            <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+              <p className="text-xs font-mono text-zinc-400">
+                Page <span className="font-bold text-zinc-900">{pagination.page}</span> of{" "}
+                <span className="font-bold text-zinc-900">{pagination.totalPages}</span>
               </p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!pagination.hasPrevPage}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
                 >
-                  ← Previous
+                  ← Prev
                 </button>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!pagination.hasNextPage}
-                  className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
                 >
                   Next →
                 </button>
@@ -408,22 +405,22 @@ export default function PlatformClubsPage() {
           )}
         </section>
 
-        {/* Custom Rejection Confirmation Modal (Gap 2.7) */}
+        {/* Custom Rejection Confirmation Modal */}
         {rejectModal.isOpen && rejectModal.club && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-semibold text-ink">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
+              <h3 className="text-sm font-bold text-zinc-900">
                 Reject Club Application
               </h3>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-zinc-500">
                 Are you sure you want to reject the application for{" "}
-                <strong>{rejectModal.club.name}</strong> ({rejectModal.club.email})?
+                <strong className="text-zinc-800">{rejectModal.club.name}</strong> ({rejectModal.club.email})?
               </p>
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
                 <button
                   type="button"
                   onClick={() => setRejectModal({ isOpen: false, club: null })}
-                  className="btn-secondary py-1.5 px-4 text-xs"
+                  className="btn-secondary py-1.5 px-3 text-xs"
                 >
                   Cancel
                 </button>
@@ -431,7 +428,7 @@ export default function PlatformClubsPage() {
                   type="button"
                   onClick={confirmRejection}
                   disabled={busyId === rejectModal.club._id}
-                  className="rounded-full bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-700 shadow-sm transition"
+                  className="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 shadow-subtle transition"
                 >
                   Confirm Rejection
                 </button>
