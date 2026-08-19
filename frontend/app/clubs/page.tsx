@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import type { ClubDirectoryEntry } from "@/app/api/clubs-directory/route";
@@ -13,7 +13,6 @@ function formatEventDate(date: string | null) {
     weekday: "short",
     month: "short",
     day: "numeric",
-    year: "numeric",
   });
 }
 
@@ -21,6 +20,7 @@ export default function ClubsPage() {
   const [clubs, setClubs] = useState<ClubDirectoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     async function loadClubs() {
@@ -30,7 +30,7 @@ export default function ClubsPage() {
         const res = await fetch("/api/clubs-directory", { cache: "no-store" });
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error || "Could not load clubs");
+          setError(data.error || "Could not load clubs directory");
           return;
         }
         setClubs(Array.isArray(data) ? data : []);
@@ -44,97 +44,206 @@ export default function ClubsPage() {
     loadClubs();
   }, []);
 
+  const filteredClubs = useMemo(() => {
+    if (!search.trim()) return clubs;
+    const q = search.toLowerCase();
+    return clubs.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.slug.toLowerCase().includes(q) ||
+        c.events.some(
+          (e) =>
+            e.title.toLowerCase().includes(q) ||
+            (e.venue && e.venue.toLowerCase().includes(q)),
+        ),
+    );
+  }, [clubs, search]);
+
+  const totalEvents = useMemo(() => {
+    return clubs.reduce((acc, c) => acc + (c.events?.length || 0), 0);
+  }, [clubs]);
+
   return (
     <>
       <Header />
       <main className="page-shell space-y-6">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
-          <p className="pill-chip">Discover</p>
-          <h1 className="page-title mt-3">Clubs &amp; Events</h1>
-          <p className="page-subtitle">
-            Browse approved Zephyr clubs and their upcoming events, then register
-            without needing a direct link from a PR member.
-          </p>
+        {/* Header Hero Section */}
+        <section className="surface-card p-6 sm:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="pill-chip">Directory</span>
+                <span className="font-mono text-xs text-zinc-400">
+                  {clubs.length} {clubs.length === 1 ? "club" : "clubs"} · {totalEvents} events
+                </span>
+              </div>
+              <h1 className="page-title mt-2">Clubs &amp; Events</h1>
+              <p className="page-subtitle">
+                Explore active university clubs, browse upcoming fest competitions, and register with direct verification.
+              </p>
+            </div>
+
+            {/* Instant Search Bar */}
+            <div className="w-full sm:w-72 shrink-0">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search clubs or events..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="field-input text-xs pl-8"
+                />
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
+                  🔍
+                </span>
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </section>
 
         {error && (
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-700">
             {error}
-          </p>
+          </div>
         )}
 
+        {/* Bento Grid Architecture */}
         {loading ? (
-          <div className="surface-card p-8 text-center text-sm text-slate-500">
-            Loading clubs...
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div
+                key={n}
+                className="surface-card p-6 space-y-4 animate-pulse"
+              >
+                <div className="h-5 bg-zinc-200 rounded w-2/3" />
+                <div className="h-4 bg-zinc-100 rounded w-1/3" />
+                <div className="space-y-2 pt-2">
+                  <div className="h-16 bg-zinc-100 rounded-lg" />
+                  <div className="h-16 bg-zinc-100 rounded-lg" />
+                </div>
+                <div className="h-9 bg-zinc-200 rounded-lg pt-2" />
+              </div>
+            ))}
           </div>
-        ) : clubs.length === 0 ? (
-          <div className="surface-card p-8 text-center">
-            <p className="text-lg font-semibold text-ink">
-              No clubs live yet — check back soon
+        ) : filteredClubs.length === 0 ? (
+          <div className="surface-card p-12 text-center">
+            <p className="text-base font-semibold text-zinc-900">
+              {search ? "No matching clubs or events found" : "No live clubs registered yet"}
             </p>
-            <p className="mt-2 text-sm text-slate-600">
-              Approved clubs will appear here with their events as soon as they
-              go live on the platform.
+            <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
+              {search
+                ? `No results for "${search}". Try searching with different keywords.`
+                : "Approved university clubs and their fests will appear here as soon as they go live."}
             </p>
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="btn-secondary mt-4 text-xs"
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         ) : (
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {clubs.map((club) => (
-              <article
-                key={club.slug}
-                className="surface-card flex flex-col border-accent/15 bg-white/90 p-4 sm:p-5"
-              >
-                <h2 className="font-display text-lg font-semibold text-ink">
-                  {club.name}
-                </h2>
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredClubs.map((club, idx) => {
+              const isLargeBento = idx === 0 && club.events.length >= 2;
 
-                <div className="mt-4 flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Active events
-                  </p>
-                  {club.events.length === 0 ? (
-                    <p className="mt-2 text-sm text-slate-500">
-                      No events listed yet.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-2">
-                      {club.events.map((event) => {
-                        const formattedDate = formatEventDate(event.date);
-                        return (
-                          <li
-                            key={event.slug}
-                            className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 text-sm"
-                          >
-                            <div className="flex justify-between items-start gap-2">
-                              <p className="font-medium text-ink">{event.title}</p>
-                              <span className="text-xs font-semibold text-accent whitespace-nowrap">
-                                {event.fee ? `₹${event.fee}` : "Free"}
-                              </span>
-                            </div>
-                            <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-slate-500">
-                              {formattedDate && <span>📅 {formattedDate}</span>}
-                              {event.venue && <span>📍 {event.venue}</span>}
-                            </div>
-                            {event.description && (
-                              <p className="mt-1 text-xs text-slate-600 line-clamp-2">
-                                {event.description}
-                              </p>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-
-                <Link
-                  href={`/register/${encodeURIComponent(club.slug)}`}
-                  className="btn-primary mt-5 w-full"
+              return (
+                <article
+                  key={club.slug}
+                  className={`surface-card flex flex-col justify-between p-5 sm:p-6 transition hover:border-zinc-300 hover:shadow-elevated ${
+                    isLargeBento ? "md:col-span-2" : ""
+                  }`}
                 >
-                  Register
-                </Link>
-              </article>
-            ))}
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="font-sans text-lg font-bold tracking-tight text-zinc-900">
+                            {club.name}
+                          </h2>
+                        </div>
+                        <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
+                          /register/{club.slug}
+                        </p>
+                      </div>
+                      <span className="pill-chip font-mono">
+                        {club.events.length} {club.events.length === 1 ? "event" : "events"}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 space-y-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                        Event Schedule
+                      </p>
+                      {club.events.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-zinc-200 p-4 text-center text-xs text-zinc-400">
+                          No events listed yet. Check back soon.
+                        </div>
+                      ) : (
+                        <div className={`grid gap-2 ${isLargeBento ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+                          {club.events.map((event) => {
+                            const formattedDate = formatEventDate(event.date);
+                            return (
+                              <div
+                                key={event.slug}
+                                className="group rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3 text-xs transition hover:bg-white hover:border-zinc-300"
+                              >
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-medium text-zinc-900 line-clamp-1">
+                                    {event.title}
+                                  </span>
+                                  <span className="font-mono font-semibold text-brand-700 whitespace-nowrap bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.2">
+                                    {event.fee ? `₹${event.fee}` : "Free"}
+                                  </span>
+                                </div>
+
+                                <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500 font-mono">
+                                  {formattedDate && <span>📅 {formattedDate}</span>}
+                                  {event.venue && <span>📍 {event.venue}</span>}
+                                </div>
+
+                                {event.description && (
+                                  <p className="mt-1 text-[11px] text-zinc-500 line-clamp-2 leading-relaxed font-sans">
+                                    {event.description}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-zinc-100 flex items-center justify-between gap-3">
+                    <Link
+                      href={`/register?club=${encodeURIComponent(club.slug)}`}
+                      className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
+                    >
+                      Quick selector →
+                    </Link>
+                    <Link
+                      href={`/register/${encodeURIComponent(club.slug)}`}
+                      className="btn-primary py-1.5 px-4 text-xs font-medium"
+                    >
+                      Register Now →
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </section>
         )}
       </main>

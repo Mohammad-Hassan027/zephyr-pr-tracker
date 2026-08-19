@@ -12,41 +12,45 @@ export default async function DashboardPage() {
     <>
       <Header showNav />
       <main className="page-shell space-y-6">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="surface-card p-6 sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="pill-chip">Live snapshot</p>
-              <h1 className="page-title mt-3">Event Participation & Capacity</h1>
-              <p className="page-subtitle mt-1">
-                {total} confirmed registrations across club events.
+              <span className="pill-chip">Live Analytics</span>
+              <h1 className="page-title mt-2">Participation &amp; Seat Capacity</h1>
+              <p className="page-subtitle">
+                Real-time tracking of confirmed student registrations and remaining venue seat allocations.
               </p>
             </div>
-            <div className="rounded-2xl border border-accent/20 bg-white/80 px-4 py-3 text-sm text-slate-600">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-4 py-3 text-center sm:text-right shrink-0">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                 Total Registrations
               </p>
-              <p className="mt-1 font-display text-2xl font-semibold text-ink">
+              <p className="font-mono text-2xl font-bold text-zinc-900 mt-0.5">
                 {total}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="surface-card overflow-hidden p-5 sm:p-6 space-y-4">
-          <h2 className="text-base font-semibold text-ink">Event Seat Allocations</h2>
+        <section className="surface-card p-5 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
+              Event Allocation Breakdown
+            </h2>
+          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  <th className="px-4 py-3">Event</th>
-                  <th className="px-4 py-3">Confirmed</th>
-                  <th className="px-4 py-3">Capacity</th>
-                  <th className="px-4 py-3 min-w-[200px]">Live Progress</th>
-                  <th className="px-4 py-3 text-right">Status</th>
+          <div className="overflow-x-auto rounded-lg border border-zinc-200">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                <tr>
+                  <th className="px-3.5 py-2.5">Event Name</th>
+                  <th className="px-3.5 py-2.5">Confirmed</th>
+                  <th className="px-3.5 py-2.5">Total Capacity</th>
+                  <th className="px-3.5 py-2.5 min-w-[200px]">Fill Rate</th>
+                  <th className="px-3.5 py-2.5 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-zinc-100 bg-white">
                 {stats.map((s) => {
                   const capacity = s.capacity || null;
                   const percent = capacity
@@ -58,50 +62,50 @@ export default async function DashboardPage() {
                   return (
                     <tr
                       key={s.eventId}
-                      className="transition hover:bg-slate-50/50"
+                      className="transition hover:bg-zinc-50/70"
                     >
-                      <td className="px-4 py-3.5 font-semibold text-ink">{s.name}</td>
-                      <td className="px-4 py-3.5 font-bold text-accent">
+                      <td className="px-3.5 py-3 font-semibold text-zinc-900 font-sans">{s.name}</td>
+                      <td className="px-3.5 py-3 font-mono font-bold text-brand-700">
                         {s.count}
                       </td>
-                      <td className="px-4 py-3.5 text-slate-500">
+                      <td className="px-3.5 py-3 font-mono text-zinc-500">
                         {s.capacity ?? "Unlimited"}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-3.5 py-3">
                         {capacity ? (
                           <div className="space-y-1">
-                            <div className="flex justify-between text-xs text-slate-500">
+                            <div className="flex justify-between text-[11px] font-mono text-zinc-500">
                               <span>{s.count} / {capacity}</span>
-                              <span className="font-semibold text-ink">{percent}%</span>
+                              <span className="font-bold text-zinc-900">{percent}%</span>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
                               <div
                                 className={`h-full transition-all duration-500 ${
                                   isFull
-                                    ? "bg-red-500"
+                                    ? "bg-rose-500"
                                     : isNearlyFull
                                     ? "bg-amber-500"
-                                    : "bg-accent"
+                                    : "bg-brand-600"
                                 }`}
                                 style={{ width: `${percent}%` }}
                               />
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">No cap set</span>
+                          <span className="font-mono text-[11px] text-zinc-400">No limit</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-right">
+                      <td className="px-3.5 py-3 text-right">
                         {isFull ? (
-                          <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20">
+                          <span className="badge-rejected">
                             Sold Out
                           </span>
                         ) : isNearlyFull ? (
-                          <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                          <span className="badge-pending">
                             Filling Fast
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                          <span className="badge-approved">
                             Available
                           </span>
                         )}
@@ -113,9 +117,9 @@ export default async function DashboardPage() {
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-4 py-10 text-center text-slate-500"
+                      className="px-4 py-8 text-center text-xs text-zinc-400 font-mono"
                     >
-                      No events registered yet.
+                      No active events tracked yet.
                     </td>
                   </tr>
                 )}

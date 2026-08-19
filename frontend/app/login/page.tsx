@@ -43,88 +43,88 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-6">
-      <div className="surface-card w-full max-w-sm p-6 sm:p-7">
-        <p className="text-center text-sm font-semibold uppercase tracking-[0.25em] text-accent">
-          Zephyr
-        </p>
-        <h1 className="mt-2 text-center text-2xl font-semibold text-ink">
-          Club admin login
-        </h1>
-        <p className="mt-1 text-center text-sm text-slate-500">
-          Sign in with your club email and password.
-        </p>
+    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <div className="surface-card w-full max-w-sm p-6 sm:p-8 space-y-5">
+        <div className="text-center">
+          <span className="pill-chip">Club Administration</span>
+          <h1 className="text-xl font-bold text-zinc-900 mt-2">
+            Club Admin Sign In
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Authenticate to manage fest events, PR credentials, and registration queues.
+          </p>
+        </div>
 
         {isExpired && (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
-            Your session has expired. Please sign in again.
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-center text-xs font-medium text-amber-800">
+            Your session expired. Please sign in again.
           </div>
         )}
 
         {isLoggedOut && !isExpired && (
-          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-800">
-            You have been signed out safely.
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-center text-xs font-medium text-emerald-800">
+            Signed out securely.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Email
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Admin Email
             </label>
             <input
               type="email"
               required
-              placeholder="club@example.com"
-              className="field-input"
+              placeholder="admin@club.org"
+              className="field-input text-xs font-mono"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
               Password
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                placeholder="Password"
-                className="field-input pr-10"
+                placeholder="••••••••"
+                className="field-input text-xs pr-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? "Hide" : "Show"}
               </button>
             </div>
           </div>
 
           {error && (
-            <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
               {error}
-            </p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full"
+            className="btn-primary w-full py-2.5 text-xs font-semibold mt-2"
           >
-            {loading ? "Logging in..." : "Log in"}
+            {loading ? "Authenticating..." : "Sign In to Admin Workspace →"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
-          Don't have a club account?{" "}
-          <Link href="/signup" className="font-semibold text-accent hover:underline">
-            Register your club
+        <p className="text-center text-xs text-zinc-500 border-t border-zinc-100 pt-3">
+          New club organizing fests?{" "}
+          <Link href="/signup" className="font-medium text-brand-600 hover:underline">
+            Register your club →
           </Link>
         </p>
       </div>
@@ -134,7 +134,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-slate-500">Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-xs text-zinc-400 font-mono">Loading portal...</div>}>
       <LoginForm />
     </Suspense>
   );

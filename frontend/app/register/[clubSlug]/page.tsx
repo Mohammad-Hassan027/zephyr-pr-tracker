@@ -28,15 +28,13 @@ export default async function ClubRegisterPage({
   if (!clubRes.ok) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-        <div className="surface-card w-full p-8 text-center">
-          <p className="pill-chip">404</p>
-          <h1 className="mt-3 text-2xl font-semibold text-ink">
+        <div className="surface-card w-full p-8 text-center space-y-3">
+          <span className="pill-chip">404</span>
+          <h1 className="text-lg font-bold text-zinc-900">
             Club Not Found
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            The club{" "}
-            <code className="font-mono text-xs">{clubSlug}</code> does not exist
-            or has been removed.
+          <p className="text-xs text-zinc-500">
+            The club <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-800">{clubSlug}</code> does not exist or is not approved yet.
           </p>
         </div>
       </main>

@@ -52,23 +52,23 @@ export default function SignupPage() {
 
   if (submitted) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-6">
-        <div className="surface-card w-full max-w-md p-6 text-center sm:p-8">
-          <p className="pill-chip">Registration Submitted</p>
-          <h1 className="mt-3 text-2xl font-semibold text-ink">
-            Your club is pending approval
+      <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+        <div className="surface-card w-full max-w-md p-6 text-center sm:p-8 space-y-4">
+          <span className="pill-chip">Application Received</span>
+          <h1 className="text-xl font-bold text-zinc-900 mt-2">
+            Club Application Pending Approval
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Thank you for registering <strong className="text-ink">{name}</strong>!
-            Your application has been received and is awaiting approval by the platform administrator.
+          <p className="text-xs text-zinc-500">
+            Thank you for registering <strong className="text-zinc-900">{name}</strong>!
+            Your application has been received and is queued for verification by the platform administrator.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-accent/20 bg-accent/10 p-4 text-xs text-slate-700">
-            Once approved, you will be able to log in with your email <code className="font-semibold">{email}</code> and access your club admin dashboard.
+          <div className="rounded-lg border border-brand-200 bg-brand-50/70 p-3.5 text-xs text-zinc-800">
+            Once approved, you will be able to log in with your email <code className="font-mono font-semibold">{email}</code> and publish your fest events.
           </div>
 
-          <Link href="/login" className="btn-primary mt-6 inline-block w-full">
-            Go to club login
+          <Link href="/login" className="btn-primary w-full py-2.5 text-xs font-semibold block text-center mt-4">
+            Go to Club Sign In →
           </Link>
         </div>
       </main>
@@ -76,107 +76,107 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-6">
-      <div className="surface-card w-full max-w-md p-6 sm:p-8">
-        <p className="text-center text-sm font-semibold uppercase tracking-[0.25em] text-accent">
-          Zephyr
-        </p>
-        <h1 className="mt-2 text-center text-2xl font-semibold text-ink">
-          Register your club
-        </h1>
-        <p className="mt-1 text-center text-sm text-slate-500">
-          Create a club account to manage events and your PR team.
-        </p>
+    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <div className="surface-card w-full max-w-md p-6 sm:p-8 space-y-5">
+        <div className="text-center">
+          <span className="pill-chip">Host Registration</span>
+          <h1 className="text-xl font-bold text-zinc-900 mt-2">
+            Register Your Club
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Create an organizer workspace to host competitions, manage queues, and coordinate PR.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Club Name
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Club / Society Name
             </label>
             <input
               type="text"
               required
               placeholder="e.g. Coding Club"
-              className="field-input"
+              className="field-input text-xs"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              URL Slug (Unique)
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              URL Slug (Unique Portal Path)
             </label>
             <input
               type="text"
               required
               placeholder="e.g. coding-club"
-              className="field-input lowercase"
+              className="field-input text-xs lowercase font-mono"
               value={slug}
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
             />
-            <p className="mt-1 text-[11px] text-slate-400">
-              Registration link: /register/{slug || "your-slug"}
+            <p className="mt-1 font-mono text-[10px] text-zinc-400">
+              Registration URL: /register/{slug || "your-slug"}
             </p>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Club Email
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Official Admin Email
             </label>
             <input
               type="email"
               required
               placeholder="admin@club.org"
-              className="field-input"
+              className="field-input text-xs font-mono"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Password
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Master Password
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 required
                 placeholder="••••••••"
-                className="field-input pr-10"
+                className="field-input text-xs pr-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? "Hide" : "Show"}
               </button>
             </div>
           </div>
 
           {error && (
-            <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
               {error}
-            </p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full"
+            className="btn-primary w-full py-2.5 text-xs font-semibold mt-2"
           >
-            {loading ? "Submitting application..." : "Submit club registration"}
+            {loading ? "Submitting application..." : "Submit Club Registration →"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-zinc-500 border-t border-zinc-100 pt-3">
           Already registered?{" "}
-          <Link href="/login" className="font-semibold text-accent hover:underline">
-            Log in to club admin
+          <Link href="/login" className="font-medium text-brand-600 hover:underline">
+            Sign in to club admin →
           </Link>
         </p>
       </div>

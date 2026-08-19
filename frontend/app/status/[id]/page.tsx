@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { getRegistrationStatus, RegistrationStatus } from "@/lib/api";
 
 export default function StatusPage() {
@@ -18,7 +19,6 @@ export default function StatusPage() {
     let fallbackPollTimer: ReturnType<typeof setTimeout> | null = null;
     let pollIntervalMs = 5000;
 
-    // Fallback polling function if SSE fails or disconnects
     async function startFallbackPolling() {
       if (!activeRef.current) return;
       try {
@@ -27,7 +27,6 @@ export default function StatusPage() {
         setData(res);
 
         if (res.status === "pending") {
-          // Exponential backoff up to max 30s to prevent backend hammer
           pollIntervalMs = Math.min(30000, Math.floor(pollIntervalMs * 1.3));
           fallbackPollTimer = setTimeout(startFallbackPolling, pollIntervalMs);
         }
@@ -58,7 +57,6 @@ export default function StatusPage() {
             const payload: RegistrationStatus = JSON.parse(event.data);
             setData(payload);
 
-            // Once terminal state reached, close the stream
             if (payload.status !== "pending") {
               setIsLiveConnected(false);
               eventSource?.close();
@@ -75,7 +73,6 @@ export default function StatusPage() {
           if (!activeRef.current) return;
           setIsLiveConnected(false);
 
-          // Check if server sent custom error payload
           if (e.data) {
             try {
               const errPayload = JSON.parse(e.data);
@@ -87,7 +84,6 @@ export default function StatusPage() {
             } catch {}
           }
 
-          // If SSE connection fails, fallback to polling
           eventSource?.close();
           startFallbackPolling();
         });
@@ -124,24 +120,24 @@ export default function StatusPage() {
     const url = window.location.href;
     const text =
       data.status === "approved"
-        ? `I just got confirmed for ${data.event?.name}! Reg No: ${data.regNo}. Check details: ${url}`
-        : `Tracking my registration for ${data.event?.name}: ${url}`;
+        ? `I am confirmed for ${data.event?.name}! Reg No: ${data.regNo}. Details: ${url}`
+        : `Tracking my registration status for ${data.event?.name}: ${url}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   }
 
   if (error) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-        <div className="surface-card w-full p-8 text-center">
-          <p className="pill-chip">Status</p>
-          <h1 className="mt-4 text-xl font-semibold text-red-600">
-            Registration not found
+        <div className="surface-card w-full p-8 text-center space-y-3">
+          <span className="pill-chip">Status 404</span>
+          <h1 className="text-lg font-bold text-zinc-900">
+            Registration Not Found
           </h1>
-          <p className="mt-2 text-sm text-slate-600">{error}</p>
-          <div className="mt-5">
-            <a href="/my-status" className="btn-primary inline-block text-xs">
-              Look up with your email
-            </a>
+          <p className="text-xs text-zinc-500">{error}</p>
+          <div className="pt-2">
+            <Link href="/my-status" className="btn-primary text-xs">
+              Look up with email address →
+            </Link>
           </div>
         </div>
       </main>
@@ -151,13 +147,13 @@ export default function StatusPage() {
   if (!data) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-        <div className="surface-card w-full p-8 text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-pulse rounded-full bg-accent/10" />
-          <h1 className="text-xl font-semibold text-ink">
-            Checking your registration
+        <div className="surface-card w-full p-8 text-center space-y-3 animate-pulse">
+          <div className="mx-auto h-8 w-8 rounded-full border-2 border-brand-600 border-t-transparent animate-spin" />
+          <h1 className="text-sm font-semibold text-zinc-900">
+            Checking verification pass...
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Connecting to live status stream...
+          <p className="text-xs text-zinc-400 font-mono">
+            Connecting to real-time status stream
           </p>
         </div>
       </main>
@@ -167,49 +163,64 @@ export default function StatusPage() {
   if (data.status === "pending") {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-        <div className="surface-card w-full p-8 text-center">
-          <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center">
-            <div className="absolute h-full w-full animate-ping rounded-full bg-accent/20" />
-            <div className="h-8 w-8 rounded-full bg-accent/30" />
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            <h1 className="text-xl font-semibold text-ink">
-              Waiting for approval
-            </h1>
+        <div className="surface-card w-full p-6 sm:p-8 text-center space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <span className="badge-pending">Under Review</span>
             {isLiveConnected && (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+              <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-600">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                Live
+                STREAM ACTIVE
               </span>
             )}
           </div>
-          <p className="mt-2 text-sm text-slate-600">
-            Your payment screenshot is being verified by the PR team. This page
-            updates instantly upon review — keep it open.
-          </p>
 
-          <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200/80 p-3 text-xs text-slate-600">
-            <p className="font-semibold text-ink mb-1">Save this tracking link</p>
-            <p className="text-[11px] text-slate-500 truncate mb-2">
-              {typeof window !== "undefined" ? window.location.href : ""}
+          <div className="py-2">
+            <h1 className="text-lg font-bold text-zinc-900">
+              Payment Verification In Progress
+            </h1>
+            <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
+              Your UPI payment receipt has been received and is currently being verified by the PR team for{" "}
+              <strong className="text-zinc-800">{data.event?.name}</strong>.
             </p>
-            <div className="flex justify-center gap-2">
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="rounded-full bg-white border border-slate-200 px-3 py-1 font-semibold text-slate-700 hover:bg-slate-100 transition"
-              >
-                {copied ? "✓ Copied Link" : "Copy Link"}
-              </button>
-              <button
-                type="button"
-                onClick={handleWhatsAppShare}
-                className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 font-semibold text-emerald-700 hover:bg-emerald-100 transition"
-              >
-                Share
-              </button>
-            </div>
           </div>
+
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
+            <div className="flex justify-between text-zinc-500">
+              <span>Candidate:</span>
+              <span className="text-zinc-900 font-sans font-medium">{data.studentName}</span>
+            </div>
+            <div className="flex justify-between text-zinc-500">
+              <span>Event:</span>
+              <span className="text-zinc-900 font-medium">{data.event?.name}</span>
+            </div>
+            {data.amount !== undefined && (
+              <div className="flex justify-between text-zinc-500">
+                <span>Amount:</span>
+                <span className="text-zinc-900 font-bold">₹{data.amount}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="btn-secondary flex-1 py-1.5 text-xs font-medium"
+            >
+              {copied ? "✓ Copied Link" : "Copy Pass Link"}
+            </button>
+            <button
+              type="button"
+              onClick={handleWhatsAppShare}
+              className="btn-primary flex-1 py-1.5 text-xs font-medium"
+            >
+              Share Status
+            </button>
+          </div>
+
+          <p className="text-[11px] text-zinc-400 font-mono">
+            This screen auto-updates instantly upon PR approval.
+          </p>
         </div>
       </main>
     );
@@ -222,70 +233,125 @@ export default function StatusPage() {
 
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-        <div className="surface-card w-full p-8 text-center">
-          <p className="pill-chip">Update</p>
-          <h1 className="mt-4 text-xl font-semibold text-red-600">
-            Registration rejected
-          </h1>
-          <div className="mt-3 rounded-2xl border border-red-200 bg-red-50/70 p-3 text-sm text-red-700">
-            <p className="font-semibold">Reason provided:</p>
-            <p className="mt-0.5">{data.rejectionReason || "Payment verification failed"}</p>
+        <div className="surface-card w-full p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <span className="badge-rejected">Verification Failed</span>
+            <span className="font-mono text-[10px] text-zinc-400">STATUS PASS</span>
           </div>
 
-          <div className="mt-6 space-y-3">
+          <div>
+            <h1 className="text-lg font-bold text-zinc-900">
+              Registration Needs Correction
+            </h1>
+            <p className="mt-1 text-xs text-zinc-500">
+              The PR reviewer was unable to confirm your payment receipt for {data.event?.name}.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-rose-200 bg-rose-50/70 p-3 text-xs text-rose-800 space-y-1">
+            <span className="font-semibold uppercase tracking-wider text-[10px]">
+              Reason Provided:
+            </span>
+            <p className="font-medium">{data.rejectionReason || "Payment screenshot unreadable or amount mismatch"}</p>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Link
+              href={reapplyUrl}
+              className="btn-primary w-full py-2 text-xs font-medium block text-center"
+            >
+              Re-submit with Clear Screenshot →
+            </Link>
+
             {data.club?.email && (
               <a
                 href={`mailto:${data.club.email}?subject=Registration%20Inquiry%20-%20${encodeURIComponent(data.event?.name || "")}`}
-                className="block w-full rounded-2xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+                className="btn-secondary w-full py-2 text-xs font-medium block text-center"
               >
-                ✉ Contact Club Admin ({data.club.email})
+                Contact Club Admin ({data.club.email})
               </a>
             )}
-
-            <a
-              href={reapplyUrl}
-              className="btn-primary block w-full"
-            >
-              Re-apply / Fix Submission →
-            </a>
           </div>
-
-          <p className="mt-4 text-xs text-slate-500">
-            You can re-submit with a clear screenshot or corrected payment details.
-          </p>
         </div>
       </main>
     );
   }
 
-  // approved
+  // Approved state: Boarding-pass / Ticket
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
       <div className="w-full space-y-4">
-        <div className="ticket-card w-full">
-          <div className="ticket-top">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-600">
-              Zephyr · Registration confirmed
-            </p>
-            <p className="mt-1 font-display text-xl font-semibold text-ink">
-              {data.event?.name}
-            </p>
-            {data.event?.venue && (
-              <p className="text-xs text-slate-600 mt-0.5">
-                📍 {data.event.venue}
-              </p>
-            )}
+        <div className="ticket-card shadow-elevated">
+          <div className="ticket-top flex items-center justify-between">
+            <div>
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.5">
+                Confirmed Pass
+              </span>
+              <h2 className="mt-1.5 font-sans text-lg font-bold tracking-tight text-zinc-900">
+                {data.event?.name}
+              </h2>
+              {data.event?.venue && (
+                <p className="text-xs text-zinc-500 mt-0.5 font-mono">
+                  📍 {data.event.venue}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <span className="text-2xl">🎟️</span>
+            </div>
           </div>
-          <div className="space-y-2 bg-white p-5 text-sm">
-            <Row label="Reg No" value={data.regNo || "—"} bold />
-            <Row label="Name" value={data.studentName} />
-            <Row label="College" value={data.college || "—"} />
-            <Row label="Contact" value={data.studentPhone || data.studentEmail} />
-            <Row label="Amount Paid" value={data.amount ? `₹${data.amount}` : "—"} />
-            <Row
-              label="Date"
-              value={data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—"}
-            />
+
+          {/* Perforated divider look */}
+          <div className="border-t border-dashed border-zinc-200" />
+
+          <div className="p-5 space-y-3 bg-white text-xs">
+            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
+                Registration No
+              </span>
+              <span className="font-mono text-sm font-bold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-2 py-0.5">
+                {data.regNo || "CONFIRMED"}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
+                Student Name
+              </span>
+              <span className="font-medium text-zinc-900">{data.studentName}</span>
+            </div>
+
+            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
+                College
+              </span>
+              <span className="text-zinc-700">{data.college || "—"}</span>
+            </div>
+
+            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
+                Contact
+              </span>
+              <span className="text-zinc-700">{data.studentPhone || data.studentEmail}</span>
+            </div>
+
+            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
+                Amount Paid
+              </span>
+              <span className="font-mono font-bold text-zinc-900">
+                {data.amount ? `₹${data.amount}` : "Free"}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center py-1">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
+                Confirmed Date
+              </span>
+              <span className="font-mono text-zinc-600">
+                {data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -293,38 +359,19 @@ export default function StatusPage() {
           <button
             type="button"
             onClick={handleCopy}
-            className="flex-1 rounded-2xl border border-slate-200 bg-white py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+            className="btn-secondary flex-1 py-2 text-xs font-medium"
           >
-            {copied ? "✓ Copied Link" : "Copy Ticket Link"}
+            {copied ? "✓ Copied Pass Link" : "Copy Ticket Link"}
           </button>
           <button
             type="button"
             onClick={handleWhatsAppShare}
-            className="flex-1 rounded-2xl border border-emerald-200 bg-emerald-50 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition shadow-sm"
+            className="btn-primary flex-1 py-2 text-xs font-medium"
           >
             Share on WhatsApp
           </button>
         </div>
       </div>
     </main>
-  );
-}
-
-function Row({
-  label,
-  value,
-  bold = false,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
-  return (
-    <div className="flex justify-between gap-3 border-b border-dashed border-slate-200 py-2 last:border-0">
-      <span className="text-slate-500">{label}</span>
-      <span className={bold ? "font-semibold text-accent" : "text-slate-700"}>
-        {value}
-      </span>
-    </div>
   );
 }

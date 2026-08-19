@@ -46,102 +46,101 @@ export default function MyStatusPage() {
     <>
       <Header />
       <main className="page-shell space-y-6">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-6 text-center max-w-2xl mx-auto">
-          <p className="pill-chip">Self-Service Portal</p>
-          <h1 className="page-title mt-3">Find Your Registration</h1>
-          <p className="page-subtitle">
-            Enter the email address you used when registering to view your live ticket status, registration number, or payment verification updates.
+        <section className="surface-card p-6 sm:p-8 text-center max-w-2xl mx-auto">
+          <span className="pill-chip">Lookup Pass</span>
+          <h1 className="page-title mt-2">Find Your Registration</h1>
+          <p className="page-subtitle mx-auto">
+            Enter the email address you used when registering to access your live ticket pass, registration number, or verification updates.
           </p>
 
-          <form onSubmit={handleSearch} className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+          <form onSubmit={handleSearch} className="mt-6 flex flex-col sm:flex-row gap-2 justify-center max-w-md mx-auto">
             <input
               type="email"
               required
-              placeholder="student@example.com"
+              placeholder="student@college.edu"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="field-input sm:max-w-xs text-center sm:text-left"
+              className="field-input text-xs"
             />
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary whitespace-nowrap"
+              className="btn-primary whitespace-nowrap text-xs py-2 px-4"
             >
-              {loading ? "Searching..." : "Lookup Status"}
+              {loading ? "Searching..." : "Lookup Pass →"}
             </button>
           </form>
         </section>
 
         {error && (
-          <div className="max-w-2xl mx-auto rounded-2xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700">
+          <div className="max-w-2xl mx-auto rounded-lg border border-rose-200 bg-rose-50 p-4 text-center text-xs font-medium text-rose-700">
             {error}
           </div>
         )}
 
         {searched && !loading && (
-          <section className="max-w-2xl mx-auto space-y-4">
+          <section className="max-w-2xl mx-auto space-y-3">
             <div className="flex items-center justify-between px-1">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
                 Registrations for {email}
-              </h2>
-              <span className="text-xs text-slate-500 font-medium">
+              </span>
+              <span className="pill-chip font-mono">
                 {registrations.length} {registrations.length === 1 ? "found" : "found"}
               </span>
             </div>
 
             {registrations.length === 0 ? (
               <div className="surface-card p-8 text-center">
-                <p className="text-base font-semibold text-ink">
+                <p className="text-sm font-semibold text-zinc-900">
                   No registrations found for this email
                 </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Double-check your email spelling or browse clubs to register.
+                <p className="mt-1 text-xs text-zinc-500">
+                  Double-check your email address or explore active clubs to register.
                 </p>
-                <Link href="/clubs" className="btn-primary mt-4 inline-block">
-                  Explore Clubs &amp; Events
+                <Link href="/clubs" className="btn-primary mt-4 text-xs inline-block">
+                  Explore Clubs &amp; Events →
                 </Link>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {registrations.map((reg) => (
                   <article
                     key={reg.id}
-                    className="surface-card p-5 transition hover:shadow-md border border-slate-200/80"
+                    className="surface-card p-5 transition hover:border-zinc-300"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          {reg.club?.name || "Event"}
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                          {reg.club?.name || "Club Event"}
                         </span>
-                        <h3 className="text-lg font-semibold text-ink mt-0.5">
+                        <h3 className="text-base font-bold text-zinc-900 mt-0.5">
                           {reg.event?.name || "Event Registration"}
                         </h3>
                         {reg.event?.date && (
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {new Date(reg.event.date).toLocaleDateString(undefined, {
+                          <p className="text-[11px] text-zinc-500 mt-0.5 font-mono">
+                            📅 {new Date(reg.event.date).toLocaleDateString(undefined, {
                               weekday: "short",
                               month: "short",
                               day: "numeric",
-                              year: "numeric",
                             })}
-                            {reg.event.venue ? ` · ${reg.event.venue}` : ""}
+                            {reg.event.venue ? ` · 📍 ${reg.event.venue}` : ""}
                           </p>
                         )}
                       </div>
 
                       <div>
                         {reg.status === "approved" && (
-                          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-500/20">
-                            ✓ Approved · {reg.regNo}
+                          <span className="badge-approved">
+                            ✓ Confirmed · {reg.regNo}
                           </span>
                         )}
                         {reg.status === "pending" && (
-                          <span className="rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 border border-amber-500/20">
+                          <span className="badge-pending">
                             ⏳ Under Verification
                           </span>
                         )}
                         {reg.status === "rejected" && (
-                          <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-700 border border-red-500/20">
+                          <span className="badge-rejected">
                             ✕ Rejected
                           </span>
                         )}
@@ -149,14 +148,14 @@ export default function MyStatusPage() {
                     </div>
 
                     {reg.status === "rejected" && reg.rejectionReason && (
-                      <div className="mt-3 rounded-xl bg-red-50/80 p-3 text-xs text-red-700 border border-red-200/60">
-                        <span className="font-semibold">Reason:</span> {reg.rejectionReason}
+                      <div className="mt-3 rounded-lg bg-rose-50/70 p-2.5 text-xs text-rose-800 border border-rose-200/60 font-sans">
+                        <strong className="uppercase text-[10px] tracking-wider">Reason:</strong> {reg.rejectionReason}
                       </div>
                     )}
 
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-                      <div>
-                        Submitted on {new Date(reg.createdAt).toLocaleDateString()}
+                    <div className="mt-4 pt-3 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div className="text-[11px] text-zinc-400 font-mono">
+                        Submitted {new Date(reg.createdAt).toLocaleDateString()}
                         {reg.amount ? ` · Paid ₹${reg.amount}` : ""}
                       </div>
 
@@ -164,15 +163,15 @@ export default function MyStatusPage() {
                         <button
                           type="button"
                           onClick={() => handleCopyLink(reg.id)}
-                          className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 transition"
+                          className="btn-secondary py-1 px-2.5 text-xs"
                         >
-                          {copiedId === reg.id ? "✓ Copied!" : "Copy link"}
+                          {copiedId === reg.id ? "✓ Copied" : "Copy Link"}
                         </button>
                         <Link
                           href={`/status/${reg.id}`}
-                          className="rounded-full bg-accent px-3.5 py-1.5 font-semibold text-white hover:bg-accent/90 transition shadow-sm"
+                          className="btn-primary py-1 px-3 text-xs"
                         >
-                          View Status Card →
+                          View Pass →
                         </Link>
                       </div>
                     </div>

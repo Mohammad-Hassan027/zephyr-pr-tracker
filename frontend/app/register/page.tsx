@@ -24,9 +24,9 @@ export default function RegisterPage() {
     <Suspense
       fallback={
         <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-          <div className="surface-card w-full p-8 text-center">
-            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            <p className="text-sm text-slate-500">Loading registration portal…</p>
+          <div className="surface-card w-full p-8 text-center animate-pulse">
+            <div className="mx-auto mb-3 h-6 w-6 rounded-full border-2 border-brand-600 border-t-transparent animate-spin" />
+            <p className="text-xs font-medium text-zinc-500">Loading portal…</p>
           </div>
         </main>
       }
@@ -50,7 +50,6 @@ function RegisterSelector() {
   const [referralInput, setReferralInput] = useState(refCode || "");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Handle direct redirection if club query parameter is already supplied
   useEffect(() => {
     if (clubSlug) {
       const params = new URLSearchParams();
@@ -61,7 +60,6 @@ function RegisterSelector() {
     }
   }, [clubSlug, refCode, eventSlug, router]);
 
-  // Load clubs for interactive selector
   useEffect(() => {
     if (!clubSlug) {
       fetch("/api/clubs-directory")
@@ -83,8 +81,8 @@ function RegisterSelector() {
     return (
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
         <div className="surface-card w-full p-8 text-center">
-          <p className="pill-chip">Redirecting</p>
-          <h1 className="mt-3 text-xl font-semibold text-ink">
+          <span className="pill-chip">Redirecting</span>
+          <h1 className="mt-3 text-lg font-bold text-zinc-900">
             Opening {clubSlug} registration...
           </h1>
         </div>
@@ -114,33 +112,35 @@ function RegisterSelector() {
   return (
     <>
       <Header />
-      <main className="page-shell max-w-3xl space-y-6 py-6 sm:py-10">
-        <section className="surface-card border-accent/20 bg-gradient-to-br from-accent/10 via-white to-accentAlt/10 p-5 sm:p-7 text-center">
-          <p className="pill-chip">Registration Portal</p>
-          <h1 className="page-title mt-3">Select a Club & Register</h1>
-          <p className="page-subtitle max-w-xl mx-auto mt-2">
-            Choose the club and event you want to participate in, apply any PR referral code, and verify your payment proof.
+      <main className="page-shell max-w-2xl space-y-6 py-6 sm:py-10">
+        <section className="surface-card p-6 sm:p-7">
+          <div className="flex items-center gap-2">
+            <span className="pill-chip">Quick Start</span>
+          </div>
+          <h1 className="page-title mt-2">Event Registration Selector</h1>
+          <p className="page-subtitle">
+            Choose your club and event, attach your PR referral code if you have one, and proceed to the verification form.
           </p>
         </section>
 
         <section className="surface-card p-6 sm:p-7 space-y-5">
           <form onSubmit={handleProceed} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                1. Search & Select Club
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
+                1. Select University Club
               </label>
               <input
                 type="text"
-                placeholder="Search clubs or events (e.g. ACM, IEEE, Coding War)..."
+                placeholder="Filter clubs (e.g. ACM, Coding Club)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="field-input text-sm mb-2"
+                className="field-input text-xs mb-2"
               />
 
               {loading ? (
-                <div className="p-4 text-center text-xs text-slate-400">Loading clubs…</div>
+                <div className="p-6 text-center text-xs text-zinc-400">Loading clubs directory…</div>
               ) : filteredClubs.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 p-4 text-center text-xs text-slate-500">
+                <div className="rounded-lg border border-dashed border-zinc-200 p-4 text-center text-xs text-zinc-400">
                   No matching clubs found.
                 </div>
               ) : (
@@ -153,14 +153,14 @@ function RegisterSelector() {
                         setSelectedClubSlug(c.slug);
                         setSelectedEventSlug("");
                       }}
-                      className={`text-left p-3 rounded-xl border transition ${
+                      className={`text-left p-3 rounded-lg border transition ${
                         selectedClubSlug === c.slug
-                          ? "border-accent bg-accent/5 ring-1 ring-accent"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
+                          ? "border-brand-600 bg-brand-50/40 ring-1 ring-brand-600 text-zinc-900"
+                          : "border-zinc-200 hover:border-zinc-300 bg-white text-zinc-700"
                       }`}
                     >
-                      <p className="font-semibold text-ink text-sm">{c.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="font-semibold text-sm">{c.name}</p>
+                      <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
                         {c.events.length} {c.events.length === 1 ? "event" : "events"} available
                       </p>
                     </button>
@@ -171,15 +171,15 @@ function RegisterSelector() {
 
             {currentClub && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
                   2. Select Event ({currentClub.name})
                 </label>
                 <select
                   value={selectedEventSlug}
                   onChange={(e) => setSelectedEventSlug(e.target.value)}
-                  className="field-input text-sm"
+                  className="field-input text-xs"
                 >
-                  <option value="">Choose an event (optional)</option>
+                  <option value="">Choose an event (or decide on next screen)</option>
                   {currentClub.events.map((ev) => (
                     <option key={ev.slug} value={ev.slug}>
                       {ev.name} {ev.fee !== undefined ? `(₹${ev.fee})` : ""}
@@ -190,7 +190,7 @@ function RegisterSelector() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
                 3. PR Referral Code (Optional)
               </label>
               <input
@@ -198,26 +198,26 @@ function RegisterSelector() {
                 placeholder="e.g. AMAN126"
                 value={referralInput}
                 onChange={(e) => setReferralInput(e.target.value)}
-                className="field-input text-sm uppercase font-mono"
+                className="field-input text-xs uppercase font-mono tracking-wider"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
-                If a PR team member referred you, enter their code here so they can verify your submission.
+              <p className="text-[11px] text-zinc-400 mt-1 font-mono">
+                Attaches your registration to your referring PR member for fast verification.
               </p>
             </div>
 
             <button
               type="submit"
               disabled={!selectedClubSlug || loading}
-              className="btn-primary w-full py-3 text-sm font-semibold shadow-md mt-2"
+              className="btn-primary w-full py-2.5 text-xs font-medium mt-2"
             >
               Continue to Registration Form →
             </button>
           </form>
 
-          <div className="border-t border-slate-200/80 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>Already registered?</span>
-            <Link href="/my-status" className="font-semibold text-accent hover:underline">
-              🔍 Look up your registration ticket status →
+          <div className="border-t border-zinc-100 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
+            <span>Already submitted a registration?</span>
+            <Link href="/my-status" className="font-medium text-brand-600 hover:underline">
+              Look up your live ticket status →
             </Link>
           </div>
         </section>
