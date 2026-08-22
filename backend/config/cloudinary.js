@@ -23,17 +23,17 @@ cloudinary.config({
 });
 
 // Uploads an in-memory buffer (from multer) to Cloudinary and resolves with the result.
-export function uploadBuffer(buffer, folder = "zephyr-payments") {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "image" },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      },
-    );
-    stream.end(buffer);
-  });
-}
+// export function uploadBuffer(buffer, folder = "zephyr-payments") {
+//   return new Promise((resolve, reject) => {
+//     const stream = cloudinary.uploader.upload_stream(
+//       { folder, resource_type: "image" },
+//       (error, result) => {
+//         if (error) return reject(error);
+//         resolve(result);
+//       },
+//     );
+//     stream.end(buffer);
+//   });
+// }
 
 export default cloudinary;
