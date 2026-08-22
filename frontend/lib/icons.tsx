@@ -35,6 +35,7 @@ import {
   Edit,
   Key,
   ArrowRight,
+  Settings,
 } from "lucide-react";
 
 export const STATUS_CONFIG = {
@@ -97,4 +98,5 @@ export {
   Edit,
   Key,
   ArrowRight,
+  Settings,
 };

@@ -13,6 +13,7 @@ import {
   Edit,
   ShieldCheck,
   Key,
+  Settings,
 } from "@/lib/icons";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -90,6 +91,19 @@ export default function AdminPage() {
     pin: string;
   } | null>(null);
   const [copiedMemberCode, setCopiedMemberCode] = useState<string | null>(null);
+
+  // Club Settings Modal State
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    name: "",
+    currentPassword: "",
+    newPassword: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   async function handleCopyMemberLink(code: string, link: string) {
     try {
@@ -293,6 +307,56 @@ export default function AdminPage() {
     }
   }
 
+  function openSettingsModal() {
+    setSettingsForm({
+      name: club?.name ?? "",
+      currentPassword: "",
+      newPassword: "",
+    });
+    setSettingsMsg(null);
+    setShowSettingsModal(true);
+  }
+
+  async function handleSaveSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setSettingsMsg(null);
+
+    if (settingsForm.newPassword && !settingsForm.currentPassword) {
+      setSettingsMsg({
+        type: "error",
+        text: "Current password is required to set a new password.",
+      });
+      return;
+    }
+
+    const payload: Record<string, string> = {};
+    if (settingsForm.name.trim()) payload.name = settingsForm.name.trim();
+    if (settingsForm.newPassword) {
+      payload.currentPassword = settingsForm.currentPassword;
+      payload.newPassword = settingsForm.newPassword;
+    }
+
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/admin/club/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (res.ok) {
+        setSettingsMsg({ type: "success", text: "Profile updated successfully." });
+        reload();
+        // Auto-close after a short delay so the user sees the success message
+        setTimeout(() => setShowSettingsModal(false), 1500);
+      } else {
+        setSettingsMsg({ type: "error", text: body.error || "Failed to save changes." });
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <>
       <Header showNav />
@@ -325,6 +389,15 @@ export default function AdminPage() {
                 <p className="font-mono text-base font-bold text-zinc-900">{members.length}</p>
                 <p className="text-[10px] font-mono uppercase text-zinc-400">PR Members</p>
               </div>
+              <button
+                type="button"
+                onClick={openSettingsModal}
+                className="btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs"
+                title="Club Settings"
+              >
+                <Settings size={13} aria-hidden="true" />
+                Settings
+              </button>
             </div>
           </div>
         </section>
@@ -881,6 +954,114 @@ export default function AdminPage() {
                   Done
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Club Settings Modal */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
+            <div className="surface-card w-full max-w-md p-6 shadow-elevated space-y-4">
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Settings size={14} className="text-zinc-500" aria-hidden="true" />
+                  <h3 className="text-sm font-bold text-zinc-900">Club Settings</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSettingsModal(false)}
+                  className="text-zinc-400 hover:text-zinc-600 text-xs"
+                  aria-label="Close settings"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveSettings} className="space-y-4">
+                {/* Club Name */}
+                <div>
+                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                    Club Name
+                  </label>
+                  <input
+                    required
+                    value={settingsForm.name}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, name: e.target.value })
+                    }
+                    className="field-input text-xs"
+                    placeholder="Your club name"
+                  />
+                </div>
+
+                {/* Password Change Section */}
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3 space-y-3">
+                  <p className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">
+                    Change Password <span className="normal-case text-zinc-300">(optional)</span>
+                  </p>
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                      Current Password
+                    </label>
+                    <input
+                      type="password"
+                      value={settingsForm.currentPassword}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, currentPassword: e.target.value })
+                      }
+                      className="field-input text-xs"
+                      placeholder="Required only when changing password"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={settingsForm.newPassword}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, newPassword: e.target.value })
+                      }
+                      className="field-input text-xs"
+                      placeholder="Leave blank to keep current password"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+
+                {/* Inline feedback */}
+                {settingsMsg && (
+                  <div
+                    className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                      settingsMsg.type === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-rose-200 bg-rose-50 text-rose-700"
+                    }`}
+                  >
+                    {settingsMsg.text}
+                  </div>
+                )}
+
+                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsModal(false)}
+                    className="btn-secondary py-1.5 px-3 text-xs"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary py-1.5 px-4 text-xs disabled:opacity-60"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

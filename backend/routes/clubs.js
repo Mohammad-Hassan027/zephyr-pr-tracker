@@ -212,6 +212,27 @@ router.get("/me", requireClub, async (req, res) => {
   }
 });
 
+// PATCH /api/clubs/me - Update club profile
+router.patch("/me", requireClub, async (req, res) => {
+  try {
+    const { name, currentPassword, newPassword } = req.body;
+    const club = await Club.findById(req.auth.clubId);
+    if (!club) return res.status(404).json({ error: "Club not found" });
+
+    if (name) club.name = name;
+    if (newPassword) {
+      if (!currentPassword) return res.status(400).json({ error: "Current password required" });
+      const isMatch = await bcrypt.compare(currentPassword, club.passwordHash);
+      if (!isMatch) return res.status(401).json({ error: "Incorrect current password" });
+      club.passwordHash = await bcrypt.hash(newPassword, 10);
+    }
+    await club.save();
+    res.json({ ok: true, message: "Profile updated successfully" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // GET /api/clubs - list approved clubs (public directory)
 router.get("/", async (_req, res) => {
   try {
