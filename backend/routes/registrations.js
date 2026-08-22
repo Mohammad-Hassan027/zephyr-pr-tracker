@@ -15,20 +15,11 @@ import {
 } from "../utils/errors.js";
 import { statusEmitter } from "../utils/statusEmitter.js";
 import cloudinary from "../config/cloudinary.js";
+import { registrationLimiter } from "../middleware/security.js";
 import { requireClub, requireClubOrPRMember } from "../utils/auth.js";
 
 const router = Router();
 const CLOUDINARY_UPLOAD_FOLDER = "zephyr-payments";
-
-const registrationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 submissions per 15 minutes
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    error: "Too many registration attempts from this IP. Please try again after 15 minutes.",
-  },
-});
 
 const uploadSignatureLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

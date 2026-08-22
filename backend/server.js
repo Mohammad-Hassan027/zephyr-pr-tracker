@@ -9,7 +9,6 @@ import {
   helmet,
   apiLimiter,
   authLimiter,
-  registrationLimiter,
 } from "./middleware/security.js";
 
 // Route Imports
@@ -45,11 +44,12 @@ app.use(express.json({ limit: "5mb" }));
 // Global API limiter
 app.use("/api/", apiLimiter);
 
-// Specific limiters for sensitive routes
+// Specific limiters for sensitive routes (login & registration endpoints)
 // Note: Apply these BEFORE mounting the routes to ensure they intercept requests first
-app.use("/api/auth/login", authLimiter);
-app.use("/api/auth/signup", authLimiter);
-app.use("/api/registrations", registrationLimiter);
+app.use("/api/clubs/login", authLimiter);
+app.use("/api/clubs/platform/login", authLimiter);
+app.use("/api/clubs/register", authLimiter);
+app.use("/api/members/login", authLimiter);
 
 // 5. Mount Routes
 app.use("/api/auth", authRoutes);
