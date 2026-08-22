@@ -4,13 +4,14 @@ const ADMIN_SESSION_COOKIE = "pr_admin_session";
 const PR_SESSION_COOKIE = "pr_member_session";
 const PLATFORM_SESSION_COOKIE = "platform_admin_session";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // PR member dashboard — requires pr_member_session
   if (pathname.startsWith("/pr/dashboard")) {
     const session = req.cookies.get(PR_SESSION_COOKIE)?.value;
-    if (!session) return NextResponse.redirect(new URL("/pr?expired=1", req.url));
+    if (!session)
+      return NextResponse.redirect(new URL("/pr?expired=1", req.url));
     return NextResponse.next();
   }
 
@@ -20,7 +21,10 @@ export function middleware(req: NextRequest) {
   // direct access without a session cookie.
   if (pathname.startsWith("/platform/clubs/")) {
     const session = req.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
-    if (!session) return NextResponse.redirect(new URL("/platform/clubs?expired=1", req.url));
+    if (!session)
+      return NextResponse.redirect(
+        new URL("/platform/clubs?expired=1", req.url),
+      );
     return NextResponse.next();
   }
 
