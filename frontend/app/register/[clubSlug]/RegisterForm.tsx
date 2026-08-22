@@ -256,24 +256,34 @@ export default function RegisterForm({
               </h2>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">
-                Event Selection
-              </label>
-              <select
-                required
-                value={form.eventSlug}
-                onChange={(e) => setForm({ ...form, eventSlug: e.target.value })}
-                className="field-input text-sm"
-              >
-                <option value="">Choose an event</option>
-                {events.map((ev) => (
-                  <option key={ev.slug} value={ev.slug}>
-                    {ev.name} {ev.fee ? `(₹${ev.fee})` : "(Free entry)"}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {events.length === 0 ? (
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-center text-xs text-zinc-500 space-y-1">
+                <p className="font-semibold text-zinc-700">No events available</p>
+                <p>
+                  {club.name} has not published any open events yet. Please
+                  check back later or contact the club directly.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">
+                  Event Selection
+                </label>
+                <select
+                  required
+                  value={form.eventSlug}
+                  onChange={(e) => setForm({ ...form, eventSlug: e.target.value })}
+                  className="field-input text-sm"
+                >
+                  <option value="">Choose an event</option>
+                  {events.map((ev) => (
+                    <option key={ev.slug} value={ev.slug}>
+                      {ev.name} {ev.fee ? `(₹${ev.fee})` : "(Free entry)"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {selectedEvent && (
               <div className="rounded-lg border border-zinc-200/90 bg-zinc-50/70 p-3.5 text-xs text-zinc-600 space-y-1.5 font-sans">
