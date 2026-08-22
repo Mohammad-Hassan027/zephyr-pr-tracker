@@ -5,10 +5,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const targetUrl = backendUrl(`/registrations/${params.id}/stream`);
+    const targetUrl = backendUrl(`/registrations/${id}/stream`);
     const backendRes = await fetch(targetUrl, {
       headers: {
         Accept: "text/event-stream",

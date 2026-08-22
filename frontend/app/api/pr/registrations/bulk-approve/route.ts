@@ -6,7 +6,7 @@ import {
 } from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
-  const token = getSessionToken(PR_SESSION_COOKIE);
+  const token = await getSessionToken(PR_SESSION_COOKIE);
   const body = await req.text();
 
   return proxyBackendRequest("/registrations/bulk-approve", token, {

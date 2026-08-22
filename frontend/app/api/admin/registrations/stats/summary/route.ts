@@ -7,6 +7,6 @@ import {
 export async function GET() {
   return proxyBackendRequest(
     "/registrations/stats/summary",
-    getSessionToken(ADMIN_SESSION_COOKIE),
+    await getSessionToken(ADMIN_SESSION_COOKIE),
   );
 }

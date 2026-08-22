@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.search;
   return proxyBackendRequest(
     `/registrations/audit${search}`,
-    getSessionToken(ADMIN_SESSION_COOKIE),
+    await getSessionToken(ADMIN_SESSION_COOKIE),
   );
 }

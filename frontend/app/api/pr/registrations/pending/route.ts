@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.search;
   return proxyBackendRequest(
     `/registrations/queue/pending${search}`,
-    getSessionToken(PR_SESSION_COOKIE),
+    await getSessionToken(PR_SESSION_COOKIE),
   );
 }

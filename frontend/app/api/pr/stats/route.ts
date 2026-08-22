@@ -6,7 +6,7 @@ import {
 } from "@/lib/server-auth";
 
 export async function GET(req: NextRequest) {
-  const token = getSessionToken(PR_SESSION_COOKIE);
+  const token = await getSessionToken(PR_SESSION_COOKIE);
   const search = req.nextUrl.search;
 
   return proxyBackendRequest(`/registrations/stats/member${search}`, token, {

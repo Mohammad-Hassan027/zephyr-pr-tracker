@@ -6,10 +6,11 @@ const PLATFORM_SESSION_COOKIE = "platform_admin_session";
 
 export async function PATCH(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const token = cookies().get(PLATFORM_SESSION_COOKIE)?.value;
-  return proxyBackendRequest(`/clubs/${params.id}/approve`, token, {
+  const { id } = await params;
+  const token = (await cookies()).get(PLATFORM_SESSION_COOKIE)?.value;
+  return proxyBackendRequest(`/clubs/${id}/approve`, token, {
     method: "PATCH",
   });
 }

@@ -6,11 +6,12 @@ import {
 
 export async function PATCH(
   _req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   return proxyBackendRequest(
-    `/registrations/${encodeURIComponent(params.id)}/approve`,
-    getSessionToken(PR_SESSION_COOKIE),
+    `/registrations/${encodeURIComponent(id)}/approve`,
+    await getSessionToken(PR_SESSION_COOKIE),
     { method: "PATCH" },
   );
 }

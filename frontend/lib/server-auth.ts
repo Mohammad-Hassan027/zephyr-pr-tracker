@@ -32,8 +32,8 @@ export function backendUrl(path: string) {
   return `${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-export function getSessionToken(cookieName: string) {
-  return cookies().get(cookieName)?.value;
+export async function getSessionToken(cookieName: string) {
+  return (await cookies()).get(cookieName)?.value;
 }
 
 export function unauthorized(message = "Authentication required") {

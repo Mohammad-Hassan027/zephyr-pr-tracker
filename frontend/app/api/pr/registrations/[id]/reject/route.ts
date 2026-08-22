@@ -7,12 +7,13 @@ import {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   const body = await req.text();
   return proxyBackendRequest(
-    `/registrations/${encodeURIComponent(params.id)}/reject`,
-    getSessionToken(PR_SESSION_COOKIE),
+    `/registrations/${encodeURIComponent(id)}/reject`,
+    await getSessionToken(PR_SESSION_COOKIE),
     {
       method: "PATCH",
       headers: { "Content-Type": req.headers.get("content-type") || "application/json" },

@@ -7,12 +7,13 @@ import {
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const token = getSessionToken(ADMIN_SESSION_COOKIE);
+  const { id } = await params;
+  const token = await getSessionToken(ADMIN_SESSION_COOKIE);
 
   return proxyBackendRequest(
-    `/members/${encodeURIComponent(params.id)}/reset-pin`,
+    `/members/${encodeURIComponent(id)}/reset-pin`,
     token,
     {
       method: "POST",

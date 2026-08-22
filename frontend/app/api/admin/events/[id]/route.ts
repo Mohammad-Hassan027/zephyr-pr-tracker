@@ -7,12 +7,13 @@ import {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const token = getSessionToken(ADMIN_SESSION_COOKIE);
+  const { id } = await params;
+  const token = await getSessionToken(ADMIN_SESSION_COOKIE);
   const body = await req.text();
 
-  return proxyBackendRequest(`/events/${encodeURIComponent(params.id)}`, token, {
+  return proxyBackendRequest(`/events/${encodeURIComponent(id)}`, token, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body,
@@ -21,11 +22,12 @@ export async function PUT(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const token = getSessionToken(ADMIN_SESSION_COOKIE);
+  const { id } = await params;
+  const token = await getSessionToken(ADMIN_SESSION_COOKIE);
 
-  return proxyBackendRequest(`/events/${encodeURIComponent(params.id)}`, token, {
+  return proxyBackendRequest(`/events/${encodeURIComponent(id)}`, token, {
     method: "DELETE",
   });
 }
