@@ -3,6 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 import PRQueue from "@/components/PRQueue";
+import {
+  Calendar,
+  MapPin,
+  Copy,
+  Check,
+  Plus,
+  Trash2,
+  Edit,
+  ShieldCheck,
+  Key,
+} from "@/lib/icons";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -437,13 +448,21 @@ export default function AdminPage() {
                               /{e.slug}
                             </span>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-zinc-500 font-mono">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-zinc-500 font-mono">
                             <span className="font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.2">
                               {e.fee ? `₹${e.fee}` : "Free"}
                             </span>
-                            {e.venue && <span>· 📍 {e.venue}</span>}
+                            {e.venue && (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin size={11} aria-hidden="true" />
+                                <span>{e.venue}</span>
+                              </span>
+                            )}
                             {e.date && (
-                              <span>· 📅 {new Date(e.date).toLocaleDateString()}</span>
+                              <span className="inline-flex items-center gap-1">
+                                <Calendar size={11} aria-hidden="true" />
+                                <span>{new Date(e.date).toLocaleDateString()}</span>
+                              </span>
                             )}
                           </div>
                           {e.description && (

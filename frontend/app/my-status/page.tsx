@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { lookupRegistrations, LookupResult } from "@/lib/api";
+import { Calendar, MapPin, Copy, Check, Search, ArrowRight } from "@/lib/icons";
+import StatusIcon from "@/components/icons/StatusIcon";
 
 export default function MyStatusPage() {
   const [email, setEmail] = useState("");
@@ -117,33 +119,29 @@ export default function MyStatusPage() {
                           {reg.event?.name || "Event Registration"}
                         </h3>
                         {reg.event?.date && (
-                          <p className="text-[11px] text-zinc-500 mt-0.5 font-mono">
-                            📅 {new Date(reg.event.date).toLocaleDateString(undefined, {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                            {reg.event.venue ? ` · 📍 ${reg.event.venue}` : ""}
+                          <p className="text-[11px] text-zinc-500 mt-0.5 font-mono flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar size={11} aria-hidden="true" />
+                              <span>
+                                {new Date(reg.event.date).toLocaleDateString(undefined, {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </span>
+                            </span>
+                            {reg.event.venue && (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin size={11} aria-hidden="true" />
+                                <span>{reg.event.venue}</span>
+                              </span>
+                            )}
                           </p>
                         )}
                       </div>
 
                       <div>
-                        {reg.status === "approved" && (
-                          <span className="badge-approved">
-                            ✓ Confirmed · {reg.regNo}
-                          </span>
-                        )}
-                        {reg.status === "pending" && (
-                          <span className="badge-pending">
-                            ⏳ Under Verification
-                          </span>
-                        )}
-                        {reg.status === "rejected" && (
-                          <span className="badge-rejected">
-                            ✕ Rejected
-                          </span>
-                        )}
+                        <StatusIcon status={reg.status} />
                       </div>
                     </div>
 
@@ -163,9 +161,19 @@ export default function MyStatusPage() {
                         <button
                           type="button"
                           onClick={() => handleCopyLink(reg.id)}
-                          className="btn-secondary py-1 px-2.5 text-xs"
+                          className="btn-secondary py-1 px-2.5 text-xs inline-flex items-center gap-1"
                         >
-                          {copiedId === reg.id ? "✓ Copied" : "Copy Link"}
+                          {copiedId === reg.id ? (
+                            <>
+                              <Check size={13} className="text-emerald-600" aria-hidden="true" />
+                              <span>Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={13} aria-hidden="true" />
+                              <span>Copy Link</span>
+                            </>
+                          )}
                         </button>
                         <Link
                           href={`/status/${reg.id}`}

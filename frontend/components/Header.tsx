@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Search } from "@/lib/icons";
 
 export default function Header({ showNav = false }: { showNav?: boolean }) {
   const router = useRouter();
@@ -172,7 +173,7 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center border-b border-zinc-200 px-3.5 py-2.5">
-              <span className="text-zinc-400 text-sm mr-2">🔍</span>
+              <Search size={14} className="text-zinc-400 mr-2 shrink-0" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Type a command or jump to page..."

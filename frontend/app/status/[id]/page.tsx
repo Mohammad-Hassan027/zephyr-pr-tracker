@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getRegistrationStatus, RegistrationStatus } from "@/lib/api";
+import { Copy, Check, MapPin, ExternalLink, Ticket } from "@/lib/icons";
+import StatusIcon from "@/components/icons/StatusIcon";
 
 export default function StatusPage() {
   const params = useParams<{ id: string }>();
@@ -165,7 +167,7 @@ export default function StatusPage() {
       <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
         <div className="surface-card w-full p-6 sm:p-8 text-center space-y-4">
           <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-            <span className="badge-pending">Under Review</span>
+            <StatusIcon status="pending" />
             {isLiveConnected && (
               <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-600">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
@@ -205,16 +207,27 @@ export default function StatusPage() {
             <button
               type="button"
               onClick={handleCopy}
-              className="btn-secondary flex-1 py-1.5 text-xs font-medium"
+              className="btn-secondary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
             >
-              {copied ? "✓ Copied Link" : "Copy Pass Link"}
+              {copied ? (
+                <>
+                  <Check size={14} className="text-emerald-600" aria-hidden="true" />
+                  <span>Copied Pass Link</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={14} aria-hidden="true" />
+                  <span>Copy Pass Link</span>
+                </>
+              )}
             </button>
             <button
               type="button"
               onClick={handleWhatsAppShare}
-              className="btn-primary flex-1 py-1.5 text-xs font-medium"
+              className="btn-primary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
             >
-              Share Status
+              <ExternalLink size={14} aria-hidden="true" />
+              <span>Share Status</span>
             </button>
           </div>
 
@@ -284,20 +297,22 @@ export default function StatusPage() {
         <div className="ticket-card shadow-elevated">
           <div className="ticket-top flex items-center justify-between">
             <div>
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.5">
+              <StatusIcon status="approved" showLabel={false} />
+              <span className="ml-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200/60 rounded px-1.5 py-0.5">
                 Confirmed Pass
               </span>
               <h2 className="mt-1.5 font-sans text-lg font-bold tracking-tight text-zinc-900">
                 {data.event?.name}
               </h2>
               {data.event?.venue && (
-                <p className="text-xs text-zinc-500 mt-0.5 font-mono">
-                  📍 {data.event.venue}
+                <p className="text-xs text-zinc-500 mt-0.5 font-mono flex items-center gap-1">
+                  <MapPin size={12} className="text-zinc-400 shrink-0" aria-hidden="true" />
+                  <span>{data.event.venue}</span>
                 </p>
               )}
             </div>
             <div className="text-right">
-              <span className="text-2xl">🎟️</span>
+              <Ticket size={28} className="text-brand-600" aria-hidden="true" />
             </div>
           </div>
 
@@ -359,16 +374,27 @@ export default function StatusPage() {
           <button
             type="button"
             onClick={handleCopy}
-            className="btn-secondary flex-1 py-2 text-xs font-medium"
+            className="btn-secondary flex-1 py-2 text-xs font-medium inline-flex items-center justify-center gap-1.5"
           >
-            {copied ? "✓ Copied Pass Link" : "Copy Ticket Link"}
+            {copied ? (
+              <>
+                <Check size={14} className="text-emerald-600" aria-hidden="true" />
+                <span>Copied Pass Link</span>
+              </>
+            ) : (
+              <>
+                <Copy size={14} aria-hidden="true" />
+                <span>Copy Ticket Link</span>
+              </>
+            )}
           </button>
           <button
             type="button"
             onClick={handleWhatsAppShare}
-            className="btn-primary flex-1 py-2 text-xs font-medium"
+            className="btn-primary flex-1 py-2 text-xs font-medium inline-flex items-center justify-center gap-1.5"
           >
-            Share on WhatsApp
+            <ExternalLink size={14} aria-hidden="true" />
+            <span>Share on WhatsApp</span>
           </button>
         </div>
       </div>

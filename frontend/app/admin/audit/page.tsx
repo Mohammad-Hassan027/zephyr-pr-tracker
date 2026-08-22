@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Header from "@/components/Header";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { SlidersHorizontal, Download, ChevronLeft, ChevronRight, Eye } from "@/lib/icons";
+import StatusIcon from "@/components/icons/StatusIcon";
 
 type AuditRegistration = {
   _id: string;
@@ -231,7 +233,7 @@ export default function AuditPage() {
               disabled={exporting || loading}
               className="btn-primary self-start sm:self-auto text-xs py-2 px-3.5 shrink-0 flex items-center gap-1.5"
             >
-              <span>📥</span>
+              <Download size={14} aria-hidden="true" />
               <span>{exporting ? "Generating CSV..." : "Export CSV"}</span>
             </button>
           </div>
@@ -372,15 +374,7 @@ export default function AuditPage() {
                         ₹{item.amount ?? 0}
                       </td>
                       <td className="whitespace-nowrap px-3.5 py-2.5">
-                        {item.status === "approved" ? (
-                          <span className="badge-approved">
-                            Approved
-                          </span>
-                        ) : (
-                          <span className="badge-rejected">
-                            Rejected
-                          </span>
-                        )}
+                        <StatusIcon status={item.status} size={12} />
                       </td>
                       <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-zinc-700">
                         {item.reviewedBy ? (
@@ -394,8 +388,9 @@ export default function AuditPage() {
                       <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-[11px] text-zinc-500">
                         {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—"}
                       </td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5 text-right font-medium text-brand-600 hover:underline">
-                        View →
+                      <td className="whitespace-nowrap px-3.5 py-2.5 text-right font-medium text-brand-600 hover:underline inline-flex items-center gap-1 justify-end w-full">
+                        <span>View</span>
+                        <Eye size={12} aria-hidden="true" />
                       </td>
                     </tr>
                   ))}
@@ -415,16 +410,18 @@ export default function AuditPage() {
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!pagination.hasPrevPage}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
+                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
                 >
-                  ← Prev
+                  <ChevronLeft size={14} aria-hidden="true" />
+                  <span>Prev</span>
                 </button>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!pagination.hasNextPage}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
+                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
                 >
-                  Next →
+                  <span>Next</span>
+                  <ChevronRight size={14} aria-hidden="true" />
                 </button>
               </div>
             </div>

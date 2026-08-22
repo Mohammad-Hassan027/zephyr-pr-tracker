@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import { getAdminLeaderboard } from "@/lib/admin-api";
+import { Trophy } from "@/lib/icons";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -49,11 +50,17 @@ export default async function LeaderboardPage() {
                   >
                     <td className="px-3.5 py-3 font-mono font-bold">
                       {i === 0 ? (
-                        <span className="flex h-5 w-5 items-center justify-center rounded bg-amber-100 text-amber-900 text-[10px]">1</span>
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-amber-100 text-amber-900 text-[10px]" title="1st Place">
+                          <Trophy size={11} className="text-amber-700" aria-hidden="true" />
+                        </span>
                       ) : i === 1 ? (
-                        <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-200 text-zinc-800 text-[10px]">2</span>
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-zinc-200 text-zinc-800 text-[10px]" title="2nd Place">
+                          2
+                        </span>
                       ) : i === 2 ? (
-                        <span className="flex h-5 w-5 items-center justify-center rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px]">3</span>
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px]" title="3rd Place">
+                          3
+                        </span>
                       ) : (
                         <span className="text-zinc-400 pl-1">{i + 1}</span>
                       )}

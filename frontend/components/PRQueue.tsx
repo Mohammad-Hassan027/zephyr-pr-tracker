@@ -13,6 +13,18 @@ import {
   rejectRegistration,
 } from "@/lib/api";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  ZoomIn,
+  SlidersHorizontal,
+  X,
+} from "@/lib/icons";
+import StatusIcon from "@/components/icons/StatusIcon";
 
 const PAGE_LIMIT = 20;
 
@@ -330,6 +342,7 @@ export default function PRQueue({ code }: { code?: string }) {
               type="checkbox"
               checked={isAllSelected}
               onChange={handleToggleSelectAll}
+              aria-label="Select all registrations on this page"
               className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
             />
             Select All ({items.length})
@@ -344,17 +357,19 @@ export default function PRQueue({ code }: { code?: string }) {
                 type="button"
                 onClick={handleBulkApprove}
                 disabled={isBulkBusy}
-                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-subtle hover:bg-emerald-700 disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-subtle hover:bg-emerald-700 disabled:opacity-50 transition focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
-                {isBulkBusy ? "Approving..." : `✓ Approve (${selectedIds.size})`}
+                <CheckCircle2 size={13} aria-hidden="true" />
+                {isBulkBusy ? "Approving..." : `Approve (${selectedIds.size})`}
               </button>
               <button
                 type="button"
                 onClick={openBulkRejectModal}
                 disabled={isBulkBusy}
-                className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-subtle hover:bg-rose-700 disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1 text-xs font-medium text-white shadow-subtle hover:bg-rose-700 disabled:opacity-50 transition focus:outline-none focus:ring-2 focus:ring-rose-500/40"
               >
-                {isBulkBusy ? "Rejecting..." : `✕ Reject (${selectedIds.size})`}
+                <XCircle size={13} aria-hidden="true" />
+                {isBulkBusy ? "Rejecting..." : `Reject (${selectedIds.size})`}
               </button>
               <button
                 type="button"
@@ -387,7 +402,7 @@ export default function PRQueue({ code }: { code?: string }) {
         </div>
       ) : items.length === 0 ? (
         <div className="surface-card mt-3 p-10 text-center">
-          <div className="mx-auto mb-2 text-2xl">✨</div>
+          <Inbox size={32} className="mx-auto mb-2 text-zinc-400" aria-hidden="true" />
           <p className="text-sm font-semibold text-zinc-900">
             {hasActiveFilters
               ? "No pending registrations match your active filters."
@@ -418,6 +433,7 @@ export default function PRQueue({ code }: { code?: string }) {
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => handleToggleSelect(r._id)}
+                      aria-label={`Select registration for ${r.studentName}`}
                       className="mt-1 h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                     />
                     <div className="min-w-0 text-sm">
@@ -425,12 +441,13 @@ export default function PRQueue({ code }: { code?: string }) {
                         <span className="font-semibold text-zinc-900">
                           {r.studentName}
                         </span>
-                        <span className="badge-pending">Pending Review</span>
+                        <StatusIcon status="pending" size={13} />
                         {r.event.fee !== undefined &&
                           r.amount !== undefined &&
                           r.amount !== r.event.fee && (
-                            <span className="badge-rejected">
-                              ⚠️ Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})
+                            <span className="badge-rejected inline-flex items-center gap-1">
+                              <AlertTriangle size={12} aria-hidden="true" />
+                              <span>Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})</span>
                             </span>
                           )}
                       </div>
@@ -459,6 +476,7 @@ export default function PRQueue({ code }: { code?: string }) {
                   <button
                     type="button"
                     onClick={() => setZoomed(r.paymentScreenshot)}
+                    aria-label={`Inspect payment screenshot for ${r.studentName}`}
                     className="relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-200 shadow-subtle group hover:border-zinc-400 transition"
                   >
                     <Image
@@ -469,8 +487,9 @@ export default function PRQueue({ code }: { code?: string }) {
                       loading="lazy"
                       className="object-cover group-hover:scale-105 transition duration-200"
                     />
-                    <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-medium">
-                      Inspect 🔍
+                    <div className="absolute inset-0 bg-zinc-950/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-medium gap-1">
+                      <ZoomIn size={14} aria-hidden="true" />
+                      <span>Inspect</span>
                     </div>
                   </button>
                 </div>
@@ -479,16 +498,18 @@ export default function PRQueue({ code }: { code?: string }) {
                   <button
                     disabled={busyId === r._id || isBulkBusy}
                     onClick={() => handleApprove(r._id)}
-                    className="btn-primary flex-1 py-1.5 text-xs font-medium"
+                    className="btn-primary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
                   >
-                    {busyId === r._id ? "Approving..." : "✓ Approve Registration"}
+                    <CheckCircle2 size={14} aria-hidden="true" />
+                    <span>{busyId === r._id ? "Approving..." : "Approve Registration"}</span>
                   </button>
                   <button
                     disabled={busyId === r._id || isBulkBusy}
                     onClick={() => openRejectModal(r._id)}
-                    className="btn-secondary flex-1 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:border-rose-200"
+                    className="btn-secondary flex-1 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center gap-1.5"
                   >
-                    ✕ Reject
+                    <XCircle size={14} aria-hidden="true" />
+                    <span>Reject</span>
                   </button>
                 </div>
               </div>
@@ -508,16 +529,18 @@ export default function PRQueue({ code }: { code?: string }) {
             <button
               onClick={() => handlePageChange(page - 1)}
               disabled={page <= 1}
-              className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
+              className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
             >
-              ← Previous
+              <ChevronLeft size={14} aria-hidden="true" />
+              <span>Previous</span>
             </button>
             <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPages}
-              className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
+              className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
             >
-              Next →
+              <span>Next</span>
+              <ChevronRight size={14} aria-hidden="true" />
             </button>
           </div>
         </div>

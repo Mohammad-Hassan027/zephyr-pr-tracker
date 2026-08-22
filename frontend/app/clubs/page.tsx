@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import { Search, X, Calendar, MapPin, ArrowRight } from "@/lib/icons";
 import type { ClubDirectoryEntry } from "@/app/api/clubs-directory/route";
 
 function formatEventDate(date: string | null) {
@@ -93,16 +94,15 @@ export default function ClubsPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   className="field-input text-xs pl-8"
                 />
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 text-xs">
-                  🔍
-                </span>
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
+                    aria-label="Clear search query"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition"
                   >
-                    ✕
+                    <X size={14} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -209,9 +209,19 @@ export default function ClubsPage() {
                                   </span>
                                 </div>
 
-                                <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-zinc-500 font-mono">
-                                  {formattedDate && <span>📅 {formattedDate}</span>}
-                                  {event.venue && <span>📍 {event.venue}</span>}
+                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500 font-mono">
+                                  {formattedDate && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <Calendar size={11} aria-hidden="true" />
+                                      <span>{formattedDate}</span>
+                                    </span>
+                                  )}
+                                  {event.venue && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <MapPin size={11} aria-hidden="true" />
+                                      <span>{event.venue}</span>
+                                    </span>
+                                  )}
                                 </div>
 
                                 {event.description && (
