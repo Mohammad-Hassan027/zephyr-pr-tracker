@@ -86,6 +86,7 @@ async function runTests() {
   console.log("✔ Non-transient abort test passed!");
 
   console.log("\n=== ALL UNIT TESTS COMPLETED SUCCESSFULLY ===");
+  process.exit(0);
 }
 
 runTests().catch((err) => {
