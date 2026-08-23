@@ -48,7 +48,9 @@ export default function RegisterForm({
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef<boolean>(false);
+
 
   const [status, setStatus] = useState<
     "idle" | "uploading" | "submitting" | "error"
@@ -127,19 +129,48 @@ export default function RegisterForm({
   }, []);
 
   function handleFile(file: File | null) {
+    // Always revoke any previous preview URL to prevent memory leaks
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = null;
     }
 
-    setScreenshot(file);
-    if (file) {
-      const nextUrl = URL.createObjectURL(file);
-      previewUrlRef.current = nextUrl;
-      setPreview(nextUrl);
-    } else {
+    // No file selected (e.g. user cancelled the picker) — clear state gracefully
+    if (!file) {
+      setScreenshot(null);
       setPreview(null);
+      return;
     }
+
+    // Validate MIME type
+    if (!file.type.startsWith("image/")) {
+      setScreenshot(null);
+      setPreview(null);
+      setErrorMsg("Please upload a valid image file (PNG, JPG, or JPEG).");
+      setStatus("error");
+      return;
+    }
+
+    // Validate file size (max 5 MB)
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5,242,880 bytes
+    if (file.size > MAX_SIZE_BYTES) {
+      setScreenshot(null);
+      setPreview(null);
+      setErrorMsg("File is too large. Please upload a screenshot smaller than 5MB.");
+      setStatus("error");
+      return;
+    }
+
+    // Validation passed — create preview and store file
+    // Clear any previous error that may have been set by a prior failed selection
+    if (status === "error") {
+      setErrorMsg("");
+      setStatus("idle");
+    }
+    const nextUrl = URL.createObjectURL(file);
+    previewUrlRef.current = nextUrl;
+    setScreenshot(file);
+    setPreview(nextUrl);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -390,6 +421,7 @@ export default function RegisterForm({
               </label>
               <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-4 text-center">
                 <input
+                  ref={fileInputRef}
                   required
                   type="file"
                   accept="image/*"
@@ -409,7 +441,10 @@ export default function RegisterForm({
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleFile(null)}
+                      onClick={() => {
+                        handleFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
                       className="mt-1.5 text-xs text-rose-600 hover:underline"
                     >
                       Remove file
