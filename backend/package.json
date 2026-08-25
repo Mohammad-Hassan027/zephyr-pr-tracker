@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node scripts/test-transaction-logic.js && node tests/registration.domain.test.js && node tests/registration.routes.test.js",
+    "test": "node scripts/test-transaction-logic.js && node tests/registration.domain.test.js && node tests/registration.routes.test.js && node tests/auth.domain.test.js && node tests/auth.routes.test.js",
     "seed": "node scripts/seed.js",
     "migrate": "node scripts/migrate-to-clubs.js"
   },
