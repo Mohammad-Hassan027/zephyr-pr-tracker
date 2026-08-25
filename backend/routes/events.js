@@ -1,12 +1,13 @@
 import { Router } from "express";
 import Event from "../models/Event.js";
 import Club from "../models/Club.js";
-import { requireClub, verifySessionToken } from "../utils/auth.js";
+import { requireClub } from "../utils/auth.js";
+import { optionalAuthenticate } from "../middleware/authenticate.js";
 
 const router = Router();
 
 // GET /api/events - list events, optionally scoped by ?club=slug or by session token
-router.get("/", async (req, res) => {
+router.get("/", optionalAuthenticate, async (req, res) => {
   try {
     const filter = {};
     if (req.query.club) {
@@ -14,19 +15,8 @@ router.get("/", async (req, res) => {
       const club = await Club.findOne({ slug: clubSlug });
       if (!club) return res.json([]);
       filter.club = club._id;
-    } else {
-      const authHeader = req.get("authorization");
-      if (authHeader) {
-        const token = authHeader.split(" ")[1];
-        try {
-          const session = verifySessionToken(token);
-          if (session.clubId) {
-            filter.club = session.clubId;
-          }
-        } catch (_e) {
-          // ignore error if unauthenticated
-        }
-      }
+    } else if (req.auth?.clubId) {
+      filter.club = req.auth.clubId;
     }
 
     const events = await Event.find(filter).sort({ date: 1 });
