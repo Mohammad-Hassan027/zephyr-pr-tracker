@@ -2,12 +2,13 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import PRMember from "../models/PRMember.js";
 import Club from "../models/Club.js";
-import { createSessionToken, requireClub, requireClubOrPRMember, verifySessionToken } from "../utils/auth.js";
+import { createSessionToken, requireClub, requireClubOrPRMember } from "../utils/auth.js";
+import { optionalAuthenticate } from "../middleware/authenticate.js";
 
 const router = Router();
 
 // GET /api/members - list PR members for club (no password hashes)
-router.get("/", async (req, res) => {
+router.get("/", optionalAuthenticate, async (req, res) => {
   try {
     const filter = {};
     if (req.query.club) {
@@ -15,21 +16,10 @@ router.get("/", async (req, res) => {
       const club = await Club.findOne({ slug: clubSlug });
       if (!club) return res.json([]);
       filter.club = club._id;
+    } else if (req.auth?.clubId) {
+      filter.club = req.auth.clubId;
     } else {
-      const authHeader = req.get("authorization");
-      if (authHeader) {
-        const token = authHeader.split(" ")[1];
-        try {
-          const session = verifySessionToken(token);
-          if (session.clubId) {
-            filter.club = session.clubId;
-          }
-        } catch (_e) {
-          return res.status(401).json({ error: "Authentication required" });
-        }
-      } else {
-        return res.status(401).json({ error: "Authentication required" });
-      }
+      return res.status(401).json({ error: "Authentication required" });
     }
 
     const members = await PRMember.find(filter).select("-passwordHash").sort({ name: 1 });
