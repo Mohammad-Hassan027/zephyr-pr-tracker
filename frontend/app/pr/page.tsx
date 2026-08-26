@@ -1,20 +1,57 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
+type ClubOption = {
+  name: string;
+  slug: string;
+};
+
 function PRLoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const queryClub = searchParams.get("club") || searchParams.get("clubSlug") || "";
+
+  const [clubSlug, setClubSlug] = useState(queryClub);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const [clubs, setClubs] = useState<ClubOption[]>([]);
 
   const isExpired = searchParams.get("expired") === "1" || searchParams.get("expired") === "true";
   const isLoggedOut = searchParams.get("logout") === "1";
+
+  useEffect(() => {
+    if (queryClub) {
+      setClubSlug(queryClub);
+    }
+  }, [queryClub]);
+
+  useEffect(() => {
+    async function loadClubs() {
+      try {
+        const res = await fetch("/api/clubs-directory");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            const parsed = data.map((c: any) => ({ name: c.name, slug: c.slug }));
+            setClubs(parsed);
+            if (!queryClub && parsed.length > 0) {
+              setClubSlug((prev) => prev || parsed[0].slug);
+            }
+          }
+        }
+      } catch {
+        // Ignore fetch error, fallback to text input
+      }
+    }
+    loadClubs();
+  }, [queryClub]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,14 +61,14 @@ function PRLoginForm() {
       const res = await fetch("/api/pr-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, password }),
+        body: JSON.stringify({ code, password, clubSlug }),
       });
       if (res.ok) {
         router.push("/pr/dashboard");
         router.refresh();
       } else {
         const body = await res.json();
-        setError(body.error || "Authentication failed. Check your member code and PIN.");
+        setError(body.error || "Invalid code or PIN");
       }
     } catch {
       setError("Network error. Could not connect to server.");
@@ -49,7 +86,7 @@ function PRLoginForm() {
             PR Member Sign In
           </h1>
           <p className="text-xs text-zinc-500 mt-1">
-            Access your assigned review queue with your member referral code and 6-digit PIN.
+            Access your assigned review queue with your club, referral code, and 6-digit PIN.
           </p>
         </div>
 
@@ -66,6 +103,35 @@ function PRLoginForm() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
+          <div>
+            <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
+              Club / Organization
+            </label>
+            {clubs.length > 0 ? (
+              <select
+                required
+                className="field-input text-xs"
+                value={clubSlug}
+                onChange={(e) => setClubSlug(e.target.value)}
+              >
+                <option value="" disabled>Select your club...</option>
+                {clubs.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.name} ({c.slug})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                required
+                placeholder="e.g. acm-student-chapter"
+                className="field-input text-xs lowercase tracking-wider"
+                value={clubSlug}
+                onChange={(e) => setClubSlug(e.target.value)}
+              />
+            )}
+          </div>
+
           <div>
             <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
               Member Referral Code

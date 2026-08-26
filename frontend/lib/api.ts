@@ -363,11 +363,11 @@ export async function bulkRejectRegistrations(
   return data;
 }
 
-export async function prLogin(code: string, password: string) {
+export async function prLogin(code: string, password: string, clubSlug?: string) {
   const res = await fetch("/api/pr-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, password }),
+    body: JSON.stringify({ code, password, clubSlug }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Login failed");

@@ -7,12 +7,13 @@ import {
 } from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
-  const { code, password } = await req.json();
+  const body = await req.json().catch(() => ({}));
+  const { code, password, clubSlug, clubId, club } = body;
 
   const backendRes = await fetch(backendUrl("/members/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, password }),
+    body: JSON.stringify({ code, password, clubSlug, clubId, club }),
     cache: "no-store",
   });
   const data = await backendRes.json().catch(() => ({}));
