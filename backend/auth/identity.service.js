@@ -47,9 +47,11 @@ export async function resolveIdentity(token) {
 
   if (claims.role === "pr" && claims.code) {
     try {
-      const member = await PRMember.findOne({
-        code: String(claims.code).toUpperCase(),
-      });
+      const query = { code: String(claims.code).toUpperCase() };
+      if (claims.clubId) {
+        query.club = claims.clubId;
+      }
+      const member = await PRMember.findOne(query);
       if (member) {
         return {
           role: "pr",

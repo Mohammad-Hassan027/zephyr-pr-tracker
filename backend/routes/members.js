@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import PRMember from "../models/PRMember.js";
 import Club from "../models/Club.js";
@@ -145,22 +146,45 @@ router.post("/change-pin", requireClubOrPRMember, async (req, res) => {
   }
 });
 
-// POST /api/members/login - PR member login with code + PIN
+// POST /api/members/login - PR member login with club + code + PIN
 router.post("/login", async (req, res) => {
   try {
     const code = String(req.body.code || "").trim().toUpperCase();
     const password = String(req.body.password || "");
+    const clubIdentifier = String(
+      req.body.clubSlug || req.body.clubId || req.body.club || ""
+    ).trim().toLowerCase();
 
-    const member = await PRMember.findOne({ code });
-    if (!member) return res.status(401).json({ error: "Invalid code or PIN" });
+    if (!code || !password || !clubIdentifier) {
+      return res.status(401).json({ error: "Invalid code or PIN" });
+    }
+
+    let clubQuery;
+    if (mongoose.Types.ObjectId.isValid(clubIdentifier)) {
+      clubQuery = { $or: [{ _id: clubIdentifier }, { slug: clubIdentifier }] };
+    } else {
+      clubQuery = { slug: clubIdentifier };
+    }
+
+    const club = await Club.findOne(clubQuery);
+    if (!club || club.status !== "approved") {
+      return res.status(401).json({ error: "Invalid code or PIN" });
+    }
+
+    const member = await PRMember.findOne({ club: club._id, code });
+    if (!member) {
+      return res.status(401).json({ error: "Invalid code or PIN" });
+    }
 
     const ok = await bcrypt.compare(password, member.passwordHash);
-    if (!ok) return res.status(401).json({ error: "Invalid code or PIN" });
+    if (!ok) {
+      return res.status(401).json({ error: "Invalid code or PIN" });
+    }
 
-    const token = createSessionToken({ role: "pr", code: member.code, clubId: member.club });
+    const token = createSessionToken({ role: "pr", code: member.code, clubId: String(club._id) });
     res.json({ name: member.name, code: member.code, token });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+  } catch (_err) {
+    res.status(401).json({ error: "Invalid code or PIN" });
   }
 });
 
