@@ -15,6 +15,7 @@ process.env.PLATFORM_ADMIN_PASSWORD = process.env.PLATFORM_ADMIN_PASSWORD || "pl
 mongoose.set("bufferCommands", false);
 
 import server from "../server.js";
+import PRMember from "../models/PRMember.js";
 import { createSessionToken } from "../auth/session.service.js";
 
 let baseURL = "";
@@ -78,6 +79,13 @@ async function runSmokeTests() {
   const validClub1Token = createSessionToken({ role: "club", clubId: club1Id, clubSlug: "club-1" });
   const validPRToken = createSessionToken({ role: "pr", code: "PR999", clubId: club1Id });
   const validPlatformAdminToken = createSessionToken({ role: "platform_admin" });
+
+  PRMember.findOne = async (query) => {
+    if (query && query.code === "PR999") {
+      return { code: "PR999", club: club1Id };
+    }
+    return null;
+  };
 
   try {
     // 1. Missing Token Rejection (401)
