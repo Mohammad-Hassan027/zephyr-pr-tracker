@@ -30,8 +30,18 @@ async function ensureAuth(req, res) {
   try {
     req.auth = await resolveIdentity(token);
     return req.auth;
-  } catch {
-    res.status(401).json({ error: "Authentication required" });
+  } catch (err) {
+    if (
+      err.name === "MongooseError" ||
+      err.name === "MongoServerError" ||
+      err.name === "MongoNetworkError" ||
+      err.name === "MongoDriverError" ||
+      err.name === "MongoServerSelectionError"
+    ) {
+      res.status(503).json({ error: "Service unavailable" });
+    } else {
+      res.status(401).json({ error: "Authentication required" });
+    }
     return null;
   }
 }

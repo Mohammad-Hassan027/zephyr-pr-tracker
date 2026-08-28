@@ -45,35 +45,37 @@ export async function resolveIdentity(token) {
     };
   }
 
-  if (claims.role === "pr" && claims.code) {
-    try {
-      const query = { code: String(claims.code).toUpperCase() };
-      if (claims.clubId) {
-        query.club = claims.clubId;
-      }
-      const member = await PRMember.findOne(query);
-      if (member) {
-        return {
-          role: "pr",
-          clubId: String(member.club),
-          clubSlug: null,
-          code: member.code,
-        };
-      }
-    } catch {
-      // In offline testing environments, fallback to token claims if present
+  if (claims.role === "pr") {
+    const code = claims.code ? String(claims.code).trim().toUpperCase() : null;
+    if (!code) {
+      throw new Error("Authentication required");
     }
 
+    const query = { code };
     if (claims.clubId) {
-      return {
-        role: "pr",
-        clubId: String(claims.clubId),
-        clubSlug: null,
-        code: String(claims.code).toUpperCase(),
-      };
+      query.club = claims.clubId;
     }
 
-    throw new Error("Authentication required");
+    const member = await PRMember.findOne(query);
+
+    if (!member) {
+      throw new Error("Authentication required");
+    }
+
+    if (claims.clubId && String(member.club) !== String(claims.clubId)) {
+      throw new Error("Authentication required");
+    }
+
+    if (member.code !== code) {
+      throw new Error("Authentication required");
+    }
+
+    return {
+      role: "pr",
+      clubId: String(member.club),
+      clubSlug: null,
+      code: member.code,
+    };
   }
 
   throw new Error("Authentication required");
