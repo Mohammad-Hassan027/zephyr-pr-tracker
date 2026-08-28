@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import PRHeader from "@/components/PRHeader";
 import PRQueue from "@/components/PRQueue";
-import { changePRPin, getPRMemberStats, PRMemberStats } from "@/lib/api";
+import { changePRPin, getPRMemberStats, PRMemberStats } from "@/lib/api/members";
 
 export default function PRDashboardClient({ code }: { code: string }) {
   const [stats, setStats] = useState<PRMemberStats | null>(null);

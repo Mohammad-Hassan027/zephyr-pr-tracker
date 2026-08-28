@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getRegistrationStatus, RegistrationStatus } from "@/lib/api";
+import { getRegistrationStatus, RegistrationStatus } from "@/lib/api/registrations";
 import { Copy, Check, MapPin, ExternalLink, Ticket } from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
 

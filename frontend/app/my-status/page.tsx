@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
-import { lookupRegistrations, LookupResult } from "@/lib/api";
+import { lookupRegistrations, LookupResult } from "@/lib/api/registrations";
 import { Calendar, MapPin, Copy, Check, Search, ArrowRight } from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
 
