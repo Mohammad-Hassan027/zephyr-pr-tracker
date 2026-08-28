@@ -2,16 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { getEvents } from "@/lib/api/events";
 import {
   approveRegistration,
   bulkApproveRegistrations,
   bulkRejectRegistrations,
-  getEvents,
   getPendingQueue,
-  EventItem,
-  PendingRegistration,
   rejectRegistration,
-} from "@/lib/api";
+} from "@/lib/api/review-queue";
+import type { EventItem, PendingRegistration } from "@/lib/api/types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import {
   CheckCircle2,

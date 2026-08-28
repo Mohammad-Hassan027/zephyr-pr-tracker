@@ -6,10 +6,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   checkDuplicateRegistration,
-  EventItem,
   submitRegistration,
   uploadPaymentScreenshot,
-} from "@/lib/api";
+} from "@/lib/api/registrations";
+import type { EventItem } from "@/lib/api/events";
 
 type ClubDetails = {
   name: string;
