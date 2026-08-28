@@ -3,22 +3,32 @@
 import { useEffect, useState } from "react";
 import PRHeader from "@/components/PRHeader";
 import PRQueue from "@/components/PRQueue";
-import { changePRPin, getPRMemberStats, PRMemberStats } from "@/lib/api/members";
+import { getPRMemberStats } from "@/lib/api/members";
+import type { PRMemberStats } from "@/lib/api/members";
+import { useChangePRPin } from "@/features/pr-dashboard/useChangePRPin";
 
 export default function PRDashboardClient({ code }: { code: string }) {
   const [stats, setStats] = useState<PRMemberStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [activeTab, setActiveTab] = useState<"queue" | "referrals">("queue");
 
-  // Change PIN modal state
-  const [pinModalOpen, setPinModalOpen] = useState(false);
-  const [oldPin, setOldPin] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [showOldPin, setShowOldPin] = useState(false);
-  const [showNewPin, setShowNewPin] = useState(false);
-  const [pinError, setPinError] = useState("");
-  const [pinSuccess, setPinSuccess] = useState("");
-  const [changingPin, setChangingPin] = useState(false);
+  const {
+    pinModalOpen,
+    oldPin,
+    newPin,
+    showOldPin,
+    showNewPin,
+    pinError,
+    pinSuccess,
+    changingPin,
+    openPinModal,
+    setPinModalOpen,
+    setOldPin,
+    setNewPin,
+    setShowOldPin,
+    setShowNewPin,
+    handlePinChange,
+  } = useChangePRPin();
 
   async function loadStats() {
     try {
@@ -35,32 +45,6 @@ export default function PRDashboardClient({ code }: { code: string }) {
   useEffect(() => {
     loadStats();
   }, []);
-
-  async function handlePinChange(e: React.FormEvent) {
-    e.preventDefault();
-    setPinError("");
-    setPinSuccess("");
-    if (!newPin || newPin.length < 4) {
-      setPinError("New PIN must be at least 4 digits");
-      return;
-    }
-
-    setChangingPin(true);
-    try {
-      await changePRPin(newPin, oldPin || undefined);
-      setPinSuccess("Your PIN has been updated successfully!");
-      setOldPin("");
-      setNewPin("");
-      setTimeout(() => {
-        setPinModalOpen(false);
-        setPinSuccess("");
-      }, 1500);
-    } catch (err: any) {
-      setPinError(err.message || "Failed to update PIN");
-    } finally {
-      setChangingPin(false);
-    }
-  }
 
   const totalReferrals = stats
     ? stats.totalApproved + stats.totalPending + stats.totalRejected
@@ -87,11 +71,7 @@ export default function PRDashboardClient({ code }: { code: string }) {
             </div>
             <button
               type="button"
-              onClick={() => {
-                setPinError("");
-                setPinSuccess("");
-                setPinModalOpen(true);
-              }}
+              onClick={openPinModal}
               className="btn-secondary self-start sm:self-auto text-xs py-2 px-3.5 shrink-0"
             >
               Update PIN
@@ -231,17 +211,13 @@ export default function PRDashboardClient({ code }: { code: string }) {
                         </td>
                         <td className="whitespace-nowrap px-3.5 py-3">
                           {item.status === "approved" ? (
-                            <span className="badge-approved">
-                              Approved
-                            </span>
+                            <span className="badge-approved">Approved</span>
                           ) : item.status === "rejected" ? (
                             <span className="badge-rejected" title={item.rejectionReason || undefined}>
                               Rejected
                             </span>
                           ) : (
-                            <span className="badge-pending">
-                              Pending
-                            </span>
+                            <span className="badge-pending">Pending</span>
                           )}
                         </td>
                         <td className="whitespace-nowrap px-3.5 py-3 text-[11px] font-mono text-zinc-500">
