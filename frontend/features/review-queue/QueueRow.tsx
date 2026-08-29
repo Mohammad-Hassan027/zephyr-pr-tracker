@@ -89,10 +89,10 @@ export function QueueRow({
           <Image
             src={r.paymentScreenshot}
             alt="UPI screenshot"
-            fill
-            sizes="80px"
+            width={80}
+            height={80}
             loading="lazy"
-            className="object-cover group-hover:scale-105 transition duration-200"
+            className="h-full w-full object-cover group-hover:scale-105 transition duration-200"
           />
           <div className="absolute inset-0 bg-zinc-950/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[10px] font-medium gap-1">
             <ZoomIn size={14} aria-hidden="true" />
@@ -101,11 +101,11 @@ export function QueueRow({
         </button>
       </div>
 
-      <div className="mt-3.5 pt-3 border-t border-zinc-100 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-3.5 pt-3 border-t border-zinc-100 flex gap-2">
         <button
           disabled={isActionDisabled}
           onClick={() => onApprove(r._id)}
-          className="btn-primary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+          className="btn-primary flex-1 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-1.5"
         >
           <CheckCircle2 size={14} aria-hidden="true" />
           <span>{isBusy ? "Approving..." : "Approve Registration"}</span>
@@ -113,7 +113,7 @@ export function QueueRow({
         <button
           disabled={isActionDisabled}
           onClick={() => onOpenRejectModal(r._id)}
-          className="btn-secondary flex-1 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center gap-1.5"
+          className="btn-secondary flex-1 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center gap-1.5"
         >
           <XCircle size={14} aria-hidden="true" />
           <span>Reject</span>

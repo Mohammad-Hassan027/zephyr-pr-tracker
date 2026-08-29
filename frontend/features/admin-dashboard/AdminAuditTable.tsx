@@ -36,13 +36,11 @@ export function AdminAuditTable({
   return (
     <section className="surface-card p-5 sm:p-6 space-y-6">
       <div>
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-900">
-            Onboard PR Member
-          </h2>
-        </div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-900 mb-4">
+          Onboard PR Member
+        </h2>
 
-        <form onSubmit={onCreateMember} className="mt-4 grid gap-3 sm:grid-cols-2">
+        <form onSubmit={onCreateMember} className="grid gap-3 sm:grid-cols-2">
           <input
             required
             placeholder="Full Name (e.g. Aman Gupta)"
@@ -68,7 +66,7 @@ export function AdminAuditTable({
               onMemberFormChange({ ...memberForm, password: e.target.value })
             }
           />
-          <button className="btn-primary sm:col-span-2 py-2 text-xs font-medium">
+          <button className="btn-primary sm:col-span-2 py-3 text-sm font-medium">
             + Add PR Member
           </button>
         </form>

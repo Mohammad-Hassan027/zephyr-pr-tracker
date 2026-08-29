@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useReviewQueue } from "./useReviewQueue";
 import { QueueFilters } from "./QueueFilters";
-import { BulkActionBar } from "./BulkActionBar";
 import { QueueTable } from "./QueueTable";
 import { QueuePagination } from "./QueuePagination";
 import { ReviewDialog } from "./ReviewDialog";
@@ -65,17 +64,6 @@ export function ReviewQueue({ code }: { code?: string }) {
         onClearFilters={handleClearFilters}
       />
 
-      <BulkActionBar
-        itemCount={items.length}
-        selectedCount={selectedIds.size}
-        isAllSelected={isAllSelected}
-        isBulkBusy={isBulkBusy}
-        onToggleSelectAll={handleToggleSelectAll}
-        onBulkApprove={handleBulkApprove}
-        onBulkReject={openBulkRejectModal}
-        onDeselectAll={() => setSelectedIds(new Set())}
-      />
-
       <QueueTable
         items={items}
         loading={loading}
@@ -83,10 +71,16 @@ export function ReviewQueue({ code }: { code?: string }) {
         selectedIds={selectedIds}
         busyId={busyId}
         isBulkBusy={isBulkBusy}
+        isAllSelected={isAllSelected}
+        selectedCount={selectedIds.size}
         onToggleSelect={handleToggleSelect}
+        onToggleSelectAll={handleToggleSelectAll}
         onApprove={handleApprove}
         onOpenRejectModal={openRejectModal}
         onZoom={setZoomed}
+        onBulkApprove={handleBulkApprove}
+        onBulkReject={openBulkRejectModal}
+        onDeselectAll={() => setSelectedIds(new Set())}
       />
 
       <QueuePagination
@@ -111,7 +105,10 @@ export function ReviewQueue({ code }: { code?: string }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 p-4 sm:p-6 cursor-pointer backdrop-blur-sm"
           onClick={() => setZoomed(null)}
         >
-          <div className="relative h-[min(90vh,760px)] w-[min(90vw,760px)] overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl">
+          <div
+            className="relative overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl"
+            style={{ height: "min(90vh, 760px)", width: "min(90vw, 760px)" }}
+          >
             <Image
               src={zoomed}
               alt="UPI screenshot full size"

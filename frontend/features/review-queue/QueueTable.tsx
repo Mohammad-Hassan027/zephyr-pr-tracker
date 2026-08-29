@@ -1,6 +1,7 @@
 import { Inbox } from "@/lib/icons";
 import type { PendingRegistration } from "./review-queue.types";
 import { QueueRow } from "./QueueRow";
+import { BulkActionBar } from "./BulkActionBar";
 
 interface QueueTableProps {
   items: PendingRegistration[];
@@ -9,10 +10,16 @@ interface QueueTableProps {
   selectedIds: Set<string>;
   busyId: string | null;
   isBulkBusy: boolean;
+  isAllSelected: boolean;
+  selectedCount: number;
   onToggleSelect: (id: string) => void;
+  onToggleSelectAll: () => void;
   onApprove: (id: string) => void;
   onOpenRejectModal: (id: string) => void;
   onZoom: (url: string) => void;
+  onBulkApprove: () => void;
+  onBulkReject: () => void;
+  onDeselectAll: () => void;
 }
 
 export function QueueTable({
@@ -22,10 +29,16 @@ export function QueueTable({
   selectedIds,
   busyId,
   isBulkBusy,
+  isAllSelected,
+  selectedCount,
   onToggleSelect,
+  onToggleSelectAll,
   onApprove,
   onOpenRejectModal,
   onZoom,
+  onBulkApprove,
+  onBulkReject,
+  onDeselectAll,
 }: QueueTableProps) {
   if (loading) {
     return (
@@ -67,6 +80,17 @@ export function QueueTable({
 
   return (
     <div className="mt-3 space-y-3">
+      <BulkActionBar
+        itemCount={items.length}
+        selectedCount={selectedCount}
+        isAllSelected={isAllSelected}
+        isBulkBusy={isBulkBusy}
+        loading={false}
+        onToggleSelectAll={onToggleSelectAll}
+        onBulkApprove={onBulkApprove}
+        onBulkReject={onBulkReject}
+        onDeselectAll={onDeselectAll}
+      />
       {items.map((r) => (
         <QueueRow
           key={r._id}

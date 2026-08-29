@@ -5,6 +5,7 @@ interface BulkActionBarProps {
   selectedCount: number;
   isAllSelected: boolean;
   isBulkBusy: boolean;
+  loading: boolean;
   onToggleSelectAll: () => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
@@ -16,12 +17,13 @@ export function BulkActionBar({
   selectedCount,
   isAllSelected,
   isBulkBusy,
+  loading,
   onToggleSelectAll,
   onBulkApprove,
   onBulkReject,
   onDeselectAll,
 }: BulkActionBarProps) {
-  if (itemCount === 0) return null;
+  if (loading || itemCount === 0) return null;
 
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50/80 px-3.5 py-2">
