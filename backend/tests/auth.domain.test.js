@@ -118,8 +118,9 @@ async function runTests() {
   });
 
   test("isValidPlatformAdminPassword performs timing-safe password check", () => {
-    assert.strictEqual(isValidPlatformAdminPassword("platform-admin-test-password"), true);
-    assert.strictEqual(isValidPlatformAdminPassword("wrong-password"), false);
+    const expectedPassword = process.env.PLATFORM_ADMIN_PASSWORD || "platform-admin-test-password";
+    assert.strictEqual(isValidPlatformAdminPassword(expectedPassword), true);
+    assert.strictEqual(isValidPlatformAdminPassword(`${expectedPassword}_wrong`), false);
     assert.strictEqual(isValidPlatformAdminPassword(""), false);
   });
 
