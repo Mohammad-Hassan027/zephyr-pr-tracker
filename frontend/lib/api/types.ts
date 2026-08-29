@@ -27,19 +27,42 @@ export type EventItem = {
   capacity: number | null;
 };
 
+export type HistoryItem = {
+  action: string;
+  status: string;
+  performedBy?: string | null;
+  note?: string | null;
+  changes?: Record<string, any> | null;
+  timestamp: string;
+};
+
+export type WorkflowStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "needs_correction"
+  | "resubmitted"
+  | "under_review";
+
 /**
  * Registration Domain Types
  */
 export type RegistrationStatus = {
   id?: string;
-  status: "pending" | "approved" | "rejected";
+  status: WorkflowStatus;
   rejectionReason: string | null;
+  correctionNote?: string | null;
+  lastCorrectionRequestedAt?: string | null;
+  resubmittedAt?: string | null;
+  history?: HistoryItem[];
   regNo: string | null;
   studentName: string;
   studentEmail: string;
   studentPhone?: string;
   college?: string;
   amount?: number;
+  utr?: string;
+  paymentScreenshot?: string;
   createdAt: string;
   event: {
     name: string;
@@ -84,6 +107,16 @@ export type SubmitRegistrationForm = {
   paymentScreenshotPublicId: string;
 };
 
+export type ResubmitRegistrationForm = {
+  studentName?: string;
+  studentPhone?: string;
+  college?: string;
+  amount?: number;
+  utr?: string;
+  paymentScreenshot?: string;
+  paymentScreenshotPublicId?: string;
+};
+
 export type CheckDuplicateParams = {
   clubSlug: string;
   eventSlug: string;
@@ -98,7 +131,7 @@ export type LookupParams = {
 export type LookupResult = {
   id: string;
   regNo: string | null;
-  status: "pending" | "approved" | "rejected";
+  status: WorkflowStatus;
   studentName: string;
   studentEmail: string;
   studentPhone?: string;
@@ -106,6 +139,10 @@ export type LookupResult = {
   amount?: number;
   createdAt: string;
   rejectionReason?: string;
+  correctionNote?: string;
+  lastCorrectionRequestedAt?: string;
+  resubmittedAt?: string;
+  history?: HistoryItem[];
   event: {
     name: string;
     slug: string;
@@ -126,6 +163,7 @@ export type LookupResult = {
  */
 export type PendingRegistration = {
   _id: string;
+  status?: WorkflowStatus;
   studentName: string;
   studentEmail: string;
   studentPhone?: string;
@@ -134,6 +172,10 @@ export type PendingRegistration = {
   utr?: string;
   referralCode: string | null;
   paymentScreenshot: string;
+  correctionNote?: string | null;
+  lastCorrectionRequestedAt?: string | null;
+  resubmittedAt?: string | null;
+  history?: HistoryItem[];
   createdAt: string;
   event: {
     name: string;
@@ -148,6 +190,7 @@ export type PendingRegistration = {
 export type PendingQueueFilters = {
   event?: string;
   college?: string;
+  status?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -190,8 +233,9 @@ export type PRMemberReferral = {
   college?: string;
   amount?: number;
   utr?: string;
-  status: "pending" | "approved" | "rejected";
+  status: WorkflowStatus;
   rejectionReason?: string;
+  correctionNote?: string;
   event?: { name: string; slug: string; fee?: number };
   createdAt: string;
 };

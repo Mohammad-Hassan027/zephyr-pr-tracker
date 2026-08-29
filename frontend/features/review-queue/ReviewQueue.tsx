@@ -16,30 +16,33 @@ export function ReviewQueue({ code }: { code?: string }) {
     zoomed,
     loading,
     selectedIds,
-    rejectModal,
-    rejectionReason,
+    dialogModal,
+    noteText,
     page,
     totalPages,
     total,
     eventSlug,
     college,
+    statusFilter,
     from,
     to,
     hasActiveFilters,
     isAllSelected,
     setZoomed,
-    setRejectModal,
-    setRejectionReason,
+    setDialogModal,
+    setNoteText,
     setEventSlug,
     setCollege,
+    setStatusFilter,
     setFrom,
     setTo,
     handleToggleSelect,
     handleToggleSelectAll,
     handleApprove,
     openRejectModal,
+    openCorrectionModal,
     openBulkRejectModal,
-    confirmRejection,
+    confirmDialog,
     handleBulkApprove,
     handlePageChange,
     handleClearFilters,
@@ -52,6 +55,7 @@ export function ReviewQueue({ code }: { code?: string }) {
         events={events}
         eventSlug={eventSlug}
         college={college}
+        statusFilter={statusFilter}
         from={from}
         to={to}
         total={total}
@@ -59,6 +63,7 @@ export function ReviewQueue({ code }: { code?: string }) {
         hasActiveFilters={hasActiveFilters}
         onEventChange={setEventSlug}
         onCollegeChange={setCollege}
+        onStatusChange={setStatusFilter}
         onFromChange={setFrom}
         onToChange={setTo}
         onClearFilters={handleClearFilters}
@@ -77,6 +82,7 @@ export function ReviewQueue({ code }: { code?: string }) {
         onToggleSelectAll={handleToggleSelectAll}
         onApprove={handleApprove}
         onOpenRejectModal={openRejectModal}
+        onOpenCorrectionModal={openCorrectionModal}
         onZoom={setZoomed}
         onBulkApprove={handleBulkApprove}
         onBulkReject={openBulkRejectModal}
@@ -91,12 +97,12 @@ export function ReviewQueue({ code }: { code?: string }) {
       />
 
       <ReviewDialog
-        rejectModal={rejectModal}
+        dialogModal={dialogModal}
         selectedCount={selectedIds.size}
-        rejectionReason={rejectionReason}
-        onRejectionReasonChange={setRejectionReason}
-        onCancel={() => setRejectModal({ isOpen: false, isBulk: false, targetId: null })}
-        onConfirm={confirmRejection}
+        noteText={noteText}
+        onNoteChange={setNoteText}
+        onCancel={() => setDialogModal({ isOpen: false, mode: "reject", isBulk: false, targetId: null })}
+        onConfirm={confirmDialog}
       />
 
       {/* Screenshot Zoom Lightbox */}

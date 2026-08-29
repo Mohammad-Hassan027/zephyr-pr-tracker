@@ -4,6 +4,7 @@ interface QueueFiltersProps {
   events: EventItem[];
   eventSlug: string;
   college: string;
+  statusFilter: string;
   from: string;
   to: string;
   total: number;
@@ -11,6 +12,7 @@ interface QueueFiltersProps {
   hasActiveFilters: boolean;
   onEventChange: (slug: string) => void;
   onCollegeChange: (college: string) => void;
+  onStatusChange: (status: string) => void;
   onFromChange: (from: string) => void;
   onToChange: (to: string) => void;
   onClearFilters: () => void;
@@ -20,6 +22,7 @@ export function QueueFilters({
   events,
   eventSlug,
   college,
+  statusFilter,
   from,
   to,
   total,
@@ -27,6 +30,7 @@ export function QueueFilters({
   hasActiveFilters,
   onEventChange,
   onCollegeChange,
+  onStatusChange,
   onFromChange,
   onToChange,
   onClearFilters,
@@ -56,7 +60,23 @@ export function QueueFilters({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div>
+          <label className="block text-xs font-medium text-zinc-500 mb-1">
+            Workflow Status
+          </label>
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusChange(e.target.value)}
+            className="field-input text-xs"
+          >
+            <option value="">All Workflow Queue</option>
+            <option value="pending">Pending Review</option>
+            <option value="resubmitted">Resubmitted</option>
+            <option value="needs_correction">Needs Correction</option>
+          </select>
+        </div>
+
         <div>
           <label className="block text-xs font-medium text-zinc-500 mb-1">
             Event

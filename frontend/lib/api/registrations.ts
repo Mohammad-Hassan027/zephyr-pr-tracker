@@ -5,6 +5,7 @@ import type {
   LookupParams,
   LookupResult,
   RegistrationStatus,
+  ResubmitRegistrationForm,
   SubmitRegistrationForm,
   UploadSignature,
 } from "./types";
@@ -15,6 +16,7 @@ export type {
   LookupParams,
   LookupResult,
   RegistrationStatus,
+  ResubmitRegistrationForm,
   SubmitRegistrationForm,
   UploadSignature,
 };
@@ -60,6 +62,19 @@ export async function submitRegistration(
     method: "POST",
     body: form,
   });
+}
+
+export async function resubmitRegistration(
+  id: string,
+  form: ResubmitRegistrationForm
+): Promise<{ ok: boolean; message: string; data: RegistrationStatus }> {
+  return apiFetch<{ ok: boolean; message: string; data: RegistrationStatus }>(
+    `/registrations/${id}/resubmit`,
+    {
+      method: "POST",
+      body: form,
+    }
+  );
 }
 
 export async function getRegistrationStatus(

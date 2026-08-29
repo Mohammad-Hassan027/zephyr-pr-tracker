@@ -16,6 +16,7 @@ interface QueueTableProps {
   onToggleSelectAll: () => void;
   onApprove: (id: string) => void;
   onOpenRejectModal: (id: string) => void;
+  onOpenCorrectionModal: (id: string) => void;
   onZoom: (url: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
@@ -35,6 +36,7 @@ export function QueueTable({
   onToggleSelectAll,
   onApprove,
   onOpenRejectModal,
+  onOpenCorrectionModal,
   onZoom,
   onBulkApprove,
   onBulkReject,
@@ -66,13 +68,13 @@ export function QueueTable({
         <Inbox size={32} className="mx-auto mb-2 text-zinc-400" aria-hidden="true" />
         <p className="text-sm font-semibold text-zinc-900">
           {hasActiveFilters
-            ? "No pending registrations match your active filters."
+            ? "No registrations match your active filters."
             : "Queue is empty — all registrations reviewed!"}
         </p>
         <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
           {hasActiveFilters
-            ? "Try adjusting or clearing your date/college filters above."
-            : "New registration submissions with UPI payment proofs will appear here in real-time."}
+            ? "Try adjusting or clearing your status/event/college filters above."
+            : "New registration submissions and resubmissions will appear here in real-time."}
         </p>
       </div>
     );
@@ -101,6 +103,7 @@ export function QueueTable({
           onToggleSelect={onToggleSelect}
           onApprove={onApprove}
           onOpenRejectModal={onOpenRejectModal}
+          onOpenCorrectionModal={onOpenCorrectionModal}
           onZoom={onZoom}
         />
       ))}

@@ -8,10 +8,11 @@ import {
   bulkRejectRegistrations,
   getPendingQueue,
   rejectRegistration,
+  requestCorrection,
 } from "@/lib/api/review-queue";
 import type { EventItem, PendingRegistration } from "@/lib/api/types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import type { RejectModalState } from "./review-queue.types";
+import type { ReviewModalState } from "./review-queue.types";
 
 const PAGE_LIMIT = 20;
 
@@ -26,13 +27,17 @@ export function useReviewQueue(code?: string) {
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Rejection modal state
-  const [rejectModal, setRejectModal] = useState<RejectModalState>({
+  // Review modal state (handles both rejection & correction request)
+  const [dialogModal, setDialogModal] = useState<ReviewModalState>({
     isOpen: false,
+    mode: "reject",
     isBulk: false,
     targetId: null,
   });
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [noteText, setNoteText] = useState("");
+
+  // History timeline view modal
+  const [historyModalItem, setHistoryModalItem] = useState<PendingRegistration | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -42,6 +47,7 @@ export function useReviewQueue(code?: string) {
   // Filter state
   const [eventSlug, setEventSlug] = useState("");
   const [college, setCollege] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const debouncedCollege = useDebouncedValue(college, 300);
@@ -53,14 +59,15 @@ export function useReviewQueue(code?: string) {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setZoomed(null);
-        if (rejectModal.isOpen) {
-          setRejectModal({ isOpen: false, isBulk: false, targetId: null });
+        setHistoryModalItem(null);
+        if (dialogModal.isOpen) {
+          setDialogModal({ isOpen: false, mode: "reject", isBulk: false, targetId: null });
         }
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [rejectModal.isOpen]);
+  }, [dialogModal.isOpen]);
 
   // Fetch available events on mount
   useEffect(() => {
@@ -79,6 +86,7 @@ export function useReviewQueue(code?: string) {
           {
             event: eventSlug || undefined,
             college: debouncedCollege || undefined,
+            status: statusFilter || undefined,
             from: from || undefined,
             to: to || undefined,
             page: targetPage,
@@ -103,7 +111,7 @@ export function useReviewQueue(code?: string) {
         }
       }
     },
-    [code, eventSlug, debouncedCollege, from, to]
+    [code, eventSlug, debouncedCollege, statusFilter, from, to]
   );
 
   // Re-fetch from page 1 whenever filters change
@@ -154,47 +162,72 @@ export function useReviewQueue(code?: string) {
   }
 
   function openRejectModal(id: string) {
-    setRejectionReason("Payment screenshot could not be verified");
-    setRejectModal({
+    setNoteText("Payment screenshot could not be verified");
+    setDialogModal({
       isOpen: true,
+      mode: "reject",
+      isBulk: false,
+      targetId: id,
+    });
+  }
+
+  function openCorrectionModal(id: string) {
+    setNoteText("UTR number is unreadable in screenshot. Please re-upload clearer image.");
+    setDialogModal({
+      isOpen: true,
+      mode: "correction",
       isBulk: false,
       targetId: id,
     });
   }
 
   function openBulkRejectModal() {
-    setRejectionReason("Payment screenshot could not be verified");
-    setRejectModal({
+    setNoteText("Payment screenshot could not be verified");
+    setDialogModal({
       isOpen: true,
+      mode: "reject",
       isBulk: true,
       targetId: null,
     });
   }
 
-  async function confirmRejection() {
-    if (rejectModal.isBulk) {
+  async function confirmDialog() {
+    if (dialogModal.mode === "correction" && dialogModal.targetId) {
+      setBusyId(dialogModal.targetId);
+      try {
+        await requestCorrection(
+          dialogModal.targetId,
+          noteText || "Correction required",
+          code
+        );
+        setDialogModal({ isOpen: false, mode: "reject", isBulk: false, targetId: null });
+        await load(page);
+      } finally {
+        setBusyId(null);
+      }
+    } else if (dialogModal.isBulk) {
       setIsBulkBusy(true);
       try {
         await bulkRejectRegistrations(
           Array.from(selectedIds),
-          rejectionReason || undefined,
+          noteText || undefined,
           code
         );
-        setRejectModal({ isOpen: false, isBulk: false, targetId: null });
+        setDialogModal({ isOpen: false, mode: "reject", isBulk: false, targetId: null });
         setSelectedIds(new Set());
         await load(page);
       } finally {
         setIsBulkBusy(false);
       }
-    } else if (rejectModal.targetId) {
-      setBusyId(rejectModal.targetId);
+    } else if (dialogModal.targetId) {
+      setBusyId(dialogModal.targetId);
       try {
         await rejectRegistration(
-          rejectModal.targetId,
+          dialogModal.targetId,
           code,
-          rejectionReason || undefined
+          noteText || undefined
         );
-        setRejectModal({ isOpen: false, isBulk: false, targetId: null });
+        setDialogModal({ isOpen: false, mode: "reject", isBulk: false, targetId: null });
         await load(page);
       } finally {
         setBusyId(null);
@@ -219,11 +252,12 @@ export function useReviewQueue(code?: string) {
     await load(newPage);
   }
 
-  const hasActiveFilters = Boolean(eventSlug || college || from || to);
+  const hasActiveFilters = Boolean(eventSlug || college || statusFilter || from || to);
 
   function handleClearFilters() {
     setEventSlug("");
     setCollege("");
+    setStatusFilter("");
     setFrom("");
     setTo("");
   }
@@ -238,30 +272,35 @@ export function useReviewQueue(code?: string) {
     zoomed,
     loading,
     selectedIds,
-    rejectModal,
-    rejectionReason,
+    dialogModal,
+    noteText,
+    historyModalItem,
     page,
     totalPages,
     total,
     eventSlug,
     college,
+    statusFilter,
     from,
     to,
     hasActiveFilters,
     isAllSelected,
     setZoomed,
-    setRejectModal,
-    setRejectionReason,
+    setDialogModal,
+    setNoteText,
+    setHistoryModalItem,
     setEventSlug,
     setCollege,
+    setStatusFilter,
     setFrom,
     setTo,
     handleToggleSelect,
     handleToggleSelectAll,
     handleApprove,
     openRejectModal,
+    openCorrectionModal,
     openBulkRejectModal,
-    confirmRejection,
+    confirmDialog,
     handleBulkApprove,
     handlePageChange,
     handleClearFilters,

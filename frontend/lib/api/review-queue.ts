@@ -26,6 +26,7 @@ export async function getPendingQueue(
   if (code) params.code = code;
   if (filters?.event) params.event = filters.event;
   if (filters?.college) params.college = filters.college;
+  if (filters?.status) params.status = filters.status;
   if (filters?.from) params.from = filters.from;
   if (filters?.to) params.to = filters.to;
   if (filters?.page) params.page = filters.page;
@@ -59,6 +60,20 @@ export async function rejectRegistration(
   return apiFetch<any>(url, {
     method: "PATCH",
     body: { reason },
+  });
+}
+
+export async function requestCorrection(
+  id: string,
+  note: string,
+  reviewerCode?: string
+): Promise<any> {
+  const url = reviewerCode
+    ? `/api/pr/registrations/${id}/request-correction`
+    : `/api/admin/registrations/${id}/request-correction`;
+  return apiFetch<any>(url, {
+    method: "PATCH",
+    body: { note },
   });
 }
 

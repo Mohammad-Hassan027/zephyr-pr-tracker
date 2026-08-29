@@ -57,6 +57,24 @@ export const STATUS_CONFIG = {
     badgeClass: "badge-rejected",
     iconColor: "text-rose-600",
   },
+  needs_correction: {
+    icon: AlertTriangle,
+    label: "Needs Correction",
+    badgeClass: "rounded font-mono text-[11px] font-semibold px-2 py-0.5 border border-amber-300 bg-amber-50 text-amber-800 inline-flex items-center gap-1",
+    iconColor: "text-amber-600",
+  },
+  resubmitted: {
+    icon: RefreshCw,
+    label: "Resubmitted",
+    badgeClass: "rounded font-mono text-[11px] font-semibold px-2 py-0.5 border border-indigo-300 bg-indigo-50 text-indigo-800 inline-flex items-center gap-1",
+    iconColor: "text-indigo-600",
+  },
+  under_review: {
+    icon: Eye,
+    label: "Under Review",
+    badgeClass: "rounded font-mono text-[11px] font-semibold px-2 py-0.5 border border-sky-300 bg-sky-50 text-sky-800 inline-flex items-center gap-1",
+    iconColor: "text-sky-600",
+  },
 } as const;
 
 export type RegistrationStatusType = keyof typeof STATUS_CONFIG;

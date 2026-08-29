@@ -1,5 +1,6 @@
+import { useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, CheckCircle2, XCircle, ZoomIn } from "@/lib/icons";
+import { AlertTriangle, CheckCircle2, RefreshCw, XCircle, ZoomIn, Clock } from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
 import type { PendingRegistration } from "./review-queue.types";
 
@@ -11,6 +12,7 @@ interface QueueRowProps {
   onToggleSelect: (id: string) => void;
   onApprove: (id: string) => void;
   onOpenRejectModal: (id: string) => void;
+  onOpenCorrectionModal: (id: string) => void;
   onZoom: (url: string) => void;
 }
 
@@ -22,9 +24,12 @@ export function QueueRow({
   onToggleSelect,
   onApprove,
   onOpenRejectModal,
+  onOpenCorrectionModal,
   onZoom,
 }: QueueRowProps) {
   const isActionDisabled = isBusy || isBulkBusy;
+  const currentStatus = r.status || "pending";
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
     <div
@@ -35,7 +40,7 @@ export function QueueRow({
       }`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3 min-w-0">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
           <input
             type="checkbox"
             checked={isSelected}
@@ -43,12 +48,12 @@ export function QueueRow({
             aria-label={`Select registration for ${r.studentName}`}
             className="mt-1 h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
           />
-          <div className="min-w-0 text-sm">
+          <div className="min-w-0 text-sm flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold text-zinc-900">
                 {r.studentName}
               </span>
-              <StatusIcon status="pending" size={13} />
+              <StatusIcon status={currentStatus} size={13} />
               {r.event.fee !== undefined &&
                 r.amount !== undefined &&
                 r.amount !== r.event.fee && (
@@ -58,12 +63,14 @@ export function QueueRow({
                   </span>
                 )}
             </div>
+
             <p className="mt-1 text-xs font-medium text-zinc-700">
               {r.event.name}
             </p>
             <p className="mt-0.5 text-xs text-zinc-500">
               {r.college || "—"} · {r.studentPhone || r.studentEmail}
             </p>
+
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
               <span className="font-mono font-semibold text-zinc-900 bg-zinc-100 rounded px-1.5 py-0.5">
                 ₹{r.amount ?? 0}
@@ -77,6 +84,57 @@ export function QueueRow({
                 </span>
               )}
             </div>
+
+            {/* Display active Correction Note if in needs_correction or resubmitted */}
+            {r.correctionNote && (
+              <div className="mt-2 rounded.md border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900 space-y-0.5 font-sans">
+                <span className="font-bold text-[10px] uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  Correction Requested Note:
+                </span>
+                <p className="font-medium text-amber-900">{r.correctionNote}</p>
+              </div>
+            )}
+
+            {/* History timeline expander button */}
+            {Array.isArray(r.history) && r.history.length > 1 && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="text-[11px] font-mono text-brand-600 hover:underline inline-flex items-center gap-1"
+                >
+                  <Clock size={12} />
+                  <span>{showHistory ? "Hide History Log" : `View History Log (${r.history.length} events)`}</span>
+                </button>
+
+                {showHistory && (
+                  <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 space-y-2 text-xs font-mono">
+                    <div className="font-bold uppercase tracking-wider text-[10px] text-zinc-500">
+                      Audit & Correction Timeline
+                    </div>
+                    {r.history.map((h, idx) => (
+                      <div key={idx} className="border-l-2 border-brand-400 pl-2.5 py-1 space-y-0.5">
+                        <div className="flex justify-between text-zinc-700 font-semibold">
+                          <span className="capitalize">{h.action.replace("_", " ")}</span>
+                          <span className="text-[10px] text-zinc-400">
+                            {new Date(h.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        {h.performedBy && (
+                          <div className="text-[11px] text-zinc-500">Actor: {h.performedBy}</div>
+                        )}
+                        {h.note && (
+                          <div className="text-[11px] text-zinc-600 font-sans font-medium bg-white p-1 rounded border border-zinc-200 mt-1">
+                            &quot;{h.note}&quot;
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -101,19 +159,30 @@ export function QueueRow({
         </button>
       </div>
 
-      <div className="mt-3.5 pt-3 border-t border-zinc-100 flex gap-2">
+      {/* Review Action Buttons */}
+      <div className="mt-3.5 pt-3 border-t border-zinc-100 flex flex-wrap sm:flex-nowrap gap-2">
         <button
           disabled={isActionDisabled}
           onClick={() => onApprove(r._id)}
-          className="btn-primary flex-1 py-2.5 text-sm font-medium inline-flex items-center justify-center gap-1.5"
+          className="btn-primary flex-1 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
         >
           <CheckCircle2 size={14} aria-hidden="true" />
-          <span>{isBusy ? "Approving..." : "Approve Registration"}</span>
+          <span>{isBusy ? "Approving..." : "Approve"}</span>
         </button>
+
+        <button
+          disabled={isActionDisabled}
+          onClick={() => onOpenCorrectionModal(r._id)}
+          className="inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 shadow-subtle hover:bg-amber-100 transition flex-1"
+        >
+          <RefreshCw size={14} aria-hidden="true" />
+          <span>Request Correction</span>
+        </button>
+
         <button
           disabled={isActionDisabled}
           onClick={() => onOpenRejectModal(r._id)}
-          className="btn-secondary flex-1 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center gap-1.5"
+          className="btn-secondary py-2 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center gap-1.5"
         >
           <XCircle size={14} aria-hidden="true" />
           <span>Reject</span>
