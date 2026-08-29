@@ -7,28 +7,21 @@ import bcrypt from "bcryptjs";
 import Club from "../models/Club.js";
 import PRMember from "../models/PRMember.js";
 import membersRoutes from "../routes/members.js";
+import errorHandler from "../middleware/errorHandler.js";
+import { setupTestDb, teardownTestDb } from "./setup-test-db.js";
 import { createSessionToken } from "../auth/session.service.js";
 import { resolveIdentity } from "../auth/identity.service.js";
 
 async function runSEC02Tests() {
   console.log("=== RUNNING SEC-02 MANDATORY CURRENT PIN & SESSION INVALIDATION REGRESSION TESTS ===");
 
-  const mongoUri = process.env.MONGO_URI;
-  let useDb = false;
-
-  if (mongoUri) {
-    try {
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
-      useDb = true;
-      console.log("Connected to MongoDB for integration testing.");
-    } catch (err) {
-      console.warn("MongoDB connection unavailable; running with isolated stubs fallback:", err.message);
-    }
-  }
+  await setupTestDb();
+  const useDb = true;
 
   const app = express();
   app.use(express.json());
   app.use("/api/members", membersRoutes);
+  app.use(errorHandler);
 
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -249,7 +242,7 @@ async function runSEC02Tests() {
     if (useDb) {
       await PRMember.deleteMany({ club: club?._id });
       await Club.deleteMany({ slug: "sec02-test-club" });
-      await mongoose.disconnect();
+      await teardownTestDb();
     }
     await new Promise((resolve) => server.close(resolve));
   }

@@ -5,6 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import { createSessionToken } from "../utils/auth.js";
 import registrationRoutes from "../routes/registrations.js";
+import errorHandler from "../middleware/errorHandler.js";
 
 // Disable command buffering so queries fail immediately when not connected to MongoDB
 mongoose.set("bufferCommands", false);
@@ -27,6 +28,7 @@ async function runRouteSmokeTests() {
   const app = express();
   app.use(express.json());
   app.use("/api/registrations", registrationRoutes);
+  app.use(errorHandler);
 
   const server = http.createServer(app);
 
@@ -120,8 +122,7 @@ async function runRouteSmokeTests() {
     const queueRes = await fetch(`${baseUrl}/queue/pending`, {
       headers: authHeaders,
     });
-    // With dummy clubId and no DB connection, status is 200 (empty array) or 500
-    assert.ok([200, 500].includes(queueRes.status));
+    assert.ok([200, 500, 503].includes(queueRes.status));
     console.log(`✔ Pending queue route responded (status ${queueRes.status})`);
 
     // 9. GET /stats/summary (authenticated unpopulated DB check)
@@ -129,7 +130,7 @@ async function runRouteSmokeTests() {
     const summaryRes = await fetch(`${baseUrl}/stats/summary`, {
       headers: authHeaders,
     });
-    assert.ok([200, 500].includes(summaryRes.status));
+    assert.ok([200, 500, 503].includes(summaryRes.status));
     console.log(`✔ Stats summary route responded (status ${summaryRes.status})`);
 
     // 10. GET /audit (authenticated unpopulated DB check)
@@ -137,7 +138,7 @@ async function runRouteSmokeTests() {
     const auditRes = await fetch(`${baseUrl}/audit`, {
       headers: authHeaders,
     });
-    assert.ok([200, 500].includes(auditRes.status));
+    assert.ok([200, 500, 503].includes(auditRes.status));
     console.log(`✔ Audit log route responded (status ${auditRes.status})`);
 
     console.log("\n=== ALL REGISTRATION ROUTES SMOKE TESTS PASSED ===");

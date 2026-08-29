@@ -4,7 +4,10 @@ import cors from "cors";
 import mongoose from "mongoose";
 import { pathToFileURL } from "node:url";
 
-// Security Imports
+// Security & Config Imports
+import validateEnv from "./config/env.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import { NotFoundError } from "./utils/errors.js";
 import {
   helmet,
   apiLimiter,
@@ -17,6 +20,7 @@ import clubRoutes from "./routes/clubs.js";
 import eventRoutes from "./routes/events.js";
 import memberRoutes from "./routes/members.js";
 import registrationRoutes from "./routes/registrations.js";
+import uploadRoutes from "./routes/uploads.js";
 import { getAuthSecret } from "./utils/auth.js";
 
 const app = express();
@@ -45,7 +49,6 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/api/", apiLimiter);
 
 // Specific limiters for sensitive routes (login & registration endpoints)
-// Note: Apply these BEFORE mounting the routes to ensure they intercept requests first
 app.use("/api/clubs/login", authLimiter);
 app.use("/api/clubs/platform/login", authLimiter);
 app.use("/api/clubs/register", authLimiter);
@@ -57,18 +60,19 @@ app.use("/api/clubs", clubRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/registrations", registrationRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // Base Routes
 app.get("/", (_req, res) => res.send("Zephyr PR tracker API running"));
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
-// Error Handling Middleware
-app.use((err, _req, res, _next) => {
-  if (err) {
-    return res.status(400).json({ error: err.message || "Request failed" });
-  }
-  return res.status(404).json({ error: "Not found" });
+// 404 Handler for unmapped API routes
+app.use("/api/*", (_req, _res, next) => {
+  next(new NotFoundError("Requested API endpoint not found"));
 });
+
+// Centralized Safe Error Handling Middleware
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
@@ -92,10 +96,9 @@ const isMainModule = process.argv[1]
   : false;
 
 if (isMainModule) {
-  if (!process.env.AUTH_SECRET || !process.env.PLATFORM_ADMIN_PASSWORD) {
-    console.error(
-      "FATAL: Required auth secrets not configured. Refusing to start.",
-    );
+  try {
+    validateEnv();
+  } catch (err) {
     process.exit(1);
   }
 
@@ -105,7 +108,7 @@ if (isMainModule) {
       app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     })
     .catch((err) => {
-      console.error("Mongo connection error:", err);
+      console.error("Mongo connection error:", err.message);
       process.exit(1);
     });
 }

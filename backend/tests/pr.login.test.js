@@ -7,6 +7,8 @@ import bcrypt from "bcryptjs";
 import Club from "../models/Club.js";
 import PRMember from "../models/PRMember.js";
 import membersRoutes from "../routes/members.js";
+import errorHandler from "../middleware/errorHandler.js";
+import { setupTestDb, teardownTestDb } from "./setup-test-db.js";
 import { verifyToken } from "../auth/token.service.js";
 import { resolveIdentity } from "../auth/identity.service.js";
 import { canReviewRegistration } from "../policies/registration.policy.js";
@@ -14,22 +16,13 @@ import { canReviewRegistration } from "../policies/registration.policy.js";
 async function runPRLoginTests() {
   console.log("=== RUNNING SEC-01 PR LOGIN TENANT BINDING REGRESSION TESTS ===");
 
-  const mongoUri = process.env.MONGO_URI;
-  let useDb = false;
-
-  if (mongoUri) {
-    try {
-      await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
-      useDb = true;
-      console.log("Connected to MongoDB for integration testing.");
-    } catch (err) {
-      console.warn("MongoDB connection unavailable; running with isolated stubs fallback:", err.message);
-    }
-  }
+  await setupTestDb();
+  const useDb = true;
 
   const app = express();
   app.use(express.json());
   app.use("/api/members", membersRoutes);
+  app.use(errorHandler);
 
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -215,7 +208,7 @@ async function runPRLoginTests() {
     if (useDb) {
       await PRMember.deleteMany({ club: { $in: [clubA?._id, clubB?._id, clubPending?._id, clubRejected?._id].filter(Boolean) } });
       await Club.deleteMany({ slug: { $in: ["sec01-club-a", "sec01-club-b", "sec01-club-pending", "sec01-club-rejected"] } });
-      await mongoose.disconnect();
+      await teardownTestDb();
     }
     await new Promise((resolve) => server.close(resolve));
   }

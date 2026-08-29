@@ -1,7 +1,6 @@
 import registrationStatsService from "../services/registrations/registration-stats.service.js";
-import { AppError } from "../utils/errors.js";
 
-export async function getPendingQueue(req, res) {
+export async function getPendingQueue(req, res, next) {
   try {
     const result = await registrationStatsService.getPendingQueue({
       auth: req.auth,
@@ -9,38 +8,29 @@ export async function getPendingQueue(req, res) {
     });
     return res.json(result);
   } catch (err) {
-    if (err instanceof AppError || err.statusCode) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    return res.status(500).json({ error: err.message });
+    return next(err);
   }
 }
 
-export async function getStatsSummary(req, res) {
+export async function getStatsSummary(req, res, next) {
   try {
     const result = await registrationStatsService.getStatsSummary(req.auth);
     return res.json(result);
   } catch (err) {
-    if (err instanceof AppError || err.statusCode) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    return res.status(500).json({ error: err.message });
+    return next(err);
   }
 }
 
-export async function getLeaderboard(req, res) {
+export async function getLeaderboard(req, res, next) {
   try {
     const result = await registrationStatsService.getLeaderboard(req.auth);
     return res.json(result);
   } catch (err) {
-    if (err instanceof AppError || err.statusCode) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    return res.status(500).json({ error: err.message });
+    return next(err);
   }
 }
 
-export async function getMemberStats(req, res) {
+export async function getMemberStats(req, res, next) {
   try {
     const result = await registrationStatsService.getMemberStats({
       auth: req.auth,
@@ -48,14 +38,11 @@ export async function getMemberStats(req, res) {
     });
     return res.json(result);
   } catch (err) {
-    if (err instanceof AppError || err.statusCode) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    return res.status(500).json({ error: err.message });
+    return next(err);
   }
 }
 
-export async function getAuditLog(req, res) {
+export async function getAuditLog(req, res, next) {
   try {
     const result = await registrationStatsService.getAuditLog({
       auth: req.auth,
@@ -63,10 +50,7 @@ export async function getAuditLog(req, res) {
     });
     return res.json(result);
   } catch (err) {
-    if (err instanceof AppError || err.statusCode) {
-      return res.status(err.statusCode).json({ error: err.message });
-    }
-    return res.status(500).json({ error: err.message });
+    return next(err);
   }
 }
 

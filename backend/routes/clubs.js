@@ -7,11 +7,18 @@ import {
   requireClub,
   requirePlatformAdmin,
 } from "../utils/auth.js";
+import {
+  BadRequestError,
+  UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  ConflictError,
+} from "../utils/errors.js";
 
 const router = Router();
 
-// POST /api/clubs/signup (name, slug, email, password → hash + create as pending)
-router.post("/signup", async (req, res) => {
+// POST /api/clubs/signup
+router.post("/signup", async (req, res, next) => {
   try {
     const name = String(req.body.name || "").trim();
     const slug = String(req.body.slug || "").trim().toLowerCase();
@@ -19,17 +26,17 @@ router.post("/signup", async (req, res) => {
     const password = String(req.body.password || "");
 
     if (!name || !slug || !email || !password) {
-      return res.status(400).json({ error: "All fields are required (name, slug, email, password)" });
+      throw new BadRequestError("All fields are required (name, slug, email, password)");
     }
 
     const existingSlug = await Club.findOne({ slug });
     if (existingSlug) {
-      return res.status(400).json({ error: "A club with this slug already exists" });
+      throw new ConflictError("A club with this slug already exists");
     }
 
     const existingEmail = await Club.findOne({ email });
     if (existingEmail) {
-      return res.status(400).json({ error: "A club with this email already exists" });
+      throw new ConflictError("A club with this email already exists");
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -46,38 +53,38 @@ router.post("/signup", async (req, res) => {
       club: { id: club._id, name: club.name, slug: club.slug, email: club.email, status: club.status },
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
-// POST /api/clubs/login (email, password → verify status === approved, return token & club info)
-router.post("/login", async (req, res) => {
+// POST /api/clubs/login
+router.post("/login", async (req, res, next) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "");
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
+      throw new BadRequestError("Email and password are required");
     }
 
     const club = await Club.findOne({ email });
     if (!club) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      throw new UnauthorizedError("Invalid email or password");
     }
 
     const validPassword = await bcrypt.compare(password, club.passwordHash);
     if (!validPassword) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      throw new UnauthorizedError("Invalid email or password");
     }
 
     if (club.status === "pending") {
-      return res.status(403).json({ error: "Your club is awaiting approval" });
+      throw new ForbiddenError("Your club is awaiting approval");
     }
     if (club.status === "rejected") {
-      return res.status(403).json({ error: "Your club application was rejected" });
+      throw new ForbiddenError("Your club application was rejected");
     }
     if (club.status !== "approved") {
-      return res.status(403).json({ error: "Your club account is inactive" });
+      throw new ForbiddenError("Your club account is inactive");
     }
 
     const token = createSessionToken({ role: "club", clubId: club._id, clubSlug: club.slug });
@@ -90,39 +97,39 @@ router.post("/login", async (req, res) => {
       email: club.email,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// POST /api/clubs/platform/login - platform admin password login
-router.post("/platform/login", (req, res) => {
+// POST /api/clubs/platform/login
+router.post("/platform/login", (req, res, next) => {
   try {
     const { password } = req.body;
     if (!isValidPlatformAdminPassword(password)) {
-      return res.status(401).json({ error: "Invalid platform admin password" });
+      throw new UnauthorizedError("Invalid platform admin password");
     }
 
     const token = createSessionToken({ role: "platform_admin" });
     res.json({ token });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// GET /api/clubs/pending - list pending clubs for platform admin approval
-router.get("/pending", requirePlatformAdmin, async (_req, res) => {
+// GET /api/clubs/pending
+router.get("/pending", requirePlatformAdmin, async (_req, res, next) => {
   try {
     const pendingClubs = await Club.find({ status: "pending" })
       .select("-passwordHash")
       .sort({ createdAt: -1 });
     res.json(pendingClubs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// GET /api/clubs/platform/all - paginated, searchable list of clubs for platform admin
-router.get("/platform/all", requirePlatformAdmin, async (req, res) => {
+// GET /api/clubs/platform/all
+router.get("/platform/all", requirePlatformAdmin, async (req, res, next) => {
   try {
     const filter = {};
     const status = req.query.status ? String(req.query.status).trim().toLowerCase() : "all";
@@ -167,93 +174,93 @@ router.get("/platform/all", requirePlatformAdmin, async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// PATCH /api/clubs/:id/approve - approve a pending club application
-router.patch("/:id/approve", requirePlatformAdmin, async (req, res) => {
+// PATCH /api/clubs/:id/approve
+router.patch("/:id/approve", requirePlatformAdmin, async (req, res, next) => {
   try {
     const club = await Club.findById(req.params.id);
-    if (!club) return res.status(404).json({ error: "Club not found" });
+    if (!club) throw new NotFoundError("Club not found");
 
     club.status = "approved";
     await club.save();
 
     res.json({ ok: true, id: club._id, status: club.status });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
-// PATCH /api/clubs/:id/reject - reject a club application
-router.patch("/:id/reject", requirePlatformAdmin, async (req, res) => {
+// PATCH /api/clubs/:id/reject
+router.patch("/:id/reject", requirePlatformAdmin, async (req, res, next) => {
   try {
     const club = await Club.findById(req.params.id);
-    if (!club) return res.status(404).json({ error: "Club not found" });
+    if (!club) throw new NotFoundError("Club not found");
 
     club.status = "rejected";
     await club.save();
 
     res.json({ ok: true, id: club._id, status: club.status });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
-// GET /api/clubs/me - get current club profile
-router.get("/me", requireClub, async (req, res) => {
+// GET /api/clubs/me
+router.get("/me", requireClub, async (req, res, next) => {
   try {
     const club = await Club.findById(req.auth.clubId).select("-passwordHash");
-    if (!club) return res.status(404).json({ error: "Club not found" });
+    if (!club) throw new NotFoundError("Club not found");
     res.json(club);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// PATCH /api/clubs/me - Update club profile
-router.patch("/me", requireClub, async (req, res) => {
+// PATCH /api/clubs/me
+router.patch("/me", requireClub, async (req, res, next) => {
   try {
     const { name, currentPassword, newPassword } = req.body;
     const club = await Club.findById(req.auth.clubId);
-    if (!club) return res.status(404).json({ error: "Club not found" });
+    if (!club) throw new NotFoundError("Club not found");
 
     if (name) club.name = name;
     if (newPassword) {
-      if (!currentPassword) return res.status(400).json({ error: "Current password required" });
+      if (!currentPassword) throw new BadRequestError("Current password required");
       const isMatch = await bcrypt.compare(currentPassword, club.passwordHash);
-      if (!isMatch) return res.status(401).json({ error: "Incorrect current password" });
+      if (!isMatch) throw new UnauthorizedError("Incorrect current password");
       club.passwordHash = await bcrypt.hash(newPassword, 10);
     }
     await club.save();
     res.json({ ok: true, message: "Profile updated successfully" });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    next(err);
   }
 });
 
-// GET /api/clubs - list approved clubs (public directory)
-router.get("/", async (_req, res) => {
+// GET /api/clubs
+router.get("/", async (_req, res, next) => {
   try {
     const clubs = await Club.find({ status: "approved" })
       .select("name slug")
       .sort({ name: 1 });
     res.json(clubs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-// GET /api/clubs/public/:slug - public club details (name, slug) for registration page
-router.get("/public/:slug", async (req, res) => {
+// GET /api/clubs/public/:slug
+router.get("/public/:slug", async (req, res, next) => {
   try {
     const slug = String(req.params.slug).trim().toLowerCase();
     const club = await Club.findOne({ slug, status: "approved" }).select("name slug");
-    if (!club) return res.status(404).json({ error: "Club not found" });
+    if (!club) throw new NotFoundError("Club not found");
     res.json(club);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 

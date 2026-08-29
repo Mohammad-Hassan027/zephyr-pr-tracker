@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import express from "express";
 import http from "node:http";
 import PRMember from "../models/PRMember.js";
+import errorHandler from "../middleware/errorHandler.js";
 import { createSessionToken } from "../auth/session.service.js";
 import { resolveIdentity } from "../auth/identity.service.js";
 import { authenticate, optionalAuthenticate } from "../middleware/authenticate.js";
@@ -149,6 +150,8 @@ async function runSEC03Tests() {
       authReqValue = req.auth;
       res.json({ ok: true });
     });
+
+    app.use(errorHandler);
 
     const server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
