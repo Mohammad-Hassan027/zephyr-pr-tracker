@@ -254,7 +254,7 @@ export default function PRDashboardClient({ code }: { code: string }) {
               <form onSubmit={handlePinChange} className="space-y-3">
                 <div>
                   <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
-                    Current PIN (Optional if resetting)
+                    Current PIN
                   </label>
                   <div className="relative">
                     <input
