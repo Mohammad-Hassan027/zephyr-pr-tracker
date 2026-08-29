@@ -125,6 +125,47 @@ zephyr-pr-tracker/
 5. Backend modifies the original `Registration` document in-place (preventing duplicate records), transitions status to `"resubmitted"`, appends a snapshot of changed fields to `history`, and notifies reviewers via real-time SSE stream.
 6. Reviewers can filter for `"resubmitted"` or `"needs_correction"` entries in `/pr/dashboard` or `/admin`, view full audit history logs, and approve or reject the corrected submission.
 
+### 3.5 Atomic Capacity Reservation
+
+**Invariant:** `0 <= Event.approvedCount <= Event.capacity` at all times (when `capacity` is not `null`).
+
+**Concurrency Strategy — Conditional Atomic Increment:**  
+The reservation uses a single `findOneAndUpdate` with a conditional filter that both checks and increments in one atomic operation — the same pattern used by `Counter.js` for `regNo` sequence generation:
+
+```js
+Event.findOneAndUpdate(
+  { _id: eventId, $or: [{ capacity: null }, { $expr: { $lt: ["$approvedCount", "$capacity"] } }] },
+  { $inc: { approvedCount: 1 } },
+  { session, new: true }
+)
+```
+
+If the filter matches zero documents (event is full), `null` is returned and the approval is rejected with HTTP 409 `EVENT_FULL` — without changing the registration status. This eliminates the TOCTOU race that existed with a separate `countDocuments` check.
+
+**Capacity Release:**  
+When an approved registration is rejected, `releaseEventCapacity` is called inside the same transaction:
+
+```js
+Event.findOneAndUpdate(
+  { _id: eventId, approvedCount: { $gt: 0 } }, // never go negative
+  { $inc: { approvedCount: -1 } }
+)
+```
+
+The `approvedCount > 0` guard makes release idempotent — repeated calls cannot push the counter below zero.
+
+**Idempotency:**  
+Re-approving an already-approved registration (`reg.status === 'approved'`) returns early without calling `reserveEventCapacity`, so duplicate requests cannot double-count.
+
+**Transaction Safety:**  
+The reservation and `reg.save()` execute in the same `withTransaction` session. If `reg.save()` fails, MongoDB automatically rolls back the `$inc` increment.
+
+**Migration:**  
+Run `node scripts/migrate-event-capacity.js` once before deploying to production to backfill `approvedCount` for all existing events.
+
+**Admin Consistency Check:**  
+`GET /api/registrations/capacity/check` — compares `Event.approvedCount` against the actual approved registration count (ground truth). `POST /api/registrations/capacity/reconcile` re-syncs any drifted counters.
+
 ---
 
 ## 4. High-Risk Modules & Refactoring Safeguards
