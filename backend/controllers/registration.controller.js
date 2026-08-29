@@ -17,6 +17,15 @@ export async function createRegistration(req, res, next) {
   }
 }
 
+export async function resubmitRegistration(req, res, next) {
+  try {
+    const result = await registrationService.resubmitRegistration(req.params.id, req.body);
+    return res.status(200).json(result);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 export async function checkDuplicate(req, res, next) {
   try {
     const result = await registrationService.checkDuplicate(req.body);
@@ -54,6 +63,7 @@ export async function streamRegistrationStatus(req, res, next) {
 
 export default {
   createRegistration,
+  resubmitRegistration,
   checkDuplicate,
   lookupRegistrations,
   getRegistrationById,

@@ -7,6 +7,7 @@ import { requireClub, requireClubOrPRMember } from "../utils/auth.js";
 import { getUploadSignature } from "../controllers/registration-upload.controller.js";
 import {
   createRegistration,
+  resubmitRegistration,
   checkDuplicate,
   lookupRegistrations,
   getRegistrationById,
@@ -15,6 +16,7 @@ import {
 import {
   approveRegistration,
   rejectRegistration,
+  requestCorrection,
   bulkApprove,
   bulkReject,
 } from "../controllers/registration-review.controller.js";
@@ -41,10 +43,11 @@ const uploadSignatureLimiter = rateLimit({
 // Upload Signature
 router.get("/upload-signature", uploadSignatureLimiter, getUploadSignature);
 
-// Public Registration Submissions & Lookups
+// Public Registration Submissions, Lookups & Resubmissions
 router.post("/", registrationLimiter, createRegistration);
 router.post("/check-duplicate", checkDuplicate);
 router.post("/lookup", lookupRegistrations);
+router.post("/:id/resubmit", resubmitRegistration);
 
 // Admin & PR Member Statistics, Queues, Audit
 router.get("/queue/pending", requireClubOrPRMember, getPendingQueue);
@@ -64,5 +67,6 @@ router.post("/bulk-reject", requireClubOrPRMember, bulkReject);
 // Individual Review Operations
 router.patch("/:id/approve", requireClubOrPRMember, approveRegistration);
 router.patch("/:id/reject", requireClubOrPRMember, rejectRegistration);
+router.patch("/:id/request-correction", requireClubOrPRMember, requestCorrection);
 
 export default router;

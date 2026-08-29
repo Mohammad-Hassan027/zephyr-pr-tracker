@@ -25,6 +25,20 @@ export async function rejectRegistration(req, res, next) {
   }
 }
 
+export async function requestCorrection(req, res, next) {
+  try {
+    const note = req.body?.note || req.body?.correctionNote || req.body?.reason;
+    const result = await registrationReviewService.requestCorrection({
+      id: req.params.id,
+      note,
+      auth: req.auth,
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 export async function bulkApprove(req, res, next) {
   try {
     const result = await registrationReviewService.bulkApproveRegistrations({
@@ -53,6 +67,7 @@ export async function bulkReject(req, res, next) {
 export default {
   approveRegistration,
   rejectRegistration,
+  requestCorrection,
   bulkApprove,
   bulkReject,
 };

@@ -5,7 +5,13 @@ import { AppError } from "../../utils/errors.js";
 
 export const registrationStatsService = {
   async getPendingQueue({ auth, query }) {
-    const filter = { status: "pending" };
+    const validStatuses = ["pending", "resubmitted", "under_review", "needs_correction"];
+    const filter = {};
+    if (query.status && validStatuses.includes(query.status)) {
+      filter.status = query.status;
+    } else {
+      filter.status = { $in: validStatuses };
+    }
 
     if (auth.clubId) {
       filter.club = auth.clubId;

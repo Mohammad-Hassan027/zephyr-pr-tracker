@@ -5,7 +5,80 @@ import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../../ut
 import { statusEmitter } from "../../utils/statusEmitter.js";
 import cloudinary from "../../config/cloudinary.js";
 
+const REVIEWABLE_STATUSES = ["pending", "resubmitted", "under_review", "needs_correction"];
+
 export const registrationReviewService = {
+  async requestCorrection({ id, note, auth }) {
+    const trimmedNote = typeof note === "string" ? note.trim() : "";
+    if (!trimmedNote) {
+      throw new AppError("Correction note is required explaining what must be fixed", 400);
+    }
+
+    const result = await withTransaction(async (session) => {
+      const reg = await registrationRepository.findRegistrationById(id, {
+        populate: true,
+        session,
+      });
+
+      if (!reg) {
+        throw new NotFoundError("Registration not found");
+      }
+
+      if (!canReviewRegistration(auth, reg)) {
+        throw new ForbiddenError("You cannot review this registration");
+      }
+
+      if (reg.status === "approved") {
+        throw new ConflictError("Cannot request correction on an approved registration");
+      }
+
+      const reviewerCode = getReviewerCode(auth);
+
+      reg.status = "needs_correction";
+      reg.correctionNote = trimmedNote;
+      reg.lastCorrectionRequestedAt = new Date();
+      reg.reviewedBy = reviewerCode;
+
+      if (!Array.isArray(reg.history)) {
+        reg.history = [];
+      }
+
+      reg.history.push({
+        action: "requested_correction",
+        status: "needs_correction",
+        performedBy: reviewerCode,
+        note: trimmedNote,
+        timestamp: new Date(),
+      });
+
+      await reg.save({ session });
+
+      return {
+        id: reg._id,
+        status: reg.status,
+        correctionNote: reg.correctionNote,
+        lastCorrectionRequestedAt: reg.lastCorrectionRequestedAt,
+        studentName: reg.studentName,
+        studentEmail: reg.studentEmail,
+        studentPhone: reg.studentPhone,
+        college: reg.college,
+        amount: reg.amount,
+        createdAt: reg.createdAt,
+        event: reg.event,
+        reviewedBy: reg.reviewedBy,
+        history: reg.history,
+      };
+    });
+
+    statusEmitter.emitStatusUpdate(id, result);
+
+    return {
+      ok: true,
+      message: "Correction requested successfully",
+      data: result,
+    };
+  },
+
   async approveRegistration({ id, auth }) {
     const result = await withTransaction(async (session) => {
       const reg = await registrationRepository.findRegistrationById(id, {
@@ -21,8 +94,8 @@ export const registrationReviewService = {
         throw new ForbiddenError("You cannot review this registration");
       }
 
-      if (reg.status !== "pending") {
-        throw new ConflictError(`Registration has already been reviewed (${reg.status})`);
+      if (!REVIEWABLE_STATUSES.includes(reg.status)) {
+        throw new ConflictError(`Registration has already been finalized (${reg.status})`);
       }
 
       if (reg.event) {
@@ -40,11 +113,24 @@ export const registrationReviewService = {
         }
       }
 
-      const regNo = await registrationRepository.getNextRegistrationSequence(session);
+      const regNo = reg.regNo || (await registrationRepository.getNextRegistrationSequence(session));
+      const reviewerCode = getReviewerCode(auth);
 
       reg.regNo = regNo;
       reg.status = "approved";
-      reg.reviewedBy = getReviewerCode(auth);
+      reg.reviewedBy = reviewerCode;
+
+      if (!Array.isArray(reg.history)) {
+        reg.history = [];
+      }
+
+      reg.history.push({
+        action: "approved",
+        status: "approved",
+        performedBy: reviewerCode,
+        timestamp: new Date(),
+      });
+
       await reg.save({ session });
 
       return {
@@ -59,6 +145,7 @@ export const registrationReviewService = {
         createdAt: reg.createdAt,
         event: reg.event,
         reviewedBy: reg.reviewedBy,
+        history: reg.history,
       };
     });
 
@@ -80,17 +167,32 @@ export const registrationReviewService = {
       });
       if (!reg) throw new NotFoundError("Registration not found");
 
-      if (reg.status !== "pending") {
-        throw new ConflictError(`Registration has already been reviewed (${reg.status})`);
+      if (!REVIEWABLE_STATUSES.includes(reg.status)) {
+        throw new ConflictError(`Registration has already been finalized (${reg.status})`);
       }
 
       if (!canReviewRegistration(auth, reg)) {
         throw new ForbiddenError("You cannot review this registration");
       }
 
+      const reviewerCode = getReviewerCode(auth);
+
       reg.status = "rejected";
-      reg.reviewedBy = getReviewerCode(auth);
+      reg.reviewedBy = reviewerCode;
       reg.rejectionReason = reason || "Payment could not be verified";
+
+      if (!Array.isArray(reg.history)) {
+        reg.history = [];
+      }
+
+      reg.history.push({
+        action: "rejected",
+        status: "rejected",
+        performedBy: reviewerCode,
+        note: reg.rejectionReason,
+        timestamp: new Date(),
+      });
+
       await reg.save({ session });
 
       return {
@@ -100,6 +202,7 @@ export const registrationReviewService = {
         studentName: reg.studentName,
         studentEmail: reg.studentEmail,
         event: reg.event,
+        history: reg.history,
         paymentScreenshotPublicId: reg.paymentScreenshotPublicId,
       };
     });
@@ -143,8 +246,8 @@ export const registrationReviewService = {
             continue;
           }
 
-          if (reg.status !== "pending") {
-            errors.push({ id, error: `Already reviewed (${reg.status})` });
+          if (!REVIEWABLE_STATUSES.includes(reg.status)) {
+            errors.push({ id, error: `Already finalized (${reg.status})` });
             continue;
           }
 
@@ -164,11 +267,24 @@ export const registrationReviewService = {
             }
           }
 
-          const regNo = await registrationRepository.getNextRegistrationSequence(session);
+          const regNo = reg.regNo || (await registrationRepository.getNextRegistrationSequence(session));
+          const reviewerCode = getReviewerCode(auth);
 
           reg.regNo = regNo;
           reg.status = "approved";
-          reg.reviewedBy = getReviewerCode(auth);
+          reg.reviewedBy = reviewerCode;
+
+          if (!Array.isArray(reg.history)) {
+            reg.history = [];
+          }
+
+          reg.history.push({
+            action: "approved",
+            status: "approved",
+            performedBy: reviewerCode,
+            timestamp: new Date(),
+          });
+
           await reg.save({ session });
 
           results.push({
@@ -183,6 +299,7 @@ export const registrationReviewService = {
             createdAt: reg.createdAt,
             event: reg.event,
             reviewedBy: reg.reviewedBy,
+            history: reg.history,
           });
         } catch (itemErr) {
           errors.push({ id, error: itemErr.message });
@@ -231,14 +348,29 @@ export const registrationReviewService = {
             continue;
           }
 
-          if (reg.status !== "pending") {
-            errors.push({ id, error: `Already reviewed (${reg.status})` });
+          if (!REVIEWABLE_STATUSES.includes(reg.status)) {
+            errors.push({ id, error: `Already finalized (${reg.status})` });
             continue;
           }
 
+          const reviewerCode = getReviewerCode(auth);
+
           reg.status = "rejected";
-          reg.reviewedBy = getReviewerCode(auth);
+          reg.reviewedBy = reviewerCode;
           reg.rejectionReason = rejectionReason;
+
+          if (!Array.isArray(reg.history)) {
+            reg.history = [];
+          }
+
+          reg.history.push({
+            action: "rejected",
+            status: "rejected",
+            performedBy: reviewerCode,
+            note: rejectionReason,
+            timestamp: new Date(),
+          });
+
           await reg.save({ session });
 
           if (reg.paymentScreenshotPublicId) {
@@ -252,6 +384,7 @@ export const registrationReviewService = {
             studentName: reg.studentName,
             studentEmail: reg.studentEmail,
             event: reg.event,
+            history: reg.history,
           });
         } catch (itemErr) {
           errors.push({ id, error: itemErr.message });
