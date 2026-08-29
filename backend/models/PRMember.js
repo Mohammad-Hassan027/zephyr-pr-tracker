@@ -6,6 +6,7 @@ const prMemberSchema = new mongoose.Schema(
     code: { type: String, required: true, uppercase: true, trim: true },
     passwordHash: { type: String, required: true },
     club: { type: mongoose.Schema.Types.ObjectId, ref: "Club", required: true },
+    tokenVersion: { type: Number, default: 1, required: true },
   },
   { timestamps: true }
 );

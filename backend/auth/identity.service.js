@@ -70,6 +70,12 @@ export async function resolveIdentity(token) {
       throw new Error("Authentication required");
     }
 
+    const expectedTokenVersion = member.tokenVersion ?? 1;
+    const claimTokenVersion = claims.tokenVersion ?? 1;
+    if (claimTokenVersion !== expectedTokenVersion) {
+      throw new Error("Authentication required");
+    }
+
     return {
       role: "pr",
       clubId: String(member.club),

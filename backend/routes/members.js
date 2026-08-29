@@ -5,6 +5,7 @@ import PRMember from "../models/PRMember.js";
 import Club from "../models/Club.js";
 import { createSessionToken, requireClub, requireClubOrPRMember } from "../utils/auth.js";
 import { optionalAuthenticate } from "../middleware/authenticate.js";
+import { validatePinPolicy } from "../policies/member.policy.js";
 
 const router = Router();
 
@@ -95,6 +96,7 @@ router.post("/:id/reset-pin", requireClub, async (req, res) => {
 
     const newPin = String(Math.floor(100000 + Math.random() * 900000));
     member.passwordHash = await bcrypt.hash(newPin, 10);
+    member.tokenVersion = (member.tokenVersion || 1) + 1;
     await member.save();
 
     res.json({ ok: true, name: member.name, code: member.code, pin: newPin });
@@ -120,24 +122,36 @@ router.delete("/:id", requireClub, async (req, res) => {
 // POST /api/members/change-pin - PR member self-service change PIN
 router.post("/change-pin", requireClubOrPRMember, async (req, res) => {
   try {
-    const { oldPin, newPin } = req.body;
-    if (!newPin || String(newPin).length < 4) {
-      return res.status(400).json({ error: "New PIN must be at least 4 digits" });
-    }
-
     if (req.auth.role !== "pr") {
       return res.status(400).json({ error: "Only PR members can use this endpoint" });
     }
 
     const member = await PRMember.findOne({ code: req.auth.code, club: req.auth.clubId });
-    if (!member) return res.status(404).json({ error: "Member not found" });
+    if (!member) return res.status(401).json({ error: "Authentication required" });
 
-    if (oldPin) {
-      const ok = await bcrypt.compare(String(oldPin), member.passwordHash);
-      if (!ok) return res.status(400).json({ error: "Current PIN is incorrect" });
+    const oldPin = String(req.body.oldPin || "").trim();
+    if (!oldPin) {
+      return res.status(400).json({ error: "Current PIN is required" });
     }
 
-    member.passwordHash = await bcrypt.hash(String(newPin).trim(), 10);
+    const ok = await bcrypt.compare(oldPin, member.passwordHash);
+    if (!ok) {
+      return res.status(400).json({ error: "Current PIN is incorrect" });
+    }
+
+    const rawNewPin = req.body.newPin;
+    const policyResult = validatePinPolicy(rawNewPin);
+    if (!policyResult.valid) {
+      return res.status(400).json({ error: policyResult.error });
+    }
+
+    const newPin = String(rawNewPin).trim();
+    if (oldPin === newPin) {
+      return res.status(400).json({ error: "New PIN must be different from current PIN" });
+    }
+
+    member.passwordHash = await bcrypt.hash(newPin, 10);
+    member.tokenVersion = (member.tokenVersion || 1) + 1;
     await member.save();
 
     res.json({ ok: true, message: "PIN updated successfully" });
@@ -181,7 +195,12 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid code or PIN" });
     }
 
-    const token = createSessionToken({ role: "pr", code: member.code, clubId: String(club._id) });
+    const token = createSessionToken({
+      role: "pr",
+      code: member.code,
+      clubId: String(club._id),
+      tokenVersion: member.tokenVersion ?? 1,
+    });
     res.json({ name: member.name, code: member.code, token });
   } catch (_err) {
     res.status(401).json({ error: "Invalid code or PIN" });

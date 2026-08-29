@@ -34,6 +34,7 @@ import {
   isPRMember,
   canChangePIN,
   canManageMember,
+  validatePinPolicy,
 } from "../policies/member.policy.js";
 
 function test(name, fn) {
@@ -155,6 +156,39 @@ async function runTests() {
     assert.strictEqual(canManageMember({ role: "club", clubId: "club_A" }, "club_A"), true);
     assert.strictEqual(canManageMember({ role: "club", clubId: "club_A" }, "club_B"), false);
     assert.strictEqual(canManageMember({ role: "pr", clubId: "club_A" }, "club_A"), false);
+  });
+
+  test("Member Policy: validatePinPolicy", () => {
+    // Missing or invalid types
+    assert.strictEqual(validatePinPolicy(null).valid, false);
+    assert.strictEqual(validatePinPolicy("").valid, false);
+    assert.strictEqual(validatePinPolicy("  ").valid, false);
+
+    // Non-numeric
+    assert.strictEqual(validatePinPolicy("123a").valid, false);
+    assert.strictEqual(validatePinPolicy("abcd").valid, false);
+
+    // Too short / long
+    assert.strictEqual(validatePinPolicy("123").valid, false);
+    assert.strictEqual(validatePinPolicy("1234567890123").valid, false);
+
+    // Repeated digits
+    assert.strictEqual(validatePinPolicy("0000").valid, false);
+    assert.strictEqual(validatePinPolicy("111111").valid, false);
+
+    // Sequential digits
+    assert.strictEqual(validatePinPolicy("1234").valid, false);
+    assert.strictEqual(validatePinPolicy("4321").valid, false);
+    assert.strictEqual(validatePinPolicy("987654").valid, false);
+
+    // Weak patterns
+    assert.strictEqual(validatePinPolicy("1212").valid, false);
+    assert.strictEqual(validatePinPolicy("112233").valid, false);
+
+    // Strong valid PINs
+    assert.strictEqual(validatePinPolicy("8492").valid, true);
+    assert.strictEqual(validatePinPolicy("918273").valid, true);
+    assert.strictEqual(validatePinPolicy("5719").valid, true);
   });
 
   console.log("=== ALL AUTH DOMAIN & POLICY TESTS PASSED ===");
