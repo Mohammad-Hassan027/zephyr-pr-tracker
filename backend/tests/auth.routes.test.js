@@ -7,12 +7,12 @@ import assert from "node:assert";
 import http from "node:http";
 import process from "node:process";
 import mongoose from "mongoose";
+import { setupTestDb, teardownTestDb } from "./setup-test-db.js";
 
 // Set environment for test before imports
 process.env.PORT = "0"; // random free port
 process.env.AUTH_SECRET = process.env.AUTH_SECRET || "super-secret-key-at-least-32-chars-long!!";
 process.env.PLATFORM_ADMIN_PASSWORD = process.env.PLATFORM_ADMIN_PASSWORD || "platform-admin-test-password";
-mongoose.set("bufferCommands", false);
 
 import server from "../server.js";
 import PRMember from "../models/PRMember.js";
@@ -63,6 +63,8 @@ function test(name, fn) {
 }
 
 async function runSmokeTests() {
+  await setupTestDb();
+
   await new Promise((resolve) => {
     serverInstance = server.listen(0, () => {
       const port = serverInstance.address().port;
@@ -74,7 +76,6 @@ async function runSmokeTests() {
   console.log("\n=== RUNNING AUTH & AUTHORIZATION ROUTE SMOKE TESTS ===");
 
   const club1Id = new mongoose.Types.ObjectId().toString();
-  const club2Id = new mongoose.Types.ObjectId().toString();
 
   const validClub1Token = createSessionToken({ role: "club", clubId: club1Id, clubSlug: "club-1" });
   const validPRToken = createSessionToken({ role: "pr", code: "PR999", clubId: club1Id });
@@ -165,18 +166,22 @@ async function runSmokeTests() {
       const res = await request("/api/clubs/pending", {
         headers: { Authorization: `Bearer ${validPlatformAdminToken}` },
       });
-      // Should pass authorization check (may fail on DB connection with 500, but NOT 401 or 403)
-      assert.ok(res.status !== 401 && res.status !== 403);
+      assert.strictEqual(res.status, 200);
     });
 
     console.log("\n=== ALL AUTH ROUTE SMOKE TESTS PASSED ===");
   } finally {
     if (serverInstance) {
-      serverInstance.closeAllConnections();
+      if (typeof serverInstance.closeAllConnections === "function") {
+        serverInstance.closeAllConnections();
+      }
       await new Promise((resolve) => serverInstance.close(resolve));
     }
-    setTimeout(() => process.exit(0), 100);
+    await teardownTestDb();
   }
 }
 
-runSmokeTests();
+runSmokeTests().catch((err) => {
+  console.error("Auth Route Smoke Test Failed:", err);
+  process.exit(1);
+});

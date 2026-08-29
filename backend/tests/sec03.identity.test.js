@@ -226,11 +226,7 @@ async function runSEC03Tests() {
   }
 }
 
-runSEC03Tests()
-  .then(() => {
-    setTimeout(() => process.exit(0), 100);
-  })
-  .catch((err) => {
-    console.error("SEC-03 Test Failed:", err);
-    process.exit(1);
-  });
+runSEC03Tests().catch((err) => {
+  console.error("SEC-03 Test Failed:", err);
+  process.exit(1);
+});

@@ -2,16 +2,15 @@ import "dotenv/config";
 import assert from "node:assert/strict";
 import http from "node:http";
 import express from "express";
-import mongoose from "mongoose";
 import { createSessionToken } from "../utils/auth.js";
 import registrationRoutes from "../routes/registrations.js";
 import errorHandler from "../middleware/errorHandler.js";
-
-// Disable command buffering so queries fail immediately when not connected to MongoDB
-mongoose.set("bufferCommands", false);
+import { setupTestDb, teardownTestDb } from "./setup-test-db.js";
 
 async function runRouteSmokeTests() {
   console.log("=== RUNNING REGISTRATION ROUTES SMOKE TESTS ===");
+
+  await setupTestDb();
 
   const validToken = createSessionToken({
     role: "club",
@@ -117,28 +116,28 @@ async function runRouteSmokeTests() {
     assert.equal(memberBody.error, "Referral code required");
     console.log("✔ Member stats validation check passed!");
 
-    // 8. GET /queue/pending (authenticated unpopulated DB check)
+    // 8. GET /queue/pending (authenticated DB check)
     console.log("\n[Smoke Test 8] GET /queue/pending");
     const queueRes = await fetch(`${baseUrl}/queue/pending`, {
       headers: authHeaders,
     });
-    assert.ok([200, 500, 503].includes(queueRes.status));
+    assert.equal(queueRes.status, 200);
     console.log(`✔ Pending queue route responded (status ${queueRes.status})`);
 
-    // 9. GET /stats/summary (authenticated unpopulated DB check)
+    // 9. GET /stats/summary (authenticated DB check)
     console.log("\n[Smoke Test 9] GET /stats/summary");
     const summaryRes = await fetch(`${baseUrl}/stats/summary`, {
       headers: authHeaders,
     });
-    assert.ok([200, 500, 503].includes(summaryRes.status));
+    assert.equal(summaryRes.status, 200);
     console.log(`✔ Stats summary route responded (status ${summaryRes.status})`);
 
-    // 10. GET /audit (authenticated unpopulated DB check)
+    // 10. GET /audit (authenticated DB check)
     console.log("\n[Smoke Test 10] GET /audit");
     const auditRes = await fetch(`${baseUrl}/audit`, {
       headers: authHeaders,
     });
-    assert.ok([200, 500, 503].includes(auditRes.status));
+    assert.equal(auditRes.status, 200);
     console.log(`✔ Audit log route responded (status ${auditRes.status})`);
 
     console.log("\n=== ALL REGISTRATION ROUTES SMOKE TESTS PASSED ===");
@@ -147,14 +146,11 @@ async function runRouteSmokeTests() {
       server.closeAllConnections();
     }
     await new Promise((resolve) => server.close(resolve));
+    await teardownTestDb();
   }
 }
 
-runRouteSmokeTests()
-  .then(() => {
-    setTimeout(() => process.exit(0), 100);
-  })
-  .catch((err) => {
-    console.error("Route Smoke Test Failed:", err);
-    process.exit(1);
-  });
+runRouteSmokeTests().catch((err) => {
+  console.error("Route Smoke Test Failed:", err);
+  process.exit(1);
+});

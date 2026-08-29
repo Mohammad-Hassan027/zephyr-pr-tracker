@@ -208,15 +208,16 @@ async function runPRLoginTests() {
     if (useDb) {
       await PRMember.deleteMany({ club: { $in: [clubA?._id, clubB?._id, clubPending?._id, clubRejected?._id].filter(Boolean) } });
       await Club.deleteMany({ slug: { $in: ["sec01-club-a", "sec01-club-b", "sec01-club-pending", "sec01-club-rejected"] } });
-      await teardownTestDb();
+    }
+    if (typeof server.closeAllConnections === "function") {
+      server.closeAllConnections();
     }
     await new Promise((resolve) => server.close(resolve));
+    await teardownTestDb();
   }
 }
 
-runPRLoginTests()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error("PR Login Test Failed:", err);
-    process.exit(1);
-  });
+runPRLoginTests().catch((err) => {
+  console.error("PR Login Test Failed:", err);
+  process.exit(1);
+});

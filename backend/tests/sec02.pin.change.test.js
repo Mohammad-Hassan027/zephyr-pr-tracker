@@ -242,15 +242,16 @@ async function runSEC02Tests() {
     if (useDb) {
       await PRMember.deleteMany({ club: club?._id });
       await Club.deleteMany({ slug: "sec02-test-club" });
-      await teardownTestDb();
+    }
+    if (typeof server.closeAllConnections === "function") {
+      server.closeAllConnections();
     }
     await new Promise((resolve) => server.close(resolve));
+    await teardownTestDb();
   }
 }
 
-runSEC02Tests()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error("SEC-02 Test Failed:", err);
-    process.exit(1);
-  });
+runSEC02Tests().catch((err) => {
+  console.error("SEC-02 Test Failed:", err);
+  process.exit(1);
+});

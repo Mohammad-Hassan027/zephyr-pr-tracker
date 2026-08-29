@@ -214,9 +214,7 @@ async function runPhase0Tests() {
   }
 }
 
-runPhase0Tests()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error("Phase 0 Test Suite Failed:", err);
-    process.exit(1);
-  });
+runPhase0Tests().catch((err) => {
+  console.error("Phase 0 Test Suite Failed:", err);
+  process.exit(1);
+});
