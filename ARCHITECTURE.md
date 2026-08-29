@@ -116,6 +116,15 @@ zephyr-pr-tracker/
 2. Registration status updates to `"rejected"`.
 3. Background task cleans up Cloudinary payment screenshot using `paymentScreenshotPublicId`.
 
+### 3.4 Correction & Resubmission Workflow
+
+1. Reviewer calls `PATCH /api/registrations/:id/request-correction` with a mandatory `note` explaining required fixes.
+2. Registration status updates to `"needs_correction"`, saving `correctionNote` and recording the event in the document's `history` array.
+3. The contributor sees a prominent "Needs Correction" card on `/status/[id]` along with the reviewer's correction note and an inline resubmission form.
+4. The contributor updates fields (e.g. UTR, Phone, Name) or uploads a corrected payment screenshot, then submits via `POST /api/registrations/:id/resubmit`.
+5. Backend modifies the original `Registration` document in-place (preventing duplicate records), transitions status to `"resubmitted"`, appends a snapshot of changed fields to `history`, and notifies reviewers via real-time SSE stream.
+6. Reviewers can filter for `"resubmitted"` or `"needs_correction"` entries in `/pr/dashboard` or `/admin`, view full audit history logs, and approve or reject the corrected submission.
+
 ---
 
 ## 4. High-Risk Modules & Refactoring Safeguards

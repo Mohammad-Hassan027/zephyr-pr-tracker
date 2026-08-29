@@ -28,7 +28,9 @@ The platform features a multi-tenant club architecture allowing multiple student
 
 1. **Queue Attribution**: Submissions tagged with a valid PR member referral code land directly in that specific PR member's review queue. Unmatched or un-referred submissions route to the club or platform admin queue.
 
-1. **PR Member & Admin Review**: PR team members log in securely at `/pr` using their assigned referral code and PIN. They inspect the transaction screenshot, payment amount, and student details to approve or reject the submission.
+1. **PR Member & Admin Review**: PR team members log in securely at `/pr` using their assigned referral code and PIN. They inspect the transaction screenshot, payment amount, and student details to approve, reject, or request corrections on a submission.
+
+1. **Correction & Resubmission Workflow**: If a submission has issues (e.g. blurry screenshot, wrong amount), a reviewer can send a **Correction Request** with a mandatory explanatory note — instead of outright rejecting it. The submission transitions to `needs_correction` status. The student's status page prominently displays the correction note with an inline **Resubmit** form to update details or upload a clearer screenshot. Upon resubmission, the original record is updated in-place (no duplicate entries) and transitions to `resubmitted` status. Reviewers can filter `resubmitted` entries and complete a final approve or reject. A full audit history of all transitions, correction notes, and changed fields is preserved.
 
 1. **Automated Confirmation & Registration Number**: Upon approval, the system automatically generates a sequential registration number (e.g., `REG-0001`, `REG-0002`). The student's polling status page instantly reflects confirmation without requiring a manual refresh. Rejected submissions display the specific rejection reason provided by the reviewer.
 

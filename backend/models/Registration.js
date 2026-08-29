@@ -19,11 +19,24 @@ const registrationSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "needs_correction", "resubmitted", "under_review"],
       default: "pending",
     },
     reviewedBy: { type: String, default: null }, // PRMember.code that approved/rejected
     rejectionReason: { type: String, default: null },
+    correctionNote: { type: String, default: null },
+    lastCorrectionRequestedAt: { type: Date, default: null },
+    resubmittedAt: { type: Date, default: null },
+    history: [
+      {
+        action: { type: String, required: true },
+        status: { type: String, required: true },
+        performedBy: { type: String, default: null },
+        note: { type: String, default: null },
+        changes: { type: mongoose.Schema.Types.Mixed, default: null },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
