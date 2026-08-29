@@ -37,10 +37,13 @@ export const registrationService = {
       throw new NotFoundError("Event not found for this club");
     }
 
-    if (event.capacity) {
-      const count = await registrationRepository.countApprovedRegistrationsForEvent(event._id);
-      if (count >= event.capacity) {
-        throw new AppError("Event is full", 400);
+    if (event.capacity !== null && event.capacity !== undefined) {
+      const approvedCount =
+        typeof event.approvedCount === "number"
+          ? event.approvedCount
+          : await registrationRepository.countApprovedRegistrationsForEvent(event._id);
+      if (approvedCount >= event.capacity) {
+        throw new AppError("Event capacity has been reached", 400);
       }
     }
 

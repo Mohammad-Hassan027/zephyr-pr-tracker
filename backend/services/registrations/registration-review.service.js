@@ -7,6 +7,23 @@ import cloudinary from "../../config/cloudinary.js";
 
 const REVIEWABLE_STATUSES = ["pending", "resubmitted", "under_review", "needs_correction"];
 
+/**
+ * Builds capacity info snapshot for API responses and status emitter payloads.
+ * Returns null-safe defaults when the event has no capacity set.
+ */
+function buildCapacitySnapshot(event) {
+  if (!event) return null;
+  const capacity = event.capacity ?? null;
+  const approvedCount = event.approvedCount ?? 0;
+  const remaining = capacity === null ? null : Math.max(0, capacity - approvedCount);
+  return {
+    capacity,
+    approvedCount,
+    remaining,
+    isFull: capacity !== null && approvedCount >= capacity,
+  };
+}
+
 export const registrationReviewService = {
   async requestCorrection({ id, note, auth }) {
     const trimmedNote = typeof note === "string" ? note.trim() : "";
@@ -94,22 +111,55 @@ export const registrationReviewService = {
         throw new ForbiddenError("You cannot review this registration");
       }
 
+      // --- Idempotency: already approved — return early without modifying capacity ---
+      if (reg.status === "approved") {
+        const capacitySnapshot = buildCapacitySnapshot(reg.event);
+        return {
+          id: reg._id,
+          regNo: reg.regNo,
+          status: reg.status,
+          studentName: reg.studentName,
+          studentEmail: reg.studentEmail,
+          studentPhone: reg.studentPhone,
+          college: reg.college,
+          amount: reg.amount,
+          createdAt: reg.createdAt,
+          event: reg.event,
+          reviewedBy: reg.reviewedBy,
+          history: reg.history,
+          capacitySnapshot,
+          _alreadyApproved: true,
+        };
+      }
+
       if (!REVIEWABLE_STATUSES.includes(reg.status)) {
         throw new ConflictError(`Registration has already been finalized (${reg.status})`);
       }
 
-      if (reg.event) {
-        const eventId = reg.event._id || reg.event;
+      // --- Atomic capacity reservation ---
+      // Uses a single conditional findOneAndUpdate (same pattern as Counter.js).
+      // The filter passes only when: capacity is null OR approvedCount < capacity.
+      // If the event has a capacity set and is full, findOneAndUpdate returns null.
+      const eventId = reg.event?._id || reg.event;
+      if (eventId) {
         const event = await registrationRepository.findEventById(eventId, session);
-        if (event && event.capacity) {
-          const approvedCount = await registrationRepository.countApprovedRegistrationsForEvent(
-            event._id,
-            session
-          );
-
-          if (approvedCount >= event.capacity) {
-            throw new ConflictError("Event capacity has already been reached");
+        if (event) {
+          // Attempt atomic reservation — null returned only if event capacity is exceeded
+          const reserved = await registrationRepository.reserveEventCapacity(eventId, session);
+          if (!reserved) {
+            const info = await registrationRepository.getEventCapacityInfo(eventId);
+            throw new ConflictError(
+              `This event has reached its maximum registration capacity of ${event.capacity} attendees`,
+              {
+                code: "EVENT_FULL",
+                capacity: info?.capacity ?? event.capacity,
+                approvedCount: info?.approvedCount ?? event.approvedCount,
+                remaining: 0,
+              }
+            );
           }
+          // reserved is the updated event — use it for the response snapshot
+          reg._reservedEvent = reserved;
         }
       }
 
@@ -133,6 +183,8 @@ export const registrationReviewService = {
 
       await reg.save({ session });
 
+      const capacitySnapshot = buildCapacitySnapshot(reg._reservedEvent || reg.event);
+
       return {
         id: reg._id,
         regNo: reg.regNo,
@@ -146,6 +198,7 @@ export const registrationReviewService = {
         event: reg.event,
         reviewedBy: reg.reviewedBy,
         history: reg.history,
+        capacitySnapshot,
       };
     });
 
@@ -156,10 +209,13 @@ export const registrationReviewService = {
       message: "Registration approved successfully",
       data: result,
       regNo: result.regNo,
+      capacitySnapshot: result.capacitySnapshot,
     };
   },
 
   async rejectRegistration({ id, reason, auth }) {
+    let publicIdToClean = null;
+
     const result = await withTransaction(async (session) => {
       const reg = await registrationRepository.findRegistrationById(id, {
         populate: true,
@@ -167,12 +223,14 @@ export const registrationReviewService = {
       });
       if (!reg) throw new NotFoundError("Registration not found");
 
-      if (!REVIEWABLE_STATUSES.includes(reg.status)) {
-        throw new ConflictError(`Registration has already been finalized (${reg.status})`);
-      }
-
       if (!canReviewRegistration(auth, reg)) {
         throw new ForbiddenError("You cannot review this registration");
+      }
+
+      const wasApproved = reg.status === "approved";
+
+      if (!REVIEWABLE_STATUSES.includes(reg.status) && !wasApproved) {
+        throw new ConflictError(`Registration has already been finalized (${reg.status})`);
       }
 
       const reviewerCode = getReviewerCode(auth);
@@ -195,6 +253,17 @@ export const registrationReviewService = {
 
       await reg.save({ session });
 
+      // --- Capacity release: if the registration was previously approved, release the slot ---
+      if (wasApproved) {
+        const eventId = reg.event?._id || reg.event;
+        if (eventId) {
+          // releaseEventCapacity is idempotent: will not go below 0
+          await registrationRepository.releaseEventCapacity(eventId, session);
+        }
+      }
+
+      publicIdToClean = reg.paymentScreenshotPublicId || null;
+
       return {
         id: reg._id,
         status: reg.status,
@@ -207,8 +276,8 @@ export const registrationReviewService = {
       };
     });
 
-    if (result.paymentScreenshotPublicId) {
-      cloudinary.uploader.destroy(result.paymentScreenshotPublicId).catch(() => {});
+    if (publicIdToClean) {
+      cloudinary.uploader.destroy(publicIdToClean).catch(() => {});
     }
 
     statusEmitter.emitStatusUpdate(id, result);
@@ -246,22 +315,38 @@ export const registrationReviewService = {
             continue;
           }
 
+          // Idempotency: skip already-approved without double-counting
+          if (reg.status === "approved") {
+            results.push({
+              id: reg._id,
+              regNo: reg.regNo,
+              status: reg.status,
+              studentName: reg.studentName,
+              studentEmail: reg.studentEmail,
+              event: reg.event,
+              reviewedBy: reg.reviewedBy,
+            });
+            continue;
+          }
+
           if (!REVIEWABLE_STATUSES.includes(reg.status)) {
             errors.push({ id, error: `Already finalized (${reg.status})` });
             continue;
           }
 
-          if (reg.event) {
-            const eventId = reg.event._id || reg.event;
+          // Atomic per-item capacity reservation
+          const eventId = reg.event?._id || reg.event;
+          if (eventId) {
             const event = await registrationRepository.findEventById(eventId, session);
-            if (event && event.capacity) {
-              const approvedCount = await registrationRepository.countApprovedRegistrationsForEvent(
-                event._id,
-                session
-              );
-
-              if (approvedCount >= event.capacity) {
-                errors.push({ id, error: "Event capacity reached" });
+            if (event) {
+              const reserved = await registrationRepository.reserveEventCapacity(eventId, session);
+              if (!reserved) {
+                errors.push({
+                  id,
+                  error: "Event capacity reached",
+                  code: "EVENT_FULL",
+                  capacity: event.capacity,
+                });
                 continue;
               }
             }
@@ -348,7 +433,9 @@ export const registrationReviewService = {
             continue;
           }
 
-          if (!REVIEWABLE_STATUSES.includes(reg.status)) {
+          const wasApproved = reg.status === "approved";
+
+          if (!REVIEWABLE_STATUSES.includes(reg.status) && !wasApproved) {
             errors.push({ id, error: `Already finalized (${reg.status})` });
             continue;
           }
@@ -372,6 +459,14 @@ export const registrationReviewService = {
           });
 
           await reg.save({ session });
+
+          // Release capacity if the registration was previously approved
+          if (wasApproved) {
+            const eventId = reg.event?._id || reg.event;
+            if (eventId) {
+              await registrationRepository.releaseEventCapacity(eventId, session);
+            }
+          }
 
           if (reg.paymentScreenshotPublicId) {
             publicIdsToClean.push(reg.paymentScreenshotPublicId);

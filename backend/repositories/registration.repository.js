@@ -43,6 +43,84 @@ export const registrationRepository = {
     return PRMember.find({ club: clubId });
   },
 
+  /**
+   * Atomically reserve one capacity slot for an event.
+   *
+   * Uses a single findOneAndUpdate with a conditional filter so that the check
+   * and increment are a single atomic operation — eliminating the read-then-write
+   * TOCTOU race that would exist with a separate count query + update.
+   *
+   * Filter passes only when:
+   *   - capacity is null (unlimited), OR
+   *   - approvedCount is strictly less than capacity
+   *
+   * @param {string|ObjectId} eventId
+   * @param {mongoose.ClientSession|null} session
+   * @returns {Promise<Event|null>} Updated event document, or null if event is full / not found
+   */
+  async reserveEventCapacity(eventId, session = null) {
+    if (!eventId) return null;
+    const queryOptions = { new: true };
+    if (session) queryOptions.session = session;
+
+    return Event.findOneAndUpdate(
+      {
+        _id: eventId,
+        // Passes when unlimited OR still has space
+        $or: [{ capacity: null }, { $expr: { $lt: ["$approvedCount", "$capacity"] } }],
+      },
+      { $inc: { approvedCount: 1 } },
+      queryOptions
+    );
+  },
+
+  /**
+   * Atomically release one capacity slot for an event.
+   *
+   * Idempotent: the filter requires approvedCount > 0 so the counter cannot go
+   * negative. If the event has no capacity set (unlimited) or approvedCount is
+   * already 0, the update simply matches zero documents — no error is thrown.
+   *
+   * @param {string|ObjectId} eventId
+   * @param {mongoose.ClientSession|null} session
+   * @returns {Promise<Event|null>} Updated event document, or null if already at 0
+   */
+  async releaseEventCapacity(eventId, session = null) {
+    if (!eventId) return null;
+    const queryOptions = { new: true };
+    if (session) queryOptions.session = session;
+
+    return Event.findOneAndUpdate(
+      {
+        _id: eventId,
+        approvedCount: { $gt: 0 }, // Idempotency guard: never go negative
+      },
+      { $inc: { approvedCount: -1 } },
+      queryOptions
+    );
+  },
+
+  /**
+   * Returns current capacity info for an event.
+   * Used by the UI to show remaining seats and the admin consistency check.
+   *
+   * @param {string|ObjectId} eventId
+   * @returns {Promise<{capacity: number|null, approvedCount: number, remaining: number|null, isFull: boolean}|null>}
+   */
+  async getEventCapacityInfo(eventId) {
+    if (!eventId) return null;
+    const event = await Event.findById(eventId).select("capacity approvedCount").lean();
+    if (!event) return null;
+    const remaining =
+      event.capacity === null ? null : Math.max(0, event.capacity - event.approvedCount);
+    return {
+      capacity: event.capacity,
+      approvedCount: event.approvedCount,
+      remaining,
+      isFull: event.capacity !== null && event.approvedCount >= event.capacity,
+    };
+  },
+
   async countApprovedRegistrationsForEvent(eventId, session = null) {
     const query = Registration.countDocuments({ event: eventId, status: "approved" });
     if (session) query.session(session);
@@ -69,7 +147,7 @@ export const registrationRepository = {
     let query = Registration.findById(id);
     if (populate) {
       query = query
-        .populate("event", "name slug date venue fee description")
+        .populate("event", "name slug date venue fee description capacity approvedCount")
         .populate("club", "name slug email");
     }
     if (session) {
@@ -82,7 +160,7 @@ export const registrationRepository = {
     let query = Registration.find(filter);
     if (populate) {
       query = query
-        .populate("event", "name slug date venue fee description")
+        .populate("event", "name slug date venue fee description capacity approvedCount")
         .populate("club", "name slug email");
     }
     return query.sort({ createdAt: -1 }).lean();
@@ -92,7 +170,7 @@ export const registrationRepository = {
     const [total, items] = await Promise.all([
       Registration.countDocuments(filter),
       Registration.find(filter)
-        .populate(populate, "name slug venue fee date")
+        .populate(populate, "name slug venue fee date capacity approvedCount")
         .sort({ createdAt: 1 })
         .skip(skip)
         .limit(limit)

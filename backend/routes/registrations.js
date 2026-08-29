@@ -27,6 +27,10 @@ import {
   getMemberStats,
   getAuditLog,
 } from "../controllers/registration-stats.controller.js";
+import {
+  checkCapacityConsistency,
+  reconcileCapacityCounters,
+} from "../controllers/registration-capacity.controller.js";
 
 const router = Router();
 
@@ -55,6 +59,10 @@ router.get("/stats/summary", requireClub, getStatsSummary);
 router.get("/stats/leaderboard", requireClub, getLeaderboard);
 router.get("/stats/member", requireClubOrPRMember, getMemberStats);
 router.get("/audit", requireClub, getAuditLog);
+
+// Admin Capacity Monitoring & Counter Reconciliation
+router.get("/capacity/check", requireClub, checkCapacityConsistency);
+router.post("/capacity/reconcile", requireClub, reconcileCapacityCounters);
 
 // Single Registration Status Tracking & Streaming
 router.get("/:id/stream", streamRegistrationStatus);
