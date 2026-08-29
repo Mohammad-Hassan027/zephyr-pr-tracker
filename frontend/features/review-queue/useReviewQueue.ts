@@ -23,6 +23,8 @@ export function useReviewQueue(code?: string) {
   const [isBulkBusy, setIsBulkBusy] = useState(false);
   const [zoomed, setZoomed] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Per-row approval error messages (e.g. EVENT_FULL)
+  const [approveErrors, setApproveErrors] = useState<Record<string, string>>({});
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -153,9 +155,23 @@ export function useReviewQueue(code?: string) {
 
   async function handleApprove(id: string) {
     setBusyId(id);
+    // Clear any previous error for this row
+    setApproveErrors((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
     try {
       await approveRegistration(id, code);
       await load(page);
+    } catch (err: any) {
+      // Surface EVENT_FULL (409) and other errors inline per row
+      const msg =
+        err?.message ||
+        (err?.code === "EVENT_FULL"
+          ? "This event has reached its maximum registration capacity."
+          : "Approval failed. Please try again.");
+      setApproveErrors((prev) => ({ ...prev, [id]: msg }));
     } finally {
       setBusyId(null);
     }
@@ -275,6 +291,7 @@ export function useReviewQueue(code?: string) {
     dialogModal,
     noteText,
     historyModalItem,
+    approveErrors,
     page,
     totalPages,
     total,

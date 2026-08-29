@@ -1,6 +1,14 @@
 import { useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, CheckCircle2, RefreshCw, XCircle, ZoomIn, Clock } from "@/lib/icons";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  RefreshCw,
+  XCircle,
+  ZoomIn,
+  Clock,
+  Users,
+} from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
 import type { PendingRegistration } from "./review-queue.types";
 
@@ -9,6 +17,7 @@ interface QueueRowProps {
   isSelected: boolean;
   isBusy: boolean;
   isBulkBusy: boolean;
+  approveError?: string | null; // EVENT_FULL or other per-row approve error
   onToggleSelect: (id: string) => void;
   onApprove: (id: string) => void;
   onOpenRejectModal: (id: string) => void;
@@ -16,11 +25,51 @@ interface QueueRowProps {
   onZoom: (url: string) => void;
 }
 
+/**
+ * Returns a human-readable capacity badge: "47 / 100 seats", "FULL", or null for unlimited.
+ */
+function CapacityChip({
+  capacity,
+  approvedCount,
+}: {
+  capacity?: number | null;
+  approvedCount?: number;
+}) {
+  if (capacity === null || capacity === undefined) return null;
+
+  const count = approvedCount ?? 0;
+  const isFull = count >= capacity;
+  const remaining = Math.max(0, capacity - count);
+
+  if (isFull) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700 uppercase tracking-wider">
+        <Users size={10} aria-hidden="true" />
+        FULL
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+        remaining <= 5
+          ? "bg-amber-50 border-amber-200 text-amber-700"
+          : "bg-zinc-100 border-zinc-200 text-zinc-600"
+      }`}
+    >
+      <Users size={10} aria-hidden="true" />
+      {count} / {capacity} seats
+    </span>
+  );
+}
+
 export function QueueRow({
   registration: r,
   isSelected,
   isBusy,
   isBulkBusy,
+  approveError,
   onToggleSelect,
   onApprove,
   onOpenRejectModal,
@@ -30,6 +79,10 @@ export function QueueRow({
   const isActionDisabled = isBusy || isBulkBusy;
   const currentStatus = r.status || "pending";
   const [showHistory, setShowHistory] = useState(false);
+
+  const capacity = r.event?.capacity;
+  const approvedCount = r.event?.approvedCount ?? 0;
+  const isFull = capacity !== null && capacity !== undefined && approvedCount >= capacity;
 
   return (
     <div
@@ -50,23 +103,26 @@ export function QueueRow({
           />
           <div className="min-w-0 text-sm flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-zinc-900">
-                {r.studentName}
-              </span>
+              <span className="font-semibold text-zinc-900">{r.studentName}</span>
               <StatusIcon status={currentStatus} size={13} />
               {r.event.fee !== undefined &&
                 r.amount !== undefined &&
                 r.amount !== r.event.fee && (
                   <span className="badge-rejected inline-flex items-center gap-1">
                     <AlertTriangle size={12} aria-hidden="true" />
-                    <span>Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})</span>
+                    <span>
+                      Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})
+                    </span>
                   </span>
                 )}
             </div>
 
-            <p className="mt-1 text-xs font-medium text-zinc-700">
-              {r.event.name}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-xs font-medium text-zinc-700">{r.event.name}</p>
+              {/* Capacity chip — always visible per row */}
+              <CapacityChip capacity={capacity} approvedCount={approvedCount} />
+            </div>
+
             <p className="mt-0.5 text-xs text-zinc-500">
               {r.college || "—"} · {r.studentPhone || r.studentEmail}
             </p>
@@ -85,9 +141,9 @@ export function QueueRow({
               )}
             </div>
 
-            {/* Display active Correction Note if in needs_correction or resubmitted */}
+            {/* Correction note */}
             {r.correctionNote && (
-              <div className="mt-2 rounded.md border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900 space-y-0.5 font-sans">
+              <div className="mt-2 rounded-md border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900 space-y-0.5 font-sans">
                 <span className="font-bold text-[10px] uppercase tracking-wider text-amber-800 flex items-center gap-1">
                   <AlertTriangle size={12} />
                   Correction Requested Note:
@@ -96,7 +152,15 @@ export function QueueRow({
               </div>
             )}
 
-            {/* History timeline expander button */}
+            {/* EVENT_FULL inline error */}
+            {approveError && (
+              <div className="mt-2 rounded-md border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-800 flex items-start gap-1.5 font-sans">
+                <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <span className="font-semibold">{approveError}</span>
+              </div>
+            )}
+
+            {/* History timeline */}
             {Array.isArray(r.history) && r.history.length > 1 && (
               <div className="mt-2">
                 <button
@@ -105,7 +169,11 @@ export function QueueRow({
                   className="text-[11px] font-mono text-brand-600 hover:underline inline-flex items-center gap-1"
                 >
                   <Clock size={12} />
-                  <span>{showHistory ? "Hide History Log" : `View History Log (${r.history.length} events)`}</span>
+                  <span>
+                    {showHistory
+                      ? "Hide History Log"
+                      : `View History Log (${r.history.length} events)`}
+                  </span>
                 </button>
 
                 {showHistory && (
@@ -114,7 +182,10 @@ export function QueueRow({
                       Audit & Correction Timeline
                     </div>
                     {r.history.map((h, idx) => (
-                      <div key={idx} className="border-l-2 border-brand-400 pl-2.5 py-1 space-y-0.5">
+                      <div
+                        key={idx}
+                        className="border-l-2 border-brand-400 pl-2.5 py-1 space-y-0.5"
+                      >
                         <div className="flex justify-between text-zinc-700 font-semibold">
                           <span className="capitalize">{h.action.replace("_", " ")}</span>
                           <span className="text-[10px] text-zinc-400">
@@ -122,7 +193,9 @@ export function QueueRow({
                           </span>
                         </div>
                         {h.performedBy && (
-                          <div className="text-[11px] text-zinc-500">Actor: {h.performedBy}</div>
+                          <div className="text-[11px] text-zinc-500">
+                            Actor: {h.performedBy}
+                          </div>
                         )}
                         {h.note && (
                           <div className="text-[11px] text-zinc-600 font-sans font-medium bg-white p-1 rounded border border-zinc-200 mt-1">
@@ -161,13 +234,33 @@ export function QueueRow({
 
       {/* Review Action Buttons */}
       <div className="mt-3.5 pt-3 border-t border-zinc-100 flex flex-wrap sm:flex-nowrap gap-2">
+        {/* Approve — disabled and titled when event is full */}
         <button
-          disabled={isActionDisabled}
+          disabled={isActionDisabled || isFull}
           onClick={() => onApprove(r._id)}
-          className="btn-primary flex-1 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+          title={isFull ? "Event has reached maximum capacity" : undefined}
+          className={`flex-1 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 rounded-lg transition ${
+            isFull
+              ? "bg-zinc-100 border border-zinc-200 text-zinc-400 cursor-not-allowed"
+              : "btn-primary"
+          }`}
         >
-          <CheckCircle2 size={14} aria-hidden="true" />
-          <span>{isBusy ? "Approving..." : "Approve"}</span>
+          {isBusy ? (
+            <>
+              <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+              <span>Approving...</span>
+            </>
+          ) : isFull ? (
+            <>
+              <Users size={14} aria-hidden="true" />
+              <span>Event Full</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={14} aria-hidden="true" />
+              <span>Approve</span>
+            </>
+          )}
         </button>
 
         <button

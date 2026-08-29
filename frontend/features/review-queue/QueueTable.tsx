@@ -12,6 +12,7 @@ interface QueueTableProps {
   isBulkBusy: boolean;
   isAllSelected: boolean;
   selectedCount: number;
+  approveErrors: Record<string, string>; // per-registration approve error messages
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
   onApprove: (id: string) => void;
@@ -32,6 +33,7 @@ export function QueueTable({
   isBulkBusy,
   isAllSelected,
   selectedCount,
+  approveErrors,
   onToggleSelect,
   onToggleSelectAll,
   onApprove,
@@ -100,6 +102,7 @@ export function QueueTable({
           isSelected={selectedIds.has(r._id)}
           isBusy={busyId === r._id}
           isBulkBusy={isBulkBusy}
+          approveError={approveErrors[r._id] || null}
           onToggleSelect={onToggleSelect}
           onApprove={onApprove}
           onOpenRejectModal={onOpenRejectModal}

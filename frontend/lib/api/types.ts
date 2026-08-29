@@ -25,6 +25,14 @@ export type EventItem = {
   fee?: number;
   date?: string;
   capacity: number | null;
+  approvedCount?: number;
+};
+
+export type EventCapacityInfo = {
+  capacity: number | null;
+  approvedCount: number;
+  remaining: number | null;
+  isFull: boolean;
 };
 
 export type HistoryItem = {
@@ -184,6 +192,8 @@ export type PendingRegistration = {
     fee?: number;
     date?: string;
     description?: string;
+    capacity?: number | null;
+    approvedCount?: number;
   };
 };
 

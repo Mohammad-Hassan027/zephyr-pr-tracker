@@ -18,6 +18,7 @@ export function ReviewQueue({ code }: { code?: string }) {
     selectedIds,
     dialogModal,
     noteText,
+    approveErrors,
     page,
     totalPages,
     total,
@@ -78,6 +79,7 @@ export function ReviewQueue({ code }: { code?: string }) {
         isBulkBusy={isBulkBusy}
         isAllSelected={isAllSelected}
         selectedCount={selectedIds.size}
+        approveErrors={approveErrors}
         onToggleSelect={handleToggleSelect}
         onToggleSelectAll={handleToggleSelectAll}
         onApprove={handleApprove}
