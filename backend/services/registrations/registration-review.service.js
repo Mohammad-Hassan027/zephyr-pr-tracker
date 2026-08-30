@@ -3,7 +3,7 @@ import { canReviewRegistration, getReviewerCode } from "../../policies/registrat
 import { withTransaction } from "../../utils/transaction.js";
 import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../../utils/errors.js";
 import { statusEmitter } from "../../utils/statusEmitter.js";
-import cloudinary from "../../config/cloudinary.js";
+import cloudinary, { isCloudinaryConfigured } from "../../config/cloudinary.js";
 
 const REVIEWABLE_STATUSES = ["pending", "resubmitted", "under_review", "needs_correction"];
 
@@ -276,8 +276,10 @@ export const registrationReviewService = {
       };
     });
 
-    if (publicIdToClean) {
-      cloudinary.uploader.destroy(publicIdToClean).catch(() => {});
+    if (publicIdToClean && isCloudinaryConfigured()) {
+      try {
+        cloudinary.uploader.destroy(publicIdToClean).catch(() => {});
+      } catch (err) {}
     }
 
     statusEmitter.emitStatusUpdate(id, result);
@@ -487,8 +489,12 @@ export const registrationReviewService = {
       }
     });
 
-    for (const pubId of publicIdsToClean) {
-      cloudinary.uploader.destroy(pubId).catch(() => {});
+    if (isCloudinaryConfigured()) {
+      for (const pubId of publicIdsToClean) {
+        try {
+          cloudinary.uploader.destroy(pubId).catch(() => {});
+        } catch (err) {}
+      }
     }
 
     for (const item of results) {
