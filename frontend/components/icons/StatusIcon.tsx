@@ -23,11 +23,11 @@ export default function StatusIcon({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 ${config.badgeClass} ${className}`}
+      className={`inline-flex max-w-full items-center gap-1.5 whitespace-normal ${config.badgeClass} ${className}`}
       role="status"
     >
       <Icon size={size} className="shrink-0" aria-hidden="true" />
-      {showLabel && <span>{config.label}</span>}
+      {showLabel && <span className="min-w-0">{config.label}</span>}
     </span>
   );
 }

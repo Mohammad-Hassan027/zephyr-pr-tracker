@@ -42,7 +42,7 @@ export default function IconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={`inline-flex items-center justify-center rounded-lg p-1.5 transition focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50 disabled:pointer-events-none ${variantClasses[variant]} ${className}`}
+      className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg p-2 transition focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:pointer-events-none disabled:opacity-50 ${variantClasses[variant]} ${className}`}
     >
       <Icon size={size} aria-hidden="true" />
     </button>
