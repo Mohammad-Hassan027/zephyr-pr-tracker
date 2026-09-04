@@ -12,16 +12,16 @@ export default async function DashboardPage() {
     <>
       <Header showNav />
       <main className="page-shell space-y-6">
-        <section className="surface-card p-6 sm:p-7">
+        <section className="surface-card p-5 sm:p-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="min-w-0">
               <span className="pill-chip">Live Analytics</span>
               <h1 className="page-title mt-2">Participation &amp; Seat Capacity</h1>
               <p className="page-subtitle">
                 Real-time tracking of confirmed student registrations and remaining venue seat allocations.
               </p>
             </div>
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 px-4 py-3 text-center sm:text-right shrink-0">
+            <div className="w-full shrink-0 rounded-lg border border-zinc-200 bg-zinc-50/70 px-4 py-3 text-center sm:w-auto sm:text-right">
               <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                 Total Registrations
               </p>
@@ -32,15 +32,100 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="surface-card p-5 sm:p-6 space-y-4">
+        <section className="surface-card space-y-4 p-4 sm:p-6">
           <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
               Event Allocation Breakdown
             </h2>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-zinc-200">
-            <table className="w-full text-left text-xs">
+          {stats.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-zinc-200 px-4 py-8 text-center text-xs text-zinc-400 font-mono">
+              No active events tracked yet.
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3 md:hidden">
+                {stats.map((s) => {
+                  const capacity = s.capacity || null;
+                  const percent = capacity
+                    ? Math.min(100, Math.round((s.count / capacity) * 100))
+                    : null;
+                  const isFull = capacity ? s.count >= capacity : false;
+                  const isNearlyFull = capacity ? percent! >= 80 && !isFull : false;
+
+                  return (
+                    <article
+                      key={s.eventId}
+                      className="rounded-lg border border-zinc-200 bg-white p-4 text-xs shadow-subtle"
+                    >
+                      <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
+                        <h3 className="min-w-0 break-words font-sans text-sm font-semibold text-zinc-900">
+                          {s.name}
+                        </h3>
+                        {isFull ? (
+                          <span className="badge-rejected self-start">Sold Out</span>
+                        ) : isNearlyFull ? (
+                          <span className="badge-pending self-start">Filling Fast</span>
+                        ) : (
+                          <span className="badge-approved self-start">Available</span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                          <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                            Confirmed
+                          </span>
+                          <span className="mt-0.5 block font-mono font-bold text-brand-700">
+                            {s.count}
+                          </span>
+                        </div>
+                        <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                          <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                            Capacity
+                          </span>
+                          <span className="mt-0.5 block font-mono text-zinc-700">
+                            {s.capacity ?? "Unlimited"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        {capacity ? (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[11px] font-mono text-zinc-500">
+                              <span>{s.count} / {capacity}</span>
+                              <span className="font-bold text-zinc-900">{percent}%</span>
+                            </div>
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                              <div
+                                className={`h-full transition-all duration-500 ${
+                                  isFull
+                                    ? "bg-rose-500"
+                                    : isNearlyFull
+                                    ? "bg-amber-500"
+                                    : "bg-brand-600"
+                                }`}
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="font-mono text-[11px] text-zinc-400">No limit</span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div
+                className="scroll-container hidden md:block"
+                tabIndex={0}
+                aria-label="Event allocation table. Scroll horizontally if needed."
+              >
+                <table className="w-full min-w-[720px] text-left text-xs">
               <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                 <tr>
                   <th className="px-3.5 py-2.5">Event Name</th>
@@ -124,8 +209,10 @@ export default async function DashboardPage() {
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+                </table>
+              </div>
+            </>
+          )}
         </section>
       </main>
     </>

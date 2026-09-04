@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import { getAdminLeaderboard } from "@/lib/admin-api";
-import { Trophy } from "@/lib/icons";
+import TrophyBadge from "@/components/icons/TrophyBadge";
 
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
@@ -12,8 +12,8 @@ export default async function LeaderboardPage() {
     <>
       <Header showNav />
       <main className="page-shell space-y-6">
-        <section className="surface-card p-6 sm:p-7">
-          <div className="flex items-center gap-2">
+        <section className="surface-card p-5 sm:p-7">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="pill-chip">Performance Index</span>
             <span className="font-mono text-xs text-zinc-400">
               {leaderboard.length} PR Members
@@ -25,15 +25,66 @@ export default async function LeaderboardPage() {
           </p>
         </section>
 
-        <section className="surface-card p-5 sm:p-6 space-y-4">
+        <section className="surface-card space-y-4 p-4 sm:p-6">
           <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
               Team Attribution Standings
             </h2>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-zinc-200">
-            <table className="w-full text-left text-xs">
+          {leaderboard.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-zinc-200 px-4 py-8 text-center text-xs text-zinc-400 font-mono">
+              No referral data recorded yet.
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3 md:hidden">
+                {leaderboard.map((m, i) => (
+                  <article
+                    key={m.code}
+                    className="rounded-lg border border-zinc-200 bg-white p-4 text-xs shadow-subtle"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words font-sans text-sm font-semibold text-zinc-900">
+                          {m.name}
+                        </p>
+                        <span className="mt-1 inline-flex max-w-full break-all rounded border border-brand-200/60 bg-brand-50 px-1.5 py-0.5 font-mono text-xs font-semibold text-brand-700">
+                          {m.code}
+                        </span>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                          Rank
+                        </span>
+                        <span className="mt-1 inline-flex h-7 min-w-7 items-center justify-center rounded bg-zinc-100 px-2 font-mono font-bold text-zinc-900">
+                          {i === 0 ? (
+                            <TrophyBadge />
+                          ) : (
+                            i + 1
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                      <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                        Confirmed Referrals
+                      </span>
+                      <span className="mt-0.5 block font-mono text-lg font-bold text-zinc-900">
+                        {m.count}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div
+                className="scroll-container hidden md:block"
+                tabIndex={0}
+                aria-label="Team attribution standings table. Scroll horizontally if needed."
+              >
+                <table className="w-full min-w-[560px] text-left text-xs">
               <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                 <tr>
                   <th className="px-3.5 py-2.5 w-12">Rank</th>
@@ -51,7 +102,7 @@ export default async function LeaderboardPage() {
                     <td className="px-3.5 py-3 font-mono font-bold">
                       {i === 0 ? (
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-amber-100 text-amber-900 text-[10px]" title="1st Place">
-                          <Trophy size={11} className="text-amber-700" aria-hidden="true" />
+                          <TrophyBadge />
                         </span>
                       ) : i === 1 ? (
                         <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-zinc-200 text-zinc-800 text-[10px]" title="2nd Place">
@@ -76,19 +127,11 @@ export default async function LeaderboardPage() {
                     </td>
                   </tr>
                 ))}
-                {leaderboard.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-8 text-center text-xs text-zinc-400 font-mono"
-                    >
-                      No referral data recorded yet.
-                    </td>
-                  </tr>
-                )}
               </tbody>
-            </table>
-          </div>
+                </table>
+              </div>
+            </>
+          )}
         </section>
       </main>
     </>

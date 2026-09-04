@@ -78,7 +78,7 @@ function PRLoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+    <main className="flex min-h-screen items-center justify-center p-3 py-5 sm:p-6">
       <div className="surface-card w-full max-w-sm p-6 sm:p-8 space-y-5">
         <div className="text-center">
           <span className="pill-chip">PR Command Portal</span>
@@ -161,7 +161,7 @@ function PRLoginForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
+                className="absolute right-1.5 top-1/2 inline-flex min-h-9 -translate-y-1/2 items-center rounded px-2 text-xs text-zinc-400 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 aria-label={showPassword ? "Hide PIN" : "Show PIN"}
               >
                 {showPassword ? "Hide" : "Show"}

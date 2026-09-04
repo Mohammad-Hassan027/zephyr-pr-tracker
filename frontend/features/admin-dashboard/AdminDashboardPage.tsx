@@ -106,16 +106,17 @@ export function AdminDashboardPage() {
 
         {/* Edit Event Modal */}
         {editEventModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-lg p-6 shadow-elevated space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <h3 className="text-sm font-bold text-zinc-900">
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-event-title">
+            <div className="modal-panel max-w-lg space-y-4 shadow-elevated">
+              <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3">
+                <h3 id="edit-event-title" className="min-w-0 break-words text-sm font-bold text-zinc-900">
                   Edit Event: {editEventModal.event?.name}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setEditEventModal({ isOpen: false, event: null })}
-                  className="text-zinc-400 hover:text-zinc-600 text-xs"
+                  className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                  aria-label="Close edit event dialog"
                 >
                   ✕
                 </button>
@@ -136,7 +137,7 @@ export function AdminDashboardPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                       Fee (₹)
@@ -169,7 +170,7 @@ export function AdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
                       Venue
@@ -220,17 +221,17 @@ export function AdminDashboardPage() {
                   />
                 </div>
 
-                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
+                <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
                   <button
                     type="button"
                     onClick={() =>
                       setEditEventModal({ isOpen: false, event: null })
                     }
-                    className="btn-secondary py-1.5 px-3 text-xs"
+                    className="btn-secondary px-3 py-2 text-xs"
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  <button type="submit" className="btn-primary px-4 py-2 text-xs">
                     Save Changes
                   </button>
                 </div>
@@ -241,9 +242,9 @@ export function AdminDashboardPage() {
 
         {/* Edit Member Modal */}
         {editMemberModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
-              <h3 className="text-sm font-bold text-zinc-900">
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-member-title">
+            <div className="modal-panel max-w-sm space-y-4 shadow-elevated">
+              <h3 id="edit-member-title" className="break-words text-sm font-bold text-zinc-900">
                 Edit PR Member: {editMemberModal.member?.code}
               </h3>
               <form onSubmit={handleSaveMember} className="space-y-3">
@@ -259,17 +260,17 @@ export function AdminDashboardPage() {
                     autoFocus
                   />
                 </div>
-                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
+                <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
                   <button
                     type="button"
                     onClick={() =>
                       setEditMemberModal({ isOpen: false, member: null })
                     }
-                    className="btn-secondary py-1.5 px-3 text-xs"
+                    className="btn-secondary px-3 py-2 text-xs"
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  <button type="submit" className="btn-primary px-4 py-2 text-xs">
                     Save Member
                   </button>
                 </div>
@@ -280,9 +281,9 @@ export function AdminDashboardPage() {
 
         {/* Reset PIN Result Dialog */}
         {resetPinResult && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
-              <h3 className="text-sm font-bold text-zinc-900">
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="reset-pin-title">
+            <div className="modal-panel max-w-sm space-y-4 shadow-elevated">
+              <h3 id="reset-pin-title" className="text-sm font-bold text-zinc-900">
                 New PIN Generated
               </h3>
               <p className="text-xs text-zinc-500">
@@ -293,18 +294,18 @@ export function AdminDashboardPage() {
                 <p className="text-[10px] font-mono uppercase tracking-wider text-brand-600">
                   Temporary Access PIN
                 </p>
-                <p className="font-mono text-2xl font-bold tracking-widest text-brand-900 mt-1">
+                <p className="mt-1 break-all font-mono text-2xl font-bold tracking-widest text-brand-900">
                   {resetPinResult.pin}
                 </p>
               </div>
               <p className="text-[11px] text-zinc-400 font-mono">
                 Share this PIN directly with the member. It will not be displayed again.
               </p>
-              <div className="flex justify-end pt-2 border-t border-zinc-100">
+              <div className="flex justify-end border-t border-zinc-100 pt-2">
                 <button
                   type="button"
                   onClick={() => setResetPinResult(null)}
-                  className="btn-primary py-1.5 px-4 text-xs"
+                  className="btn-primary w-full px-4 py-2 text-xs min-[400px]:w-auto"
                 >
                   Done
                 </button>
@@ -315,17 +316,17 @@ export function AdminDashboardPage() {
 
         {/* Club Settings Modal */}
         {showSettingsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-md p-6 shadow-elevated space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Settings size={14} className="text-zinc-500" aria-hidden="true" />
-                  <h3 className="text-sm font-bold text-zinc-900">Club Settings</h3>
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="club-settings-title">
+            <div className="modal-panel space-y-4 shadow-elevated">
+              <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Settings size={14} className="shrink-0 text-zinc-500" aria-hidden="true" />
+                  <h3 id="club-settings-title" className="text-sm font-bold text-zinc-900">Club Settings</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowSettingsModal(false)}
-                  className="text-zinc-400 hover:text-zinc-600 text-xs"
+                  className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
                   aria-label="Close settings"
                 >
                   ✕
@@ -396,18 +397,18 @@ export function AdminDashboardPage() {
                   </div>
                 )}
 
-                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
+                <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
                   <button
                     type="button"
                     onClick={() => setShowSettingsModal(false)}
-                    className="btn-secondary py-1.5 px-3 text-xs"
+                    className="btn-secondary px-3 py-2 text-xs"
                     disabled={isSaving}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn-primary py-1.5 px-4 text-xs disabled:opacity-60"
+                    className="btn-primary px-4 py-2 text-xs disabled:opacity-60"
                     disabled={isSaving}
                   >
                     {isSaving ? "Saving…" : "Save Changes"}

@@ -218,9 +218,9 @@ export default function AuditPage() {
     <>
       <Header showNav />
       <main className="page-shell space-y-6">
-        <section className="surface-card p-6 sm:p-7">
+        <section className="surface-card p-5 sm:p-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="min-w-0">
               <span className="pill-chip">Historical Ledger</span>
               <h1 className="page-title mt-2">Registration Audit Trail</h1>
               <p className="page-subtitle">
@@ -231,16 +231,16 @@ export default function AuditPage() {
               type="button"
               onClick={handleExportCsv}
               disabled={exporting || loading}
-              className="btn-primary self-start sm:self-auto text-xs py-2 px-3.5 shrink-0 flex items-center gap-1.5"
+              className="btn-primary w-full shrink-0 px-3.5 py-2 text-xs sm:w-auto"
             >
-              <Download size={14} aria-hidden="true" />
+              <Download size={14} className="shrink-0" aria-hidden="true" />
               <span>{exporting ? "Generating CSV..." : "Export CSV"}</span>
             </button>
           </div>
         </section>
 
         {/* Filters */}
-        <section className="surface-card p-5 sm:p-6">
+        <section className="surface-card p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-100 pb-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
               {pagination ? `${pagination.total} Logged Registrations` : "Audit Records"}
@@ -254,7 +254,7 @@ export default function AuditPage() {
                   setFromDate("");
                   setToDate("");
                 }}
-                className="text-xs font-medium text-brand-600 hover:underline"
+                className="min-h-8 self-start text-xs font-medium text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               >
                 Reset filters
               </button>
@@ -330,19 +330,87 @@ export default function AuditPage() {
             </div>
           )}
 
-          {/* Table */}
-          <div className="mt-5 overflow-x-auto rounded-lg border border-zinc-200">
-            {loading ? (
-              <div className="flex flex-col items-center gap-2 p-10">
+          {loading ? (
+            <div className="mt-5 rounded-lg border border-zinc-200">
+              <div className="flex flex-col items-center gap-2 p-8 sm:p-10">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
                 <p className="text-xs text-zinc-400 font-mono">Loading audit logs…</p>
               </div>
-            ) : registrations.length === 0 ? (
-              <div className="p-8 text-center text-xs text-zinc-400 font-mono">
-                No matching entries found for current filter criteria.
+            </div>
+          ) : registrations.length === 0 ? (
+            <div className="mt-5 rounded-lg border border-zinc-200 p-8 text-center text-xs text-zinc-400 font-mono">
+              No matching entries found for current filter criteria.
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 space-y-3 md:hidden">
+                {registrations.map((item) => (
+                  <button
+                    key={item._id}
+                    type="button"
+                    onClick={() => setSelectedRecord(item)}
+                    className="surface-card block w-full p-4 text-left transition hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    aria-label={`View audit details for ${item.studentName}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words font-sans text-sm font-semibold text-zinc-900">
+                          {item.studentName}
+                        </p>
+                        <p className="mt-0.5 break-words text-xs font-medium text-zinc-700">
+                          {item.event?.name || "—"}
+                        </p>
+                        <p className="mt-1 break-words font-mono text-[11px] text-zinc-400">
+                          {item.college || item.studentEmail || "No institution recorded"}
+                        </p>
+                      </div>
+                      <StatusIcon status={item.status} size={12} />
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                        <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                          Reg No
+                        </span>
+                        <span className="mt-0.5 block break-all font-mono font-bold text-zinc-900">
+                          {item.regNo || "—"}
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                        <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                          Amount
+                        </span>
+                        <span className="mt-0.5 block font-mono font-bold text-zinc-900">
+                          ₹{item.amount ?? 0}
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                        <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                          Reviewer
+                        </span>
+                        <span className="mt-0.5 block break-all font-mono font-semibold text-zinc-700">
+                          {item.reviewedBy || "—"}
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-2">
+                        <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+                          Reviewed
+                        </span>
+                        <span className="mt-0.5 block font-mono text-zinc-700">
+                          {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
-            ) : (
-              <table className="w-full text-left text-xs text-zinc-600">
+
+              <div
+                className="scroll-container mt-5 hidden md:block"
+                tabIndex={0}
+                aria-label="Audit records table. Scroll horizontally if needed."
+              >
+                <table className="w-full min-w-[860px] text-left text-xs text-zinc-600">
                 <thead className="border-b border-zinc-200 bg-zinc-50/80 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
                   <tr>
                     <th className="px-3.5 py-2.5">Reg No</th>
@@ -388,40 +456,43 @@ export default function AuditPage() {
                       <td className="whitespace-nowrap px-3.5 py-2.5 font-mono text-[11px] text-zinc-500">
                         {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—"}
                       </td>
-                      <td className="whitespace-nowrap px-3.5 py-2.5 text-right font-medium text-brand-600 hover:underline inline-flex items-center gap-1 justify-end w-full">
-                        <span>View</span>
-                        <Eye size={12} aria-hidden="true" />
+                      <td className="whitespace-nowrap px-3.5 py-2.5 text-right font-medium text-brand-600 hover:underline">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <span>View</span>
+                          <Eye size={12} className="shrink-0" aria-hidden="true" />
+                        </span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            )}
-          </div>
+                </table>
+              </div>
+            </>
+          )}
 
           {/* Pagination Controls */}
           {!loading && pagination && pagination.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+            <div className="mt-4 flex flex-col gap-3 border-t border-zinc-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-mono text-zinc-400">
                 Page <span className="font-bold text-zinc-900">{pagination.page}</span> of{" "}
                 <span className="font-bold text-zinc-900">{pagination.totalPages}</span>
               </p>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!pagination.hasPrevPage}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
+                  className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
                 >
-                  <ChevronLeft size={14} aria-hidden="true" />
+                  <ChevronLeft size={14} className="shrink-0" aria-hidden="true" />
                   <span>Prev</span>
                 </button>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!pagination.hasNextPage}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
+                  className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
                 >
                   <span>Next</span>
-                  <ChevronRight size={14} aria-hidden="true" />
+                  <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -430,12 +501,12 @@ export default function AuditPage() {
 
         {/* Drill-down Detail Modal */}
         {selectedRecord && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-elevated space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-zinc-900 font-sans">
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title">
+            <div className="modal-panel max-w-2xl space-y-4 shadow-elevated">
+              <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 id="audit-detail-title" className="min-w-0 break-words font-sans text-base font-bold text-zinc-900">
                       {selectedRecord.studentName}
                     </h3>
                     <span
@@ -457,7 +528,8 @@ export default function AuditPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedRecord(null)}
-                  className="text-zinc-400 hover:text-zinc-600 text-xs"
+                  className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-lg text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                  aria-label="Close audit detail dialog"
                 >
                   ✕
                 </button>
@@ -471,15 +543,15 @@ export default function AuditPage() {
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-zinc-400">Email</span>
-                    <p className="text-zinc-700 font-mono mt-0.5">{selectedRecord.studentEmail || "—"}</p>
+                    <p className="break-all text-zinc-700 font-mono mt-0.5">{selectedRecord.studentEmail || "—"}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-zinc-400">Phone</span>
-                    <p className="text-zinc-700 font-mono mt-0.5">{selectedRecord.studentPhone || "—"}</p>
+                    <p className="break-all text-zinc-700 font-mono mt-0.5">{selectedRecord.studentPhone || "—"}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-zinc-400">College</span>
-                    <p className="text-zinc-700 mt-0.5">{selectedRecord.college || "—"}</p>
+                    <p className="break-words text-zinc-700 mt-0.5">{selectedRecord.college || "—"}</p>
                   </div>
                 </div>
 
@@ -490,21 +562,21 @@ export default function AuditPage() {
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-zinc-400">UTR / Ref Number</span>
-                    <p className="font-mono text-zinc-700 mt-0.5">{selectedRecord.utr || "—"}</p>
+                    <p className="break-all font-mono text-zinc-700 mt-0.5">{selectedRecord.utr || "—"}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-zinc-400">Referral Code</span>
-                    <p className="font-mono text-zinc-700 mt-0.5">{selectedRecord.referralCode || "Direct (None)"}</p>
+                    <p className="break-all font-mono text-zinc-700 mt-0.5">{selectedRecord.referralCode || "Direct (None)"}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-mono uppercase text-zinc-400">Reviewed By</span>
-                    <p className="font-mono text-zinc-700 mt-0.5">{selectedRecord.reviewedBy || "—"}</p>
+                    <p className="break-all font-mono text-zinc-700 mt-0.5">{selectedRecord.reviewedBy || "—"}</p>
                   </div>
                 </div>
               </div>
 
               {selectedRecord.rejectionReason && (
-                <div className="rounded-lg border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-800">
+                <div className="break-words rounded-lg border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-800">
                   <span className="font-bold uppercase tracking-wider text-[10px]">Rejection Reason:</span>{" "}
                   {selectedRecord.rejectionReason}
                 </div>
@@ -515,7 +587,7 @@ export default function AuditPage() {
                   <span className="block text-[10px] font-mono uppercase text-zinc-400 mb-1.5">
                     Payment Verification Screenshot
                   </span>
-                  <div className="relative h-64 w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900">
+                  <div className="relative h-52 w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900 sm:h-64">
                     <Image
                       src={selectedRecord.paymentScreenshot}
                       alt="Payment screenshot"
@@ -527,11 +599,11 @@ export default function AuditPage() {
                 </div>
               )}
 
-              <div className="flex justify-end pt-2 border-t border-zinc-100">
+              <div className="flex justify-end border-t border-zinc-100 pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedRecord(null)}
-                  className="btn-secondary py-1.5 px-4 text-xs"
+                  className="btn-secondary w-full px-4 py-2 text-xs min-[400px]:w-auto"
                 >
                   Close
                 </button>

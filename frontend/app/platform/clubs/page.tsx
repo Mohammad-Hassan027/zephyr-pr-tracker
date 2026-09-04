@@ -181,7 +181,7 @@ export default function PlatformClubsPage() {
 
   if (!isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <main className="flex min-h-screen items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full max-w-sm p-6 sm:p-8 space-y-5">
           <div className="text-center">
             <span className="pill-chip">Super Admin</span>
@@ -210,7 +210,7 @@ export default function PlatformClubsPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
+                  className="absolute right-1.5 top-1/2 inline-flex min-h-9 -translate-y-1/2 items-center rounded px-2 text-xs text-zinc-400 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? "Hide" : "Show"}
@@ -241,7 +241,7 @@ export default function PlatformClubsPage() {
     <>
       <Header />
       <main className="page-shell space-y-6">
-        <section className="surface-card p-6 sm:p-7">
+        <section className="surface-card p-5 sm:p-7">
           <div className="flex items-center gap-2">
             <span className="pill-chip">Super Admin</span>
           </div>
@@ -258,10 +258,10 @@ export default function PlatformClubsPage() {
         )}
 
         {/* Filter Controls & Search */}
-        <section className="surface-card p-5 sm:p-6 space-y-4">
+        <section className="surface-card space-y-4 p-4 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             {/* Status Tabs */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5 min-[480px]:flex min-[480px]:flex-wrap">
               {[
                 { label: "Pending Review", value: "pending" as const },
                 { label: "Approved", value: "approved" as const },
@@ -272,7 +272,7 @@ export default function PlatformClubsPage() {
                   key={tab.value}
                   type="button"
                   onClick={() => setStatusFilter(tab.value)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                  className={`min-h-10 rounded-lg px-3 py-2 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
                     statusFilter === tab.value
                       ? "bg-zinc-900 text-white shadow-subtle"
                       : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
@@ -295,13 +295,13 @@ export default function PlatformClubsPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+          <div className="flex flex-col gap-2 border-t border-zinc-100 pt-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
               {pagination ? `${pagination.total} Applications` : "Club Registry"}
             </h2>
             <button
               onClick={() => reload()}
-              className="text-xs font-medium text-brand-600 hover:underline"
+              className="min-h-8 self-start text-xs font-medium text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             >
               Refresh Table
             </button>
@@ -326,7 +326,7 @@ export default function PlatformClubsPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 text-xs">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-bold text-zinc-900 text-sm font-sans">{c.name}</span>
+                        <span className="break-words font-sans text-sm font-bold text-zinc-900">{c.name}</span>
                         {c.status === "approved" ? (
                           <span className="badge-approved">
                             Approved
@@ -341,10 +341,10 @@ export default function PlatformClubsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 font-mono text-[11px] text-zinc-500">
+                      <p className="mt-1 break-all font-mono text-[11px] text-zinc-500">
                         URL Slug: <span className="font-semibold text-zinc-900">/register/{c.slug}</span>
                       </p>
-                      <p className="mt-0.5 text-zinc-500 font-mono text-[11px]">
+                      <p className="mt-0.5 break-all text-zinc-500 font-mono text-[11px]">
                         Admin Email: <span className="text-zinc-700">{c.email}</span>
                       </p>
                       <p className="mt-0.5 text-[10px] text-zinc-400 font-mono">
@@ -352,12 +352,12 @@ export default function PlatformClubsPage() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 sm:shrink-0 sm:items-center">
+                    <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:shrink-0 sm:items-center">
                       {c.status !== "approved" && (
                         <button
                           disabled={busyId === c._id}
                           onClick={() => handleApprove(c._id)}
-                          className="btn-primary py-1 px-3 text-xs"
+                          className="btn-primary px-3 py-2 text-xs"
                         >
                           {busyId === c._id ? "Processing..." : "✓ Approve Club"}
                         </button>
@@ -366,7 +366,7 @@ export default function PlatformClubsPage() {
                         <button
                           disabled={busyId === c._id}
                           onClick={() => setRejectModal({ isOpen: true, club: c })}
-                          className="rounded-lg border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50 transition"
+                          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500/20 disabled:opacity-50"
                         >
                           ✕ Reject
                         </button>
@@ -380,23 +380,23 @@ export default function PlatformClubsPage() {
 
           {/* Pagination */}
           {!loadingClubs && pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-zinc-100 pt-3">
+            <div className="flex flex-col gap-3 border-t border-zinc-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-mono text-zinc-400">
                 Page <span className="font-bold text-zinc-900">{pagination.page}</span> of{" "}
                 <span className="font-bold text-zinc-900">{pagination.totalPages}</span>
               </p>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!pagination.hasPrevPage}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
+                  className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
                 >
                   ← Prev
                 </button>
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!pagination.hasNextPage}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
+                  className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
                 >
                   Next →
                 </button>
@@ -407,20 +407,20 @@ export default function PlatformClubsPage() {
 
         {/* Custom Rejection Confirmation Modal */}
         {rejectModal.isOpen && rejectModal.club && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 p-4 backdrop-blur-sm">
-            <div className="surface-card w-full max-w-sm p-6 shadow-elevated space-y-4">
-              <h3 className="text-sm font-bold text-zinc-900">
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="reject-club-title">
+            <div className="modal-panel max-w-sm space-y-4 shadow-elevated">
+              <h3 id="reject-club-title" className="text-sm font-bold text-zinc-900">
                 Reject Club Application
               </h3>
-              <p className="text-xs text-zinc-500">
+              <p className="break-words text-xs text-zinc-500">
                 Are you sure you want to reject the application for{" "}
                 <strong className="text-zinc-800">{rejectModal.club.name}</strong> ({rejectModal.club.email})?
               </p>
-              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
+              <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
                 <button
                   type="button"
                   onClick={() => setRejectModal({ isOpen: false, club: null })}
-                  className="btn-secondary py-1.5 px-3 text-xs"
+                  className="btn-secondary px-3 py-2 text-xs"
                 >
                   Cancel
                 </button>
@@ -428,7 +428,7 @@ export default function PlatformClubsPage() {
                   type="button"
                   onClick={confirmRejection}
                   disabled={busyId === rejectModal.club._id}
-                  className="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 shadow-subtle transition"
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white shadow-subtle transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
                 >
                   Confirm Rejection
                 </button>

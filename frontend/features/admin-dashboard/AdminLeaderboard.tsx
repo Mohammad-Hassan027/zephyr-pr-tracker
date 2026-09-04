@@ -29,7 +29,7 @@ export function AdminLeaderboard({
   onDeleteEvent,
 }: AdminLeaderboardProps) {
   return (
-    <section className="surface-card p-5 sm:p-6 space-y-6">
+    <section className="surface-card space-y-6 p-4 sm:p-6">
       <div>
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-900">
@@ -130,27 +130,27 @@ export function AdminLeaderboard({
                   key={e.slug}
                   className="rounded-lg border border-zinc-200 bg-zinc-50/60 p-4 space-y-3 transition hover:border-zinc-300"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-sans font-bold text-zinc-900 text-sm">{e.name}</span>
-                        <span className="font-mono text-[11px] text-zinc-400">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="min-w-0 break-words font-sans text-sm font-bold text-zinc-900">{e.name}</span>
+                        <span className="min-w-0 break-all font-mono text-[11px] text-zinc-400">
                           /{e.slug}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-zinc-500 font-mono">
-                        <span className="font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.2">
+                        <span className="rounded border border-brand-200/60 bg-brand-50 px-1.5 py-0.5 font-semibold text-brand-700">
                           {e.fee ? `₹${e.fee}` : "Free"}
                         </span>
                         {e.venue && (
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin size={11} aria-hidden="true" />
-                            <span>{e.venue}</span>
+                          <span className="inline-flex min-w-0 items-center gap-1">
+                            <MapPin size={11} className="shrink-0" aria-hidden="true" />
+                            <span className="min-w-0 break-words">{e.venue}</span>
                           </span>
                         )}
                         {e.date && (
                           <span className="inline-flex items-center gap-1">
-                            <Calendar size={11} aria-hidden="true" />
+                            <Calendar size={11} className="shrink-0" aria-hidden="true" />
                             <span>{new Date(e.date).toLocaleDateString()}</span>
                           </span>
                         )}
@@ -162,18 +162,18 @@ export function AdminLeaderboard({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-center">
                       <button
                         type="button"
                         onClick={() => onOpenEditEvent(e)}
-                        className="btn-secondary py-1 px-2.5 text-xs"
+                        className="btn-secondary px-2.5 py-2 text-xs"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => onDeleteEvent(e._id, e.name)}
-                        className="rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 transition"
+                        className="inline-flex min-h-10 items-center justify-center rounded-lg border border-rose-200 bg-white px-2.5 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                       >
                         Delete
                       </button>
@@ -182,8 +182,8 @@ export function AdminLeaderboard({
 
                   {/* Capacity Progress Bar */}
                   <div className="rounded-lg border border-zinc-200/80 bg-white p-3">
-                    <div className="flex justify-between items-center text-xs mb-1.5 font-mono">
-                      <span className="text-zinc-600">
+                    <div className="mb-1.5 flex flex-col gap-1 text-xs font-mono min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+                      <span className="min-w-0 break-words text-zinc-600">
                         Registrations:{" "}
                         <strong className="text-zinc-900">{registeredCount}</strong>
                         {capacity ? ` / ${capacity}` : " (Unlimited)"}
