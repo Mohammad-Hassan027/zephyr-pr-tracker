@@ -1,16 +1,27 @@
 import { AppError } from "../utils/errors.js";
 
+export const SENSITIVE_KEYS = [
+  "password",
+  "passwordhash",
+  "pin",
+  "token",
+  "auth_secret",
+  "secret",
+  "authorization",
+  "cookie",
+];
+
 /**
  * Redacts sensitive fields from object before logging
  */
 export function sanitizeForLogging(obj) {
   if (!obj || typeof obj !== "object") return obj;
-  const sensitiveKeys = ["password", "passwordhash", "pin", "token", "auth_secret", "secret", "authorization", "cookie"];
+
   const sanitized = Array.isArray(obj) ? [] : {};
 
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    if (sensitiveKeys.some((s) => lowerKey.includes(s))) {
+    if (SENSITIVE_KEYS.some((s) => lowerKey.includes(s))) {
       sanitized[key] = "[REDACTED]";
     } else if (value && typeof value === "object") {
       sanitized[key] = sanitizeForLogging(value);
@@ -45,7 +56,11 @@ export function errorHandler(err, req, res, _next) {
     errorCode = "VALIDATION_ERROR";
     message = "Validation failed";
     details = Object.keys(err.errors).reduce((acc, field) => {
-      acc[field] = err.errors[field].message;
+      const fieldError = err.errors[field];
+      const lowerField = field.toLowerCase();
+      const isSensitive = SENSITIVE_KEYS.some((s) => lowerField.includes(s));
+
+      acc[field] = isSensitive ? "Invalid value" : fieldError.message;
       return acc;
     }, {});
   }
@@ -93,6 +108,7 @@ export function errorHandler(err, req, res, _next) {
       message: err.message,
       url: req.originalUrl || req.url,
       method: req.method,
+      body: sanitizeForLogging(req.body),
       stack: isProduction ? undefined : err.stack,
     });
   }
