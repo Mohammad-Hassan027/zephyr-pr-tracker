@@ -38,9 +38,12 @@ app.use(
 );
 
 // 2. Configure CORS
-const allowedOrigin = process.env.CLIENT_ORIGIN || process.env.CLIENT_URL;
-const corsOrigins = allowedOrigin.split(",").map((origin) => origin.trim());
-app.use(cors({ origin: corsOrigins, credentials: true }));
+const allowedOrigin = process.env.CLIENT_ORIGIN || process.env.CLIENT_URL || "";
+const corsOrigins = allowedOrigin
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({ origin: corsOrigins.length > 0 ? corsOrigins : false, credentials: true }));
 
 // 3. Body Parser with limit
 app.use(express.json({ limit: "5mb" }));
