@@ -48,14 +48,14 @@ export default function MyStatusPage() {
     <>
       <Header />
       <main className="page-shell space-y-6">
-        <section className="surface-card p-6 sm:p-8 text-center max-w-2xl mx-auto">
+        <section className="surface-card mx-auto max-w-2xl p-5 text-center sm:p-8">
           <span className="pill-chip">Lookup Pass</span>
           <h1 className="page-title mt-2">Find Your Registration</h1>
           <p className="page-subtitle mx-auto">
             Enter the email address you used when registering to access your live ticket pass, registration number, or verification updates.
           </p>
 
-          <form onSubmit={handleSearch} className="mt-6 flex flex-col sm:flex-row gap-2 justify-center max-w-md mx-auto">
+          <form onSubmit={handleSearch} className="mx-auto mt-6 flex max-w-md flex-col justify-center gap-2 sm:flex-row">
             <input
               type="email"
               required
@@ -67,7 +67,7 @@ export default function MyStatusPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary whitespace-nowrap text-xs py-2 px-4"
+              className="btn-primary px-4 py-2 text-xs sm:whitespace-nowrap"
             >
               {loading ? "Searching..." : "Lookup Pass →"}
             </button>
@@ -82,8 +82,8 @@ export default function MyStatusPage() {
 
         {searched && !loading && (
           <section className="max-w-2xl mx-auto space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="flex flex-col gap-2 px-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+              <span className="break-all text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
                 Registrations for {email}
               </span>
               <span className="pill-chip font-mono">
@@ -99,7 +99,7 @@ export default function MyStatusPage() {
                 <p className="mt-1 text-xs text-zinc-500">
                   Double-check your email address or explore active clubs to register.
                 </p>
-                <Link href="/clubs" className="btn-primary mt-4 text-xs inline-block">
+                <Link href="/clubs" className="btn-primary mt-4 text-xs">
                   Explore Clubs &amp; Events →
                 </Link>
               </div>
@@ -110,18 +110,18 @@ export default function MyStatusPage() {
                     key={reg.id}
                     className="surface-card p-5 transition hover:border-zinc-300"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
+                    <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
+                      <div className="min-w-0">
                         <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
                           {reg.club?.name || "Club Event"}
                         </span>
-                        <h3 className="text-base font-bold text-zinc-900 mt-0.5">
+                        <h3 className="mt-0.5 break-words text-base font-bold text-zinc-900">
                           {reg.event?.name || "Event Registration"}
                         </h3>
                         {reg.event?.date && (
                           <p className="text-[11px] text-zinc-500 mt-0.5 font-mono flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span className="inline-flex items-center gap-1">
-                              <Calendar size={11} aria-hidden="true" />
+                              <Calendar size={11} className="shrink-0" aria-hidden="true" />
                               <span>
                                 {new Date(reg.event.date).toLocaleDateString(undefined, {
                                   weekday: "short",
@@ -132,15 +132,15 @@ export default function MyStatusPage() {
                             </span>
                             {reg.event.venue && (
                               <span className="inline-flex items-center gap-1">
-                                <MapPin size={11} aria-hidden="true" />
-                                <span>{reg.event.venue}</span>
+                              <MapPin size={11} className="shrink-0" aria-hidden="true" />
+                              <span className="break-words">{reg.event.venue}</span>
                               </span>
                             )}
                           </p>
                         )}
                       </div>
 
-                      <div>
+                      <div className="self-start">
                         <StatusIcon status={reg.status} />
                       </div>
                     </div>
@@ -151,17 +151,17 @@ export default function MyStatusPage() {
                       </div>
                     )}
 
-                    <div className="mt-4 pt-3 border-t border-zinc-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <div className="text-[11px] text-zinc-400 font-mono">
+                    <div className="mt-4 flex flex-col gap-3 border-t border-zinc-100 pt-3 text-xs min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+                      <div className="break-words text-[11px] text-zinc-400 font-mono">
                         Submitted {new Date(reg.createdAt).toLocaleDateString()}
                         {reg.amount ? ` · Paid ₹${reg.amount}` : ""}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-1 gap-2 min-[420px]:flex min-[420px]:items-center">
                         <button
                           type="button"
                           onClick={() => handleCopyLink(reg.id)}
-                          className="btn-secondary py-1 px-2.5 text-xs inline-flex items-center gap-1"
+                          className="btn-secondary px-2.5 py-2 text-xs"
                         >
                           {copiedId === reg.id ? (
                             <>
@@ -177,7 +177,7 @@ export default function MyStatusPage() {
                         </button>
                         <Link
                           href={`/status/${reg.id}`}
-                          className="btn-primary py-1 px-3 text-xs"
+                          className="btn-primary px-3 py-2 text-xs"
                         >
                           View Pass →
                         </Link>

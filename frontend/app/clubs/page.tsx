@@ -69,10 +69,10 @@ export default function ClubsPage() {
       <Header />
       <main className="page-shell space-y-6">
         {/* Header Hero Section */}
-        <section className="surface-card p-6 sm:p-8">
+        <section className="surface-card p-5 sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="pill-chip">Directory</span>
                 <span className="font-mono text-xs text-zinc-400">
                   {clubs.length} {clubs.length === 1 ? "club" : "clubs"} · {totalEvents} events
@@ -135,7 +135,7 @@ export default function ClubsPage() {
             ))}
           </div>
         ) : filteredClubs.length === 0 ? (
-          <div className="surface-card p-12 text-center">
+          <div className="surface-card p-8 text-center sm:p-12">
             <p className="text-base font-semibold text-zinc-900">
               {search ? "No matching clubs or events found" : "No live clubs registered yet"}
             </p>
@@ -162,23 +162,23 @@ export default function ClubsPage() {
               return (
                 <article
                   key={club.slug}
-                  className={`surface-card flex flex-col justify-between p-5 sm:p-6 transition hover:border-zinc-300 hover:shadow-elevated ${
+                  className={`surface-card flex min-w-0 flex-col justify-between p-5 transition hover:border-zinc-300 hover:shadow-elevated sm:p-6 ${
                     isLargeBento ? "md:col-span-2" : ""
                   }`}
                 >
                   <div>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
+                    <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between">
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h2 className="font-sans text-lg font-bold tracking-tight text-zinc-900">
+                          <h2 className="min-w-0 break-words font-sans text-lg font-bold tracking-tight text-zinc-900">
                             {club.name}
                           </h2>
                         </div>
-                        <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
+                        <p className="mt-0.5 break-all font-mono text-[11px] text-zinc-400">
                           /register/{club.slug}
                         </p>
                       </div>
-                      <span className="pill-chip font-mono">
+                      <span className="pill-chip self-start font-mono">
                         {club.events.length} {club.events.length === 1 ? "event" : "events"}
                       </span>
                     </div>
@@ -198,13 +198,13 @@ export default function ClubsPage() {
                             return (
                               <div
                                 key={event.slug}
-                                className="group rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3 text-xs transition hover:bg-white hover:border-zinc-300"
+                                className="group min-w-0 rounded-lg border border-zinc-200/80 bg-zinc-50/70 p-3 text-xs transition hover:bg-white hover:border-zinc-300"
                               >
                                 <div className="flex justify-between items-start gap-2">
-                                  <span className="font-medium text-zinc-900 line-clamp-1">
+                                  <span className="min-w-0 break-words font-medium text-zinc-900">
                                     {event.title}
                                   </span>
-                                  <span className="font-mono font-semibold text-brand-700 whitespace-nowrap bg-brand-50 border border-brand-200/60 rounded px-1.5 py-0.2">
+                                  <span className="shrink-0 rounded border border-brand-200/60 bg-brand-50 px-1.5 py-0.5 font-mono font-semibold text-brand-700">
                                     {event.fee ? `₹${event.fee}` : "Free"}
                                   </span>
                                 </div>
@@ -212,14 +212,14 @@ export default function ClubsPage() {
                                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500 font-mono">
                                   {formattedDate && (
                                     <span className="inline-flex items-center gap-1">
-                                      <Calendar size={11} aria-hidden="true" />
+                                      <Calendar size={11} className="shrink-0" aria-hidden="true" />
                                       <span>{formattedDate}</span>
                                     </span>
                                   )}
                                   {event.venue && (
-                                    <span className="inline-flex items-center gap-1">
-                                      <MapPin size={11} aria-hidden="true" />
-                                      <span>{event.venue}</span>
+                                    <span className="inline-flex min-w-0 items-center gap-1">
+                                      <MapPin size={11} className="shrink-0" aria-hidden="true" />
+                                      <span className="min-w-0 break-words">{event.venue}</span>
                                     </span>
                                   )}
                                 </div>
@@ -237,16 +237,16 @@ export default function ClubsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-zinc-100 flex items-center justify-between gap-3">
+                  <div className="mt-6 flex flex-col gap-2 border-t border-zinc-100 pt-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                     <Link
                       href={`/register?club=${encodeURIComponent(club.slug)}`}
-                      className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
+                      className="inline-flex min-h-10 items-center text-xs font-medium text-zinc-500 transition hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                     >
                       Quick selector →
                     </Link>
                     <Link
                       href={`/register/${encodeURIComponent(club.slug)}`}
-                      className="btn-primary py-1.5 px-4 text-xs font-medium"
+                      className="btn-primary px-4 py-2 text-xs font-medium"
                     >
                       Register Now →
                     </Link>

@@ -74,17 +74,17 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-6">
-            <Link href={logoHref} className="group flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-950 text-xs font-mono font-bold text-white shadow-subtle transition group-hover:bg-brand-600">
+        <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+            <Link href={logoHref} className="group flex shrink-0 items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-xs font-mono font-bold text-white shadow-subtle transition group-hover:bg-brand-600">
                 Z
               </div>
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex min-w-0 items-baseline gap-1.5">
                 <span className="font-sans text-sm font-semibold tracking-tight text-zinc-900">
                   Zephyr
                 </span>
-                <span className="font-mono text-[10px] font-medium tracking-wider uppercase text-zinc-400">
+                <span className="hidden font-mono text-[10px] font-medium uppercase tracking-wider text-zinc-400 min-[360px]:inline">
                   Tracker
                 </span>
               </div>
@@ -110,15 +110,15 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none sm:gap-3">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50/70 px-2.5 py-1 text-xs text-zinc-400 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-600 focus:outline-none"
+              className="inline-flex min-h-9 min-w-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50/70 px-2.5 py-1 text-xs text-zinc-500 transition hover:border-zinc-300 hover:bg-white hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             >
               <span className="hidden sm:inline">Quick Jump</span>
               <span className="inline sm:hidden">Search</span>
-              <span className="kbd-shortcut">⌘K</span>
+              <span className="kbd-shortcut hidden min-[360px]:inline-flex">⌘K</span>
             </button>
 
             {showNav ? (
@@ -126,14 +126,14 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
                 type="button"
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none disabled:opacity-50"
+                className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500/20 disabled:opacity-50"
               >
                 {loggingOut ? "Signing out..." : "Sign out"}
               </button>
             ) : (
               <Link
                 href="/login"
-                className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-900"
+                className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
               >
                 Club Sign In
               </Link>
@@ -142,16 +142,16 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
         </div>
 
         {/* Mobile Sub-Navigation */}
-        <div className="flex items-center gap-1 overflow-x-auto border-t border-zinc-100 px-4 py-1.5 md:hidden scrollbar-none">
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-zinc-100 px-3 py-2 md:hidden">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium transition ${
+                className={`inline-flex min-h-9 items-center rounded-md px-2.5 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
                   isActive
-                    ? "bg-zinc-900 text-white"
+                    ? "bg-zinc-900 text-white shadow-subtle"
                     : "text-zinc-600 hover:bg-zinc-100"
                 }`}
               >
@@ -165,11 +165,14 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
       {/* ⌘K Command Palette Modal */}
       {searchOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-zinc-950/40 p-4 pt-20 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-zinc-950/40 p-3 py-6 backdrop-blur-sm sm:p-4 sm:pt-20"
           onClick={() => setSearchOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quick navigation"
         >
           <div
-            className="w-full max-w-lg overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-popover"
+            className="w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-elevated"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center border-b border-zinc-200 px-3.5 py-2.5">
@@ -179,13 +182,13 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
                 placeholder="Type a command or jump to page..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
+                className="min-w-0 flex-1 bg-transparent text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
                 autoFocus
               />
-              <span className="kbd-shortcut">ESC</span>
+              <span className="kbd-shortcut shrink-0">ESC</span>
             </div>
 
-            <div className="max-h-72 overflow-y-auto p-2">
+            <div className="max-h-[70dvh] overflow-y-auto p-2 sm:max-h-72">
               <div className="px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-zinc-400">
                 Navigation Commands
               </div>
@@ -199,10 +202,10 @@ export default function Header({ showNav = false }: { showNav?: boolean }) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setSearchOpen(false)}
-                    className="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900"
+                    className="flex min-h-10 items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                   >
-                    <span>{item.title}</span>
-                    <span className="font-mono text-[10px] text-zinc-400 bg-zinc-50 border border-zinc-200/80 rounded px-1.5 py-0.5">
+                    <span className="min-w-0 truncate">{item.title}</span>
+                    <span className="shrink-0 rounded border border-zinc-200/80 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400">
                       {item.category}
                     </span>
                   </Link>

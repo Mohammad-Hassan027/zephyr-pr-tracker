@@ -112,8 +112,8 @@ function RegisterSelector() {
   return (
     <>
       <Header />
-      <main className="page-shell max-w-2xl space-y-6 py-6 sm:py-10">
-        <section className="surface-card p-6 sm:p-7">
+      <main className="page-shell max-w-2xl space-y-6 py-5 sm:py-10">
+        <section className="surface-card p-5 sm:p-7">
           <div className="flex items-center gap-2">
             <span className="pill-chip">Quick Start</span>
           </div>
@@ -123,7 +123,7 @@ function RegisterSelector() {
           </p>
         </section>
 
-        <section className="surface-card p-6 sm:p-7 space-y-5">
+        <section className="surface-card space-y-5 p-5 sm:p-7">
           <form onSubmit={handleProceed} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
@@ -153,13 +153,13 @@ function RegisterSelector() {
                         setSelectedClubSlug(c.slug);
                         setSelectedEventSlug("");
                       }}
-                      className={`text-left p-3 rounded-lg border transition ${
+                      className={`min-h-20 rounded-lg border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
                         selectedClubSlug === c.slug
                           ? "border-brand-600 bg-brand-50/40 ring-1 ring-brand-600 text-zinc-900"
                           : "border-zinc-200 hover:border-zinc-300 bg-white text-zinc-700"
                       }`}
                     >
-                      <p className="font-semibold text-sm">{c.name}</p>
+                      <p className="break-words text-sm font-semibold">{c.name}</p>
                       <p className="font-mono text-[11px] text-zinc-400 mt-0.5">
                         {c.events.length} {c.events.length === 1 ? "event" : "events"} available
                       </p>
@@ -171,7 +171,7 @@ function RegisterSelector() {
 
             {currentClub && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
+                <label className="block break-words text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
                   2. Select Event ({currentClub.name})
                 </label>
                 <select
@@ -208,15 +208,15 @@ function RegisterSelector() {
             <button
               type="submit"
               disabled={!selectedClubSlug || loading}
-              className="btn-primary w-full py-2.5 text-xs font-medium mt-2"
+              className="btn-primary mt-2 w-full py-2.5 text-xs font-medium"
             >
               Continue to Registration Form →
             </button>
           </form>
 
-          <div className="border-t border-zinc-100 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
+          <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4 text-xs text-zinc-500 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
             <span>Already submitted a registration?</span>
-            <Link href="/my-status" className="font-medium text-brand-600 hover:underline">
+            <Link href="/my-status" className="inline-flex min-h-8 items-center font-medium text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20">
               Look up your live ticket status →
             </Link>
           </div>

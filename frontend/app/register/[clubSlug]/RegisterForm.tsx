@@ -51,7 +51,6 @@ export default function RegisterForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isSubmittingRef = useRef<boolean>(false);
 
-
   const [status, setStatus] = useState<
     "idle" | "uploading" | "submitting" | "error"
   >("idle");
@@ -212,14 +211,14 @@ export default function RegisterForm({
   const isSubmitting = status === "uploading" || status === "submitting";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl items-center justify-center p-4 sm:p-6 lg:p-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl items-center justify-center p-3 py-5 sm:p-6 lg:p-8">
       <div className="w-full space-y-5">
-        <div className="surface-card p-6 sm:p-7">
-          <div className="flex items-center justify-between gap-2">
-            <span className="pill-chip">{club.name}</span>
+        <div className="surface-card p-5 sm:p-7">
+          <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+            <span className="pill-chip max-w-full break-words">{club.name}</span>
             <Link
               href="/clubs"
-              className="text-xs font-medium text-zinc-500 hover:text-zinc-900 transition"
+              className="inline-flex min-h-8 items-center self-start text-xs font-medium text-zinc-500 transition hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             >
               ← Back to clubs
             </Link>
@@ -232,15 +231,15 @@ export default function RegisterForm({
 
         <form
           onSubmit={handleSubmit}
-          className="surface-card space-y-6 p-6 sm:p-7"
+          className="surface-card space-y-6 p-5 sm:p-7"
         >
           {/* Section 1: Participant Identity */}
           <div className="space-y-3.5">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
+            <div className="flex items-start gap-2 border-b border-zinc-100 pb-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
                 1
               </span>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600">
+              <h2 className="min-w-0 break-words text-xs font-semibold uppercase tracking-wider text-zinc-600">
                 Participant Information
               </h2>
             </div>
@@ -278,11 +277,11 @@ export default function RegisterForm({
 
           {/* Section 2: Event Choice */}
           <div className="space-y-3.5">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
+            <div className="flex items-start gap-2 border-b border-zinc-100 pb-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
                 2
               </span>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600">
+              <h2 className="min-w-0 break-words text-xs font-semibold uppercase tracking-wider text-zinc-600">
                 Select Event ({club.name})
               </h2>
             </div>
@@ -318,14 +317,14 @@ export default function RegisterForm({
 
             {selectedEvent && (
               <div className="rounded-lg border border-zinc-200/90 bg-zinc-50/70 p-3.5 text-xs text-zinc-600 space-y-1.5 font-sans">
-                <div className="flex justify-between items-center font-semibold text-zinc-900">
-                  <span>{selectedEvent.name}</span>
-                  <span className="font-mono text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-2 py-0.5">
+                <div className="flex flex-col gap-2 font-semibold text-zinc-900 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+                  <span className="min-w-0 break-words">{selectedEvent.name}</span>
+                  <span className="self-start rounded border border-brand-200/60 bg-brand-50 px-2 py-0.5 font-mono text-brand-700">
                     {selectedEvent.fee ? `₹${selectedEvent.fee}` : "Free"}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-x-3 text-[11px] text-zinc-500 font-mono">
-                  {selectedEvent.venue && <span>📍 {selectedEvent.venue}</span>}
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500 font-mono">
+                  {selectedEvent.venue && <span className="break-words">📍 {selectedEvent.venue}</span>}
                   {selectedEvent.date && (
                     <span>📅 {new Date(selectedEvent.date).toLocaleDateString()}</span>
                   )}
@@ -348,7 +347,7 @@ export default function RegisterForm({
                 </p>
                 <Link
                   href={`/status/${duplicateCheck.registrationId}`}
-                  className="btn-primary py-1 px-3 text-xs"
+                  className="btn-primary px-3 py-2 text-xs"
                 >
                   View Your Status Pass →
                 </Link>
@@ -358,11 +357,11 @@ export default function RegisterForm({
 
           {/* Section 3: Referral & Payment Proof */}
           <div className="space-y-3.5">
-            <div className="flex items-center gap-2 border-b border-zinc-100 pb-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
+            <div className="flex items-start gap-2 border-b border-zinc-100 pb-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-zinc-900 text-[10px] font-mono font-bold text-white">
                 3
               </span>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600">
+              <h2 className="min-w-0 break-words text-xs font-semibold uppercase tracking-wider text-zinc-600">
                 Payment Verification &amp; Referral
               </h2>
             </div>
@@ -396,12 +395,12 @@ export default function RegisterForm({
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
+              <div className="mb-1 flex flex-col gap-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                 <label className="block text-xs font-medium text-zinc-500">
                   Amount Transferred (₹)
                 </label>
                 {selectedEvent && selectedEvent.fee !== undefined && (
-                  <span className="font-mono text-xs text-brand-600 font-medium">
+                  <span className="font-mono text-xs font-medium text-brand-600">
                     Required: ₹{selectedEvent.fee}
                   </span>
                 )}
@@ -419,18 +418,18 @@ export default function RegisterForm({
               <label className="block text-xs font-medium text-zinc-500 mb-1">
                 UPI Payment Screenshot
               </label>
-              <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-4 text-center">
+              <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 p-3 text-center sm:p-4">
                 <input
                   ref={fileInputRef}
                   required
                   type="file"
                   accept="image/*"
                   onChange={(e) => handleFile(e.target.files?.[0] || null)}
-                  className="field-input file:mr-3 file:rounded file:border-0 file:bg-zinc-900 file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-white"
+                  className="field-input max-w-full overflow-hidden text-xs file:mr-2 file:rounded file:border-0 file:bg-zinc-900 file:px-2 file:py-1 file:text-xs file:font-medium file:text-white"
                 />
                 {preview && (
                   <div className="mt-3 flex flex-col items-center">
-                    <div className="relative h-32 w-48 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900 shadow-subtle">
+                    <div className="relative aspect-[3/2] w-full max-w-48 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-900 shadow-subtle">
                       <Image
                         src={preview}
                         alt="Screenshot preview"
@@ -445,7 +444,7 @@ export default function RegisterForm({
                         handleFile(null);
                         if (fileInputRef.current) fileInputRef.current.value = "";
                       }}
-                      className="mt-1.5 text-xs text-rose-600 hover:underline"
+                      className="mt-1.5 inline-flex min-h-8 items-center text-xs text-rose-600 hover:underline focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                     >
                       Remove file
                     </button>
@@ -461,7 +460,7 @@ export default function RegisterForm({
               {conflictRegId && (
                 <Link
                   href={`/status/${conflictRegId}`}
-                  className="font-semibold text-brand-600 hover:underline block"
+                  className="block min-h-8 font-semibold text-brand-600 hover:underline"
                 >
                   View your existing registration status →
                 </Link>

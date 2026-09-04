@@ -52,7 +52,7 @@ export default function SignupPage() {
 
   if (submitted) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+      <main className="flex min-h-screen items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full max-w-md p-6 text-center sm:p-8 space-y-4">
           <span className="pill-chip">Application Received</span>
           <h1 className="text-xl font-bold text-zinc-900 mt-2">
@@ -64,7 +64,7 @@ export default function SignupPage() {
           </p>
 
           <div className="rounded-lg border border-brand-200 bg-brand-50/70 p-3.5 text-xs text-zinc-800">
-            Once approved, you will be able to log in with your email <code className="font-mono font-semibold">{email}</code> and publish your fest events.
+            Once approved, you will be able to log in with your email <code className="break-all font-mono font-semibold">{email}</code> and publish your fest events.
           </div>
 
           <Link href="/login" className="btn-primary w-full py-2.5 text-xs font-semibold block text-center mt-4">
@@ -76,7 +76,7 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6">
+    <main className="flex min-h-screen items-center justify-center p-3 py-5 sm:p-6">
       <div className="surface-card w-full max-w-md p-6 sm:p-8 space-y-5">
         <div className="text-center">
           <span className="pill-chip">Host Registration</span>
@@ -150,7 +150,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 text-xs"
+                className="absolute right-1.5 top-1/2 inline-flex min-h-9 -translate-y-1/2 items-center rounded px-2 text-xs text-zinc-400 hover:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? "Hide" : "Show"}
