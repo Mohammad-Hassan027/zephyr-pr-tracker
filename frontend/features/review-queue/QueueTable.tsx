@@ -66,7 +66,7 @@ export function QueueTable({
 
   if (items.length === 0) {
     return (
-      <div className="surface-card mt-3 p-10 text-center">
+      <div className="surface-card mt-3 p-6 text-center sm:p-10">
         <Inbox size={32} className="mx-auto mb-2 text-zinc-400" aria-hidden="true" />
         <p className="text-sm font-semibold text-zinc-900">
           {hasActiveFilters

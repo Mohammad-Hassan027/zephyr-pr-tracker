@@ -16,27 +16,27 @@ export function QueuePagination({
   if (loading || totalPages <= 1) return null;
 
   return (
-    <div className="mt-5 flex items-center justify-between gap-4">
+    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <p className="text-xs text-zinc-500">
         Page <span className="font-mono font-semibold text-zinc-900">{page}</span> of{" "}
         <span className="font-mono font-semibold text-zinc-900">{totalPages}</span>
       </p>
-      <div className="flex items-center gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
+          className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
         >
-          <ChevronLeft size={14} aria-hidden="true" />
+          <ChevronLeft size={14} className="shrink-0" aria-hidden="true" />
           <span>Previous</span>
         </button>
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="btn-secondary py-1 px-3 text-xs disabled:opacity-40 inline-flex items-center gap-1"
+          className="btn-secondary px-3 py-2 text-xs disabled:opacity-40"
         >
           <span>Next</span>
-          <ChevronRight size={14} aria-hidden="true" />
+          <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
         </button>
       </div>
     </div>

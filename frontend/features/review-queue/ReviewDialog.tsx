@@ -52,16 +52,16 @@ export function ReviewDialog({
       ];
 
   const confirmBtnClass = isCorrection
-    ? "inline-flex items-center justify-center rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-subtle hover:bg-amber-700 transition"
-    : "inline-flex items-center justify-center rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-subtle hover:bg-rose-700 transition";
+    ? "inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-semibold text-white shadow-subtle transition hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+    : "inline-flex min-h-10 items-center justify-center rounded-lg bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white shadow-subtle transition hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500/30";
 
   const confirmBtnText = isCorrection ? "Send Correction Request" : "Confirm Rejection";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm">
-      <div className="surface-card w-full max-w-md p-6 space-y-4 shadow-popover">
+    <div className="modal-backdrop bg-zinc-950/60" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title">
+      <div className="modal-panel space-y-4">
         <div>
-          <h3 className="text-base font-bold text-zinc-900">{title}</h3>
+          <h3 id="review-dialog-title" className="text-base font-bold text-zinc-900">{title}</h3>
           <p className="text-xs text-zinc-500 mt-1 leading-relaxed">{subtitle}</p>
         </div>
 
@@ -74,7 +74,7 @@ export function ReviewDialog({
             onChange={(e) => onNoteChange(e.target.value)}
             placeholder={placeholder}
             rows={3}
-            className="field-input text-sm resize-none"
+            className="field-input min-h-28 resize-y text-sm"
             autoFocus
           />
 
@@ -84,7 +84,7 @@ export function ReviewDialog({
                 key={chip}
                 type="button"
                 onClick={() => onNoteChange(chip)}
-                className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-100 transition"
+                className="min-h-8 max-w-full break-words rounded border border-zinc-200 bg-zinc-50 px-2 py-1 text-left text-[11px] text-zinc-600 transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               >
                 {chip}
               </button>
@@ -92,11 +92,11 @@ export function ReviewDialog({
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
+        <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="btn-secondary py-1.5 px-3 text-xs"
+            className="btn-secondary px-3 py-2 text-xs"
           >
             Cancel
           </button>

@@ -37,8 +37,8 @@ export function QueueFilters({
 }: QueueFiltersProps) {
   return (
     <div className="surface-card mt-4 p-4 sm:p-5">
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-3 mb-4">
-        <div className="flex items-center gap-2">
+      <div className="mb-4 flex flex-col gap-2 border-b border-zinc-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Filter Queue
           </h3>
@@ -53,7 +53,7 @@ export function QueueFilters({
           <button
             type="button"
             onClick={onClearFilters}
-            className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
+            className="min-h-8 self-start text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           >
             Reset filters
           </button>

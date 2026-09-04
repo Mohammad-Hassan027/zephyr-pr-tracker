@@ -44,8 +44,8 @@ function CapacityChip({
   if (isFull) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 border border-rose-200 px-2 py-0.5 text-[10px] font-bold text-rose-700 uppercase tracking-wider">
-        <Users size={10} aria-hidden="true" />
-        FULL
+      <Users size={10} className="shrink-0" aria-hidden="true" />
+      FULL
       </span>
     );
   }
@@ -58,7 +58,7 @@ function CapacityChip({
           : "bg-zinc-100 border-zinc-200 text-zinc-600"
       }`}
     >
-      <Users size={10} aria-hidden="true" />
+      <Users size={10} className="shrink-0" aria-hidden="true" />
       {count} / {capacity} seats
     </span>
   );
@@ -86,31 +86,31 @@ export function QueueRow({
 
   return (
     <div
-      className={`surface-card p-4 sm:p-5 transition ${
+      className={`surface-card min-w-0 p-4 transition sm:p-5 ${
         isSelected
           ? "border-brand-500/60 bg-brand-50/20 ring-1 ring-brand-500/30"
           : "hover:border-zinc-300"
       }`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelect(r._id)}
             aria-label={`Select registration for ${r.studentName}`}
-            className="mt-1 h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
           />
           <div className="min-w-0 text-sm flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-zinc-900">{r.studentName}</span>
+              <span className="min-w-0 break-words font-semibold text-zinc-900">{r.studentName}</span>
               <StatusIcon status={currentStatus} size={13} />
               {r.event.fee !== undefined &&
                 r.amount !== undefined &&
                 r.amount !== r.event.fee && (
                   <span className="badge-rejected inline-flex items-center gap-1">
                     <AlertTriangle size={12} aria-hidden="true" />
-                    <span>
+                    <span className="min-w-0">
                       Amount Mismatch (₹{r.amount} vs expected ₹{r.event.fee})
                     </span>
                   </span>
@@ -118,12 +118,12 @@ export function QueueRow({
             </div>
 
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-xs font-medium text-zinc-700">{r.event.name}</p>
+              <p className="min-w-0 break-words text-xs font-medium text-zinc-700">{r.event.name}</p>
               {/* Capacity chip — always visible per row */}
               <CapacityChip capacity={capacity} approvedCount={approvedCount} />
             </div>
 
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 min-w-0 break-all text-xs text-zinc-500">
               {r.college || "—"} · {r.studentPhone || r.studentEmail}
             </p>
 
@@ -131,11 +131,11 @@ export function QueueRow({
               <span className="font-mono font-semibold text-zinc-900 bg-zinc-100 rounded px-1.5 py-0.5">
                 ₹{r.amount ?? 0}
               </span>
-              <span className="font-mono text-zinc-500 text-[11px]">
+              <span className="min-w-0 break-all font-mono text-[11px] text-zinc-500">
                 {r.referralCode ? `Ref: ${r.referralCode}` : "Direct submission"}
               </span>
               {r.utr && (
-                <span className="font-mono text-zinc-500 text-[11px]">
+                <span className="min-w-0 break-all font-mono text-[11px] text-zinc-500">
                   UTR: <strong className="text-zinc-700">{r.utr}</strong>
                 </span>
               )}
@@ -145,10 +145,10 @@ export function QueueRow({
             {r.correctionNote && (
               <div className="mt-2 rounded-md border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900 space-y-0.5 font-sans">
                 <span className="font-bold text-[10px] uppercase tracking-wider text-amber-800 flex items-center gap-1">
-                  <AlertTriangle size={12} />
+                  <AlertTriangle size={12} className="shrink-0" aria-hidden="true" />
                   Correction Requested Note:
                 </span>
-                <p className="font-medium text-amber-900">{r.correctionNote}</p>
+                <p className="break-words font-medium text-amber-900">{r.correctionNote}</p>
               </div>
             )}
 
@@ -166,9 +166,9 @@ export function QueueRow({
                 <button
                   type="button"
                   onClick={() => setShowHistory(!showHistory)}
-                  className="text-[11px] font-mono text-brand-600 hover:underline inline-flex items-center gap-1"
+                  className="inline-flex min-h-8 items-center gap-1 text-[11px] font-mono text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 >
-                  <Clock size={12} />
+                  <Clock size={12} className="shrink-0" aria-hidden="true" />
                   <span>
                     {showHistory
                       ? "Hide History Log"
@@ -186,7 +186,7 @@ export function QueueRow({
                         key={idx}
                         className="border-l-2 border-brand-400 pl-2.5 py-1 space-y-0.5"
                       >
-                        <div className="flex justify-between text-zinc-700 font-semibold">
+                        <div className="flex flex-col gap-0.5 text-zinc-700 font-semibold sm:flex-row sm:justify-between">
                           <span className="capitalize">{h.action.replace("_", " ")}</span>
                           <span className="text-[10px] text-zinc-400">
                             {new Date(h.timestamp).toLocaleString()}
@@ -215,7 +215,7 @@ export function QueueRow({
           type="button"
           onClick={() => onZoom(r.paymentScreenshot)}
           aria-label={`Inspect payment screenshot for ${r.studentName}`}
-          className="relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-200 shadow-subtle group hover:border-zinc-400 transition"
+          className="group relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-zinc-200 shadow-subtle transition hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
         >
           <Image
             src={r.paymentScreenshot}
@@ -233,13 +233,13 @@ export function QueueRow({
       </div>
 
       {/* Review Action Buttons */}
-      <div className="mt-3.5 pt-3 border-t border-zinc-100 flex flex-wrap sm:flex-nowrap gap-2">
+      <div className="mt-3.5 grid grid-cols-1 gap-2 border-t border-zinc-100 pt-3 min-[420px]:grid-cols-3">
         {/* Approve — disabled and titled when event is full */}
         <button
           disabled={isActionDisabled || isFull}
           onClick={() => onApprove(r._id)}
           title={isFull ? "Event has reached maximum capacity" : undefined}
-          className={`flex-1 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 rounded-lg transition ${
+          className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${
             isFull
               ? "bg-zinc-100 border border-zinc-200 text-zinc-400 cursor-not-allowed"
               : "btn-primary"
@@ -247,17 +247,17 @@ export function QueueRow({
         >
           {isBusy ? (
             <>
-              <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+              <RefreshCw size={14} className="shrink-0 animate-spin" aria-hidden="true" />
               <span>Approving...</span>
             </>
           ) : isFull ? (
             <>
-              <Users size={14} aria-hidden="true" />
+              <Users size={14} className="shrink-0" aria-hidden="true" />
               <span>Event Full</span>
             </>
           ) : (
             <>
-              <CheckCircle2 size={14} aria-hidden="true" />
+              <CheckCircle2 size={14} className="shrink-0" aria-hidden="true" />
               <span>Approve</span>
             </>
           )}
@@ -266,18 +266,18 @@ export function QueueRow({
         <button
           disabled={isActionDisabled}
           onClick={() => onOpenCorrectionModal(r._id)}
-          className="inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 shadow-subtle hover:bg-amber-100 transition flex-1"
+          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800 shadow-subtle transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500/30 disabled:opacity-50"
         >
-          <RefreshCw size={14} aria-hidden="true" />
+          <RefreshCw size={14} className="shrink-0" aria-hidden="true" />
           <span>Request Correction</span>
         </button>
 
         <button
           disabled={isActionDisabled}
           onClick={() => onOpenRejectModal(r._id)}
-          className="btn-secondary py-2 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center gap-1.5"
+          className="btn-secondary px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-200"
         >
-          <XCircle size={14} aria-hidden="true" />
+          <XCircle size={14} className="shrink-0" aria-hidden="true" />
           <span>Reject</span>
         </button>
       </div>

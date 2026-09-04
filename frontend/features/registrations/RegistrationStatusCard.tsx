@@ -74,9 +74,9 @@ export function RegistrationStatusCard({
   // Needs Correction State
   if (data.status === "needs_correction") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
+      <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full p-6 sm:p-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
             <StatusIcon status="needs_correction" />
             {isLiveConnected && (
               <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-600">
@@ -90,7 +90,7 @@ export function RegistrationStatusCard({
             <h1 className="text-lg font-bold text-zinc-900">
               Correction Required Before Approval
             </h1>
-            <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
+            <p className="mt-1 break-words text-xs text-zinc-500 leading-relaxed">
               The reviewer has reviewed your registration for <strong className="text-zinc-800">{data.event?.name}</strong> and requested a correction.
             </p>
           </div>
@@ -101,7 +101,7 @@ export function RegistrationStatusCard({
               <AlertTriangle size={14} className="text-amber-600" aria-hidden="true" />
               <span>Reviewer Correction Note:</span>
             </div>
-            <p className="font-medium leading-relaxed pl-5">
+            <p className="break-words pl-5 font-medium leading-relaxed">
               {data.correctionNote || "Please verify your UPI reference number (UTR) or re-upload a readable payment screenshot."}
             </p>
           </div>
@@ -119,17 +119,17 @@ export function RegistrationStatusCard({
           ) : !showEditForm ? (
             <div className="space-y-3 pt-2">
               <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
-                <div className="flex justify-between text-zinc-500">
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
                   <span>Candidate:</span>
-                  <span className="text-zinc-900 font-sans font-medium">{data.studentName}</span>
+                  <span className="break-words text-zinc-900 font-sans font-medium">{data.studentName}</span>
                 </div>
-                <div className="flex justify-between text-zinc-500">
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
                   <span>Phone:</span>
-                  <span className="text-zinc-900 font-medium">{data.studentPhone || "—"}</span>
+                  <span className="break-all text-zinc-900 font-medium">{data.studentPhone || "—"}</span>
                 </div>
-                <div className="flex justify-between text-zinc-500">
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
                   <span>UTR Reference:</span>
-                  <span className="text-zinc-900 font-bold">{data.utr || "—"}</span>
+                  <span className="break-all text-zinc-900 font-bold">{data.utr || "—"}</span>
                 </div>
               </div>
 
@@ -210,16 +210,16 @@ export function RegistrationStatusCard({
                     type="file"
                     accept="image/*"
                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="block w-full text-xs text-zinc-500 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                  className="block min-h-10 w-full text-xs text-zinc-500 file:mr-2 file:rounded file:border-0 file:bg-brand-50 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-brand-700 hover:file:bg-brand-100"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="grid grid-cols-1 gap-2 pt-2 min-[400px]:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setShowEditForm(false)}
-                  className="btn-secondary flex-1 py-1.5 text-xs"
+                  className="btn-secondary py-2 text-xs"
                 >
                   Cancel
                 </button>
@@ -227,7 +227,7 @@ export function RegistrationStatusCard({
                   type="button"
                   onClick={() => setConfirmModalOpen(true)}
                   disabled={isSubmitting}
-                  className="btn-primary flex-1 py-1.5 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+                  className="btn-primary py-2 text-xs font-semibold"
                 >
                   {isSubmitting ? (
                     <span>Uploading...</span>
@@ -241,19 +241,19 @@ export function RegistrationStatusCard({
 
           {/* Confirmation Modal */}
           {confirmModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4 backdrop-blur-sm">
-              <div className="surface-card w-full max-w-sm p-5 space-y-3 shadow-popover">
-                <h3 className="text-sm font-bold text-zinc-900">
+            <div className="modal-backdrop bg-zinc-950/60" role="dialog" aria-modal="true" aria-labelledby="confirm-resubmit-title">
+              <div className="modal-panel max-w-sm space-y-3">
+                <h3 id="confirm-resubmit-title" className="text-sm font-bold text-zinc-900">
                   Confirm Resubmission
                 </h3>
                 <p className="text-xs text-zinc-600 leading-relaxed">
                   Are you sure you want to resubmit this registration with the updated information for reviewer verification?
                 </p>
-                <div className="flex gap-2 justify-end pt-2 border-t border-zinc-100">
+                <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
                   <button
                     type="button"
                     onClick={() => setConfirmModalOpen(false)}
-                    className="btn-secondary py-1.5 px-3 text-xs"
+                    className="btn-secondary px-3 py-2 text-xs"
                     disabled={isSubmitting}
                   >
                     Back
@@ -262,7 +262,7 @@ export function RegistrationStatusCard({
                     type="button"
                     onClick={handleConfirmResubmit}
                     disabled={isSubmitting}
-                    className="btn-primary py-1.5 px-3 text-xs font-semibold inline-flex items-center gap-1.5"
+                    className="btn-primary px-3 py-2 text-xs font-semibold"
                   >
                     {isSubmitting ? (
                       <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -282,9 +282,9 @@ export function RegistrationStatusCard({
   // Resubmitted / Under Review State
   if (data.status === "resubmitted" || data.status === "under_review") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
+      <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full p-6 sm:p-8 text-center space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
             <StatusIcon status={data.status} />
             {isLiveConnected && (
               <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-600">
@@ -305,27 +305,27 @@ export function RegistrationStatusCard({
           </div>
 
           <div className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
-            <div className="flex justify-between text-zinc-500">
-              <span>Candidate:</span>
-              <span className="text-zinc-900 font-sans font-medium">{data.studentName}</span>
-            </div>
-            <div className="flex justify-between text-zinc-500">
-              <span>Updated UTR:</span>
-              <span className="text-zinc-900 font-bold">{data.utr || "Submitted"}</span>
-            </div>
-            {data.resubmittedAt && (
-              <div className="flex justify-between text-zinc-500">
-                <span>Resubmitted At:</span>
-                <span className="text-zinc-700">{new Date(data.resubmittedAt).toLocaleString()}</span>
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
+                  <span>Candidate:</span>
+                  <span className="break-words text-zinc-900 font-sans font-medium">{data.studentName}</span>
+                </div>
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
+                  <span>Updated UTR:</span>
+                  <span className="break-all text-zinc-900 font-bold">{data.utr || "Submitted"}</span>
+                </div>
+                {data.resubmittedAt && (
+                  <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
+                    <span>Resubmitted At:</span>
+                    <span className="text-zinc-700">{new Date(data.resubmittedAt).toLocaleString()}</span>
               </div>
             )}
           </div>
 
-          <div className="pt-2 flex flex-col sm:flex-row gap-2">
+          <div className="grid grid-cols-1 gap-2 pt-2 min-[400px]:grid-cols-2">
             <button
               type="button"
               onClick={onCopy}
-              className="btn-secondary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+              className="btn-secondary py-2 text-xs font-medium"
             >
               {copied ? (
                 <>
@@ -342,7 +342,7 @@ export function RegistrationStatusCard({
             <button
               type="button"
               onClick={onWhatsAppShare}
-              className="btn-primary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+              className="btn-primary py-2 text-xs font-medium"
             >
               <ExternalLink size={14} aria-hidden="true" />
               <span>Share Status</span>
@@ -360,9 +360,9 @@ export function RegistrationStatusCard({
   // Pending state
   if (data.status === "pending") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
+      <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full p-6 sm:p-8 text-center space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
             <StatusIcon status="pending" />
             {isLiveConnected && (
               <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-600">
@@ -383,27 +383,27 @@ export function RegistrationStatusCard({
           </div>
 
           <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
-            <div className="flex justify-between text-zinc-500">
-              <span>Candidate:</span>
-              <span className="text-zinc-900 font-sans font-medium">{data.studentName}</span>
-            </div>
-            <div className="flex justify-between text-zinc-500">
-              <span>Event:</span>
-              <span className="text-zinc-900 font-medium">{data.event?.name}</span>
-            </div>
-            {data.amount !== undefined && (
-              <div className="flex justify-between text-zinc-500">
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
+                  <span>Candidate:</span>
+                  <span className="break-words text-zinc-900 font-sans font-medium">{data.studentName}</span>
+                </div>
+                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
+                  <span>Event:</span>
+                  <span className="break-words text-zinc-900 font-medium">{data.event?.name}</span>
+                </div>
+                {data.amount !== undefined && (
+              <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
                 <span>Amount:</span>
                 <span className="text-zinc-900 font-bold">₹{data.amount}</span>
               </div>
             )}
           </div>
 
-          <div className="pt-2 flex flex-col sm:flex-row gap-2">
+          <div className="grid grid-cols-1 gap-2 pt-2 min-[400px]:grid-cols-2">
             <button
               type="button"
               onClick={onCopy}
-              className="btn-secondary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+              className="btn-secondary py-2 text-xs font-medium"
             >
               {copied ? (
                 <>
@@ -420,7 +420,7 @@ export function RegistrationStatusCard({
             <button
               type="button"
               onClick={onWhatsAppShare}
-              className="btn-primary flex-1 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+              className="btn-primary py-2 text-xs font-medium"
             >
               <ExternalLink size={14} aria-hidden="true" />
               <span>Share Status</span>
@@ -442,9 +442,9 @@ export function RegistrationStatusCard({
       : "/clubs";
 
     return (
-      <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
+      <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full p-6 sm:p-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
             <span className="badge-rejected">Verification Failed</span>
             <span className="font-mono text-[10px] text-zinc-400">STATUS PASS</span>
           </div>
@@ -453,7 +453,7 @@ export function RegistrationStatusCard({
             <h1 className="text-lg font-bold text-zinc-900">
               Registration Verification Failed
             </h1>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 break-words text-xs text-zinc-500">
               The PR reviewer was unable to confirm your payment receipt for {data.event?.name}.
             </p>
           </div>
@@ -462,7 +462,7 @@ export function RegistrationStatusCard({
             <span className="font-semibold uppercase tracking-wider text-[10px]">
               Reason Provided:
             </span>
-            <p className="font-medium">{data.rejectionReason || "Payment screenshot unreadable or amount mismatch"}</p>
+            <p className="break-words font-medium">{data.rejectionReason || "Payment screenshot unreadable or amount mismatch"}</p>
           </div>
 
           <div className="space-y-2 pt-2">
@@ -489,22 +489,22 @@ export function RegistrationStatusCard({
 
   // Approved state: Boarding-pass / Ticket
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
       <div className="w-full space-y-4">
         <div className="ticket-card shadow-elevated">
-          <div className="ticket-top flex items-center justify-between">
-            <div>
+          <div className="ticket-top flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <StatusIcon status="approved" showLabel={false} />
-              <span className="ml-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200/60 rounded px-1.5 py-0.5">
+              <span className="ml-1.5 inline-flex max-w-full rounded border border-emerald-200/60 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
                 Confirmed Pass
               </span>
-              <h2 className="mt-1.5 font-sans text-lg font-bold tracking-tight text-zinc-900">
+              <h2 className="mt-1.5 break-words font-sans text-lg font-bold tracking-tight text-zinc-900">
                 {data.event?.name}
               </h2>
               {data.event?.venue && (
-                <p className="text-xs text-zinc-500 mt-0.5 font-mono flex items-center gap-1">
+                <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-zinc-500 font-mono">
                   <MapPin size={12} className="text-zinc-400 shrink-0" aria-hidden="true" />
-                  <span>{data.event.venue}</span>
+                  <span className="min-w-0 break-words">{data.event.venue}</span>
                 </p>
               )}
             </div>
@@ -516,37 +516,37 @@ export function RegistrationStatusCard({
           <div className="border-t border-dashed border-zinc-200" />
 
           <div className="p-5 space-y-3 bg-white text-xs">
-            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
               <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
                 Registration No
               </span>
-              <span className="font-mono text-sm font-bold text-brand-700 bg-brand-50 border border-brand-200/60 rounded px-2 py-0.5">
+              <span className="break-all rounded border border-brand-200/60 bg-brand-50 px-2 py-0.5 font-mono text-sm font-bold text-brand-700">
                 {data.regNo || "CONFIRMED"}
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
               <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
                 Student Name
               </span>
-              <span className="font-medium text-zinc-900">{data.studentName}</span>
+              <span className="break-words font-medium text-zinc-900">{data.studentName}</span>
             </div>
 
-            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
               <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
                 College
               </span>
-              <span className="text-zinc-700">{data.college || "—"}</span>
+              <span className="break-words text-zinc-700">{data.college || "—"}</span>
             </div>
 
-            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
               <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
                 Contact
               </span>
-              <span className="text-zinc-700">{data.studentPhone || data.studentEmail}</span>
+              <span className="break-all text-zinc-700">{data.studentPhone || data.studentEmail}</span>
             </div>
 
-            <div className="flex justify-between items-center py-1 border-b border-zinc-100">
+            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
               <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
                 Amount Paid
               </span>
@@ -555,7 +555,7 @@ export function RegistrationStatusCard({
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-1">
+            <div className="flex flex-col gap-1 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
               <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
                 Confirmed Date
               </span>
@@ -566,11 +566,11 @@ export function RegistrationStatusCard({
           </div>
         </div>
 
-        <div className="flex gap-2 justify-center">
+        <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
           <button
             type="button"
             onClick={onCopy}
-            className="btn-secondary flex-1 py-2 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+            className="btn-secondary py-2 text-xs font-medium"
           >
             {copied ? (
               <>
@@ -587,7 +587,7 @@ export function RegistrationStatusCard({
           <button
             type="button"
             onClick={onWhatsAppShare}
-            className="btn-primary flex-1 py-2 text-xs font-medium inline-flex items-center justify-center gap-1.5"
+            className="btn-primary py-2 text-xs font-medium"
           >
             <ExternalLink size={14} aria-hidden="true" />
             <span>Share on WhatsApp</span>
