@@ -34,8 +34,17 @@ app.use(
     contentSecurityPolicy: {
       directives: { defaultSrc: ["'self'"] },
     },
+    permissionsPolicy: false,
   }),
 );
+
+app.use((req, res, next) => {
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
+  next();
+});
 
 // 2. Configure CORS
 const allowedOrigin = process.env.CLIENT_ORIGIN || process.env.CLIENT_URL || "";
@@ -43,7 +52,12 @@ const corsOrigins = allowedOrigin
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-app.use(cors({ origin: corsOrigins.length > 0 ? corsOrigins : false, credentials: true }));
+app.use(
+  cors({
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
+    credentials: true,
+  }),
+);
 
 // 3. Body Parser with limit
 app.use(express.json({ limit: "5mb" }));
@@ -71,7 +85,7 @@ app.get("/", (_req, res) => res.send("Zephyr PR tracker API running"));
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 // 404 Handler for unmapped API routes
-app.use("/api/*", (_req, _res, next) => {
+app.use("/api/*splat", (_req, _res, next) => {
   next(new NotFoundError("Requested API endpoint not found"));
 });
 
