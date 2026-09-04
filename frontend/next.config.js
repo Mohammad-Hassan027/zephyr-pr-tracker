@@ -68,7 +68,6 @@ const nextConfig = {
               "frame-ancestors 'self'",
             ].join("; "),
           },
-          ,
         ],
       },
     ];
