@@ -8,11 +8,7 @@ import { pathToFileURL } from "node:url";
 import validateEnv from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { NotFoundError } from "./utils/errors.js";
-import {
-  helmet,
-  apiLimiter,
-  authLimiter,
-} from "./middleware/security.js";
+import { helmet, apiLimiter, authLimiter } from "./middleware/security.js";
 
 // Route Imports
 import authRoutes from "./routes/auth.js";
@@ -33,11 +29,16 @@ const app = express();
 app.set("trust proxy", 1);
 
 // 1. Apply Helmet for secure HTTP headers (XSS protection, Clickjacking, etc.)
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: { defaultSrc: ["'self'"] },
+    },
+  }),
+);
 
 // 2. Configure CORS
-const allowedOrigin =
-  process.env.CLIENT_ORIGIN || process.env.CLIENT_URL || "*";
+const allowedOrigin = process.env.CLIENT_ORIGIN || process.env.CLIENT_URL;
 const corsOrigins = allowedOrigin.split(",").map((origin) => origin.trim());
 app.use(cors({ origin: corsOrigins, credentials: true }));
 
