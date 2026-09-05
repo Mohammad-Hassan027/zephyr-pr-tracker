@@ -129,15 +129,28 @@ export type ResubmitRegistrationForm = {
   paymentScreenshotPublicId?: string;
 };
 
+export type SubmitRegistrationResponse = {
+  id: string;
+  status: string;
+  accessToken: string;
+};
+
 export type CheckDuplicateParams = {
   clubSlug: string;
   eventSlug: string;
   studentEmail: string;
 };
 
+export type CheckDuplicateResult = {
+  exists: boolean;
+  status?: string;
+  regNo?: string | null;
+};
+
 export type LookupParams = {
   studentEmail: string;
   clubSlug?: string;
+  accessToken?: string;
 };
 
 export type LookupResult = {

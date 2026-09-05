@@ -8,11 +8,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const token =
+    request.headers.get("x-registration-token") ||
+    request.nextUrl.searchParams.get("token") ||
+    "";
+
   try {
     const targetUrl = backendUrl(`/registrations/${id}/stream`);
     const backendRes = await fetch(targetUrl, {
       headers: {
         Accept: "text/event-stream",
+        ...(token ? { "x-registration-token": token } : {}),
       },
       cache: "no-store",
     });

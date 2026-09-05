@@ -1,23 +1,28 @@
 import { apiFetch, readJsonResponse } from "./client";
+import { resolveRegistrationToken } from "../registration-token";
 import type {
   CheckDuplicateParams,
+  CheckDuplicateResult,
   CloudinaryUploadResponse,
   LookupParams,
   LookupResult,
   RegistrationStatus,
   ResubmitRegistrationForm,
   SubmitRegistrationForm,
+  SubmitRegistrationResponse,
   UploadSignature,
 } from "./types";
 
 export type {
   CheckDuplicateParams,
+  CheckDuplicateResult,
   CloudinaryUploadResponse,
   LookupParams,
   LookupResult,
   RegistrationStatus,
   ResubmitRegistrationForm,
   SubmitRegistrationForm,
+  SubmitRegistrationResponse,
   UploadSignature,
 };
 
@@ -62,8 +67,8 @@ export async function uploadPaymentScreenshot(file: File): Promise<{
 
 export async function submitRegistration(
   form: SubmitRegistrationForm,
-): Promise<{ id: string; status: string }> {
-  return apiFetch<{ id: string; status: string }>("/registrations", {
+): Promise<SubmitRegistrationResponse> {
+  return apiFetch<SubmitRegistrationResponse>("/registrations", {
     method: "POST",
     body: form,
   });
@@ -72,22 +77,36 @@ export async function submitRegistration(
 export async function resubmitRegistration(
   id: string,
   form: ResubmitRegistrationForm,
+  accessToken?: string,
 ): Promise<{ ok: boolean; message: string; data: RegistrationStatus }> {
+  const token = accessToken || resolveRegistrationToken(id);
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["x-registration-token"] = token;
+  }
   return apiFetch<{ ok: boolean; message: string; data: RegistrationStatus }>(
     `/registrations/${id}/resubmit`,
     {
       method: "POST",
       body: form,
+      headers,
     },
   );
 }
 
 export async function getRegistrationStatus(
   id: string,
+  accessToken?: string,
 ): Promise<RegistrationStatus> {
   try {
+    const token = accessToken || resolveRegistrationToken(id);
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["x-registration-token"] = token;
+    }
     return await apiFetch<RegistrationStatus>(`/registrations/${id}`, {
       cache: "no-store",
+      headers,
     });
   } catch {
     throw new Error("Registration not found");
@@ -96,12 +115,8 @@ export async function getRegistrationStatus(
 
 export async function checkDuplicateRegistration(
   params: CheckDuplicateParams,
-): Promise<{ exists: boolean; registrationId?: string; status?: string }> {
-  return apiFetch<{
-    exists: boolean;
-    registrationId?: string;
-    status?: string;
-  }>("/registrations/check-duplicate", {
+): Promise<CheckDuplicateResult> {
+  return apiFetch<CheckDuplicateResult>("/registrations/check-duplicate", {
     method: "POST",
     body: params,
   });
@@ -110,8 +125,16 @@ export async function checkDuplicateRegistration(
 export async function lookupRegistrations(
   params: LookupParams,
 ): Promise<{ registrations: LookupResult[] }> {
+  const headers: Record<string, string> = {};
+  if (params.accessToken) {
+    headers["x-registration-token"] = params.accessToken;
+  }
   return apiFetch<{ registrations: LookupResult[] }>("/registrations/lookup", {
     method: "POST",
-    body: params,
+    body: {
+      studentEmail: params.studentEmail,
+      clubSlug: params.clubSlug,
+    },
+    headers,
   });
 }
