@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { lookupRegistrations, LookupResult } from "@/lib/api/registrations";
-import { Calendar, MapPin, Copy, Check, Search, ArrowRight } from "@/lib/icons";
+import { saveRegistrationToken } from "@/lib/registration-token";
+import { Calendar, MapPin, Copy, Check } from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
 
 export default function MyStatusPage() {
   const [email, setEmail] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [registrations, setRegistrations] = useState<LookupResult[]>([]);
@@ -17,7 +19,7 @@ export default function MyStatusPage() {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !accessToken.trim()) return;
 
     setLoading(true);
     setError("");
@@ -26,8 +28,13 @@ export default function MyStatusPage() {
     try {
       const data = await lookupRegistrations({
         studentEmail: email.trim().toLowerCase(),
+        accessToken: accessToken.trim(),
       });
-      setRegistrations(data.registrations || []);
+      const results = data.registrations || [];
+      setRegistrations(results);
+      results.forEach((r) => {
+        saveRegistrationToken(r.id, accessToken.trim());
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to find registrations");
       setRegistrations([]);
@@ -38,7 +45,8 @@ export default function MyStatusPage() {
 
   function handleCopyLink(id: string) {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/status/${id}`;
+    const tokenPart = accessToken.trim() ? `#token=${accessToken.trim()}` : "";
+    const url = `${origin}/status/${id}${tokenPart}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2500);
@@ -52,10 +60,10 @@ export default function MyStatusPage() {
           <span className="pill-chip">Lookup Pass</span>
           <h1 className="page-title mt-2">Find Your Registration</h1>
           <p className="page-subtitle mx-auto">
-            Enter the email address you used when registering to access your live ticket pass, registration number, or verification updates.
+            Enter your registration email and the access token issued during your registration to access your live ticket pass.
           </p>
 
-          <form onSubmit={handleSearch} className="mx-auto mt-6 flex max-w-md flex-col justify-center gap-2 sm:flex-row">
+          <form onSubmit={handleSearch} className="mx-auto mt-6 flex max-w-md flex-col justify-center gap-2.5">
             <input
               type="email"
               required
@@ -64,10 +72,18 @@ export default function MyStatusPage() {
               onChange={(e) => setEmail(e.target.value)}
               className="field-input text-xs"
             />
+            <input
+              type="text"
+              required
+              placeholder="Access Token (issued on submission)"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              className="field-input text-xs font-mono"
+            />
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary px-4 py-2 text-xs sm:whitespace-nowrap"
+              className="btn-primary w-full py-2.5 text-xs sm:whitespace-nowrap"
             >
               {loading ? "Searching..." : "Lookup Pass →"}
             </button>
@@ -94,10 +110,10 @@ export default function MyStatusPage() {
             {registrations.length === 0 ? (
               <div className="surface-card p-8 text-center">
                 <p className="text-sm font-semibold text-zinc-900">
-                  No registrations found for this email
+                  No registrations found for this email and token
                 </p>
                 <p className="mt-1 text-xs text-zinc-500">
-                  Double-check your email address or explore active clubs to register.
+                  Double-check your email address and access token or explore active clubs to register.
                 </p>
                 <Link href="/clubs" className="btn-primary mt-4 text-xs">
                   Explore Clubs &amp; Events →
@@ -132,8 +148,8 @@ export default function MyStatusPage() {
                             </span>
                             {reg.event.venue && (
                               <span className="inline-flex items-center gap-1">
-                              <MapPin size={11} className="shrink-0" aria-hidden="true" />
-                              <span className="break-words">{reg.event.venue}</span>
+                                <MapPin size={11} className="shrink-0" aria-hidden="true" />
+                                <span className="break-words">{reg.event.venue}</span>
                               </span>
                             )}
                           </p>
@@ -176,7 +192,7 @@ export default function MyStatusPage() {
                           )}
                         </button>
                         <Link
-                          href={`/status/${reg.id}`}
+                          href={`/status/${reg.id}${accessToken.trim() ? `#token=${accessToken.trim()}` : ""}`}
                           className="btn-primary px-3 py-2 text-xs"
                         >
                           View Pass →

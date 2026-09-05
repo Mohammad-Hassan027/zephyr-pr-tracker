@@ -9,6 +9,7 @@ import {
   submitRegistration,
   uploadPaymentScreenshot,
 } from "@/lib/api/registrations";
+import { saveRegistrationToken } from "@/lib/registration-token";
 import type { EventItem } from "@/lib/api/events";
 
 type ClubDetails = {
@@ -60,8 +61,8 @@ export default function RegisterForm({
   const [duplicateCheck, setDuplicateCheck] = useState<{
     checking: boolean;
     exists: boolean;
-    registrationId?: string;
     status?: string;
+    regNo?: string | null;
   }>({
     checking: false,
     exists: false,
@@ -102,8 +103,8 @@ export default function RegisterForm({
           setDuplicateCheck({
             checking: false,
             exists: true,
-            registrationId: res.registrationId,
             status: res.status,
+            regNo: res.regNo,
           });
         } else {
           setDuplicateCheck({ checking: false, exists: false });
@@ -176,8 +177,8 @@ export default function RegisterForm({
     e.preventDefault();
     if (isSubmittingRef.current) return;
 
-    if (duplicateCheck.exists && duplicateCheck.registrationId) {
-      router.push(`/status/${duplicateCheck.registrationId}`);
+    if (duplicateCheck.exists) {
+      router.push("/my-status");
       return;
     }
 
@@ -200,7 +201,13 @@ export default function RegisterForm({
         clubSlug,
         ...upload,
       });
-      router.push(`/status/${res.id}`);
+
+      if (res.accessToken) {
+        saveRegistrationToken(res.id, res.accessToken);
+        router.push(`/status/${res.id}#token=${res.accessToken}`);
+      } else {
+        router.push(`/status/${res.id}`);
+      }
     } catch (err: any) {
       isSubmittingRef.current = false;
       setStatus("error");
@@ -344,12 +351,13 @@ export default function RegisterForm({
                 </p>
                 <p className="text-[11px]">
                   Status: <strong className="capitalize font-mono">{duplicateCheck.status || "Pending"}</strong>
+                  {duplicateCheck.regNo ? ` · Reg No: ${duplicateCheck.regNo}` : ""}
                 </p>
                 <Link
-                  href={`/status/${duplicateCheck.registrationId}`}
+                  href="/my-status"
                   className="btn-primary px-3 py-2 text-xs"
                 >
-                  View Your Status Pass →
+                  Lookup Your Status Pass →
                 </Link>
               </div>
             )}
@@ -470,7 +478,7 @@ export default function RegisterForm({
 
           <button
             type="submit"
-            disabled={isSubmitting || (duplicateCheck.exists && !duplicateCheck.registrationId)}
+            disabled={isSubmitting}
             className="btn-primary w-full py-2.5 text-xs font-semibold"
           >
             {status === "uploading"

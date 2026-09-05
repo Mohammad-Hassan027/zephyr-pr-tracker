@@ -6,15 +6,29 @@ import Link from "next/link";
 import { useRegistrationStatus } from "@/features/registrations/useRegistrationStatus";
 import { RegistrationStatusCard } from "@/features/registrations/RegistrationStatusCard";
 
+import { resolveRegistrationToken } from "@/lib/registration-token";
+
 export default function StatusPage() {
   const params = useParams<{ id: string }>();
   const { data, error, isLiveConnected } = useRegistrationStatus(params.id);
 
   const [copied, setCopied] = useState(false);
 
+  function getShareUrl() {
+    if (typeof window === "undefined") return "";
+    let url = window.location.href;
+    if (!url.includes("token=")) {
+      const token = resolveRegistrationToken(params.id);
+      if (token) {
+        url = `${window.location.origin}/status/${params.id}#token=${token}`;
+      }
+    }
+    return url;
+  }
+
   function handleCopy() {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(getShareUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
@@ -22,7 +36,7 @@ export default function StatusPage() {
 
   function handleWhatsAppShare() {
     if (typeof window === "undefined" || !data) return;
-    const url = window.location.href;
+    const url = getShareUrl();
     const text =
       data.status === "approved"
         ? `I am confirmed for ${data.event?.name}! Reg No: ${data.regNo}. Details: ${url}`

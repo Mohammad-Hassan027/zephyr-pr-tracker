@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getRegistrationStatus } from "@/lib/api/registrations";
+import { resolveRegistrationToken } from "@/lib/registration-token";
 import type { RegistrationStatus } from "@/lib/api/types";
 
 type SSEState = "connecting" | "live" | "polling" | "settled";
 
-export function useRegistrationStatus(id: string) {
+export function useRegistrationStatus(id: string, initialToken?: string) {
   const [data, setData] = useState<RegistrationStatus | null>(null);
   const [error, setError] = useState("");
   const [sseState, setSseState] = useState<SSEState>("connecting");
@@ -14,6 +15,7 @@ export function useRegistrationStatus(id: string) {
 
   useEffect(() => {
     activeRef.current = true;
+    const token = initialToken || resolveRegistrationToken(id) || "";
     let eventSource: EventSource | null = null;
     let fallbackPollTimer: ReturnType<typeof setTimeout> | null = null;
     let pollIntervalMs = 5000;
@@ -22,7 +24,7 @@ export function useRegistrationStatus(id: string) {
       if (!activeRef.current) return;
       setSseState("polling");
       try {
-        const res = await getRegistrationStatus(id);
+        const res = await getRegistrationStatus(id, token);
         if (!activeRef.current) return;
         setData(res);
 
@@ -46,7 +48,8 @@ export function useRegistrationStatus(id: string) {
       }
 
       try {
-        const streamUrl = `/api/registrations/${id}/stream`;
+        const queryParams = token ? `?token=${encodeURIComponent(token)}` : "";
+        const streamUrl = `/api/registrations/${id}/stream${queryParams}`;
         eventSource = new EventSource(streamUrl);
 
         eventSource.onopen = () => {
