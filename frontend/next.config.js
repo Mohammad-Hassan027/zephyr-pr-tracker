@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === "development";
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -61,10 +63,19 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "img-src 'self' res.cloudinary.com picsum.photos data:",
-              "style-src 'self' 'unsafe-inline'",
-              "script-src 'self'",
-              "connect-src 'self'",
+              // vercel.live + vercel.com required for Vercel Toolbar avatars/images (per Vercel docs)
+              "img-src 'self' res.cloudinary.com picsum.photos data: blob: https://vercel.live https://vercel.com",
+              // vercel.live required for Vercel Toolbar styles
+              "style-src 'self' 'unsafe-inline' https://vercel.live",
+              // 'unsafe-inline' is required for Next.js inline hydration scripts.
+              // 'unsafe-eval' is required for Fast Refresh (HMR) in development only.
+              // vercel.live is needed for the Vercel preview feedback widget.
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://vercel.live`,
+              // localhost WebSocket is required for HMR in development only.
+              `connect-src 'self' https://vercel.live wss://ws-us3.pusher.com${isDev ? " ws://localhost:* http://localhost:*" : ""}`,
+              "frame-src https://vercel.live",
+              // vercel.live + assets.vercel.com required for Vercel Toolbar fonts
+              "font-src 'self' https://vercel.live https://assets.vercel.com",
               "frame-ancestors 'self'",
             ].join("; "),
           },
