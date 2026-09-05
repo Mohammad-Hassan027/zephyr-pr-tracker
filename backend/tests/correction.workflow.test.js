@@ -12,7 +12,18 @@ import registrationService from "../services/registrations/registration.service.
 async function runCorrectionWorkflowTests() {
   console.log("=== RUNNING CORRECTION & RESUBMISSION WORKFLOW TESTS ===");
 
-  const mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  const cloudinaryEnv = {
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+  };
+  delete process.env.CLOUDINARY_CLOUD_NAME;
+  delete process.env.CLOUDINARY_API_KEY;
+  delete process.env.CLOUDINARY_API_SECRET;
+
+  const mongoServer = await MongoMemoryReplSet.create({
+    replSet: { count: 1 },
+  });
   const mongoUri = mongoServer.getUri();
   await mongoose.connect(mongoUri);
 
@@ -44,11 +55,20 @@ async function runCorrectionWorkflowTests() {
     });
 
     const clubAuth = { role: "club", clubId: club._id.toString() };
-    const prAuth = { role: "pr", code: prMember.code, clubId: club._id.toString() };
-    const wrongClubAuth = { role: "club", clubId: new mongoose.Types.ObjectId().toString() };
+    const prAuth = {
+      role: "pr",
+      code: prMember.code,
+      clubId: club._id.toString(),
+    };
+    const wrongClubAuth = {
+      role: "club",
+      clubId: new mongoose.Types.ObjectId().toString(),
+    };
 
     // 1. Create Initial Registration
-    console.log("\n[Test 1] Create Initial Registration & History Initialization:");
+    console.log(
+      "\n[Test 1] Create Initial Registration & History Initialization:",
+    );
     const regRes = await registrationService.createRegistration({
       studentName: "Alice Smith",
       studentEmail: "alice@example.com",
@@ -59,7 +79,8 @@ async function runCorrectionWorkflowTests() {
       eventSlug: event.slug,
       clubSlug: club.slug,
       referralCode: prMember.code,
-      paymentScreenshot: "https://res.cloudinary.com/demo/image/upload/v12345/zephyr-payments/ss_01.jpg",
+      paymentScreenshot:
+        "https://res.cloudinary.com/demo/image/upload/v12345/zephyr-payments/ss_01.jpg",
       paymentScreenshotPublicId: "zephyr-payments/ss_01",
     });
 
@@ -82,7 +103,9 @@ async function runCorrectionWorkflowTests() {
           auth: clubAuth,
         });
       },
-      (err) => err.statusCode === 400 && err.message.includes("Correction note is required")
+      (err) =>
+        err.statusCode === 400 &&
+        err.message.includes("Correction note is required"),
     );
     console.log("✔ Empty correction note rejected with 400!");
 
@@ -96,7 +119,7 @@ async function runCorrectionWorkflowTests() {
           auth: wrongClubAuth,
         });
       },
-      (err) => err.statusCode === 403
+      (err) => err.statusCode === 403,
     );
     console.log("✔ Unauthorized club blocked from requesting correction!");
 
@@ -111,29 +134,47 @@ async function runCorrectionWorkflowTests() {
     assert.equal(corrRes.ok, true);
     reg = await Registration.findById(reg._id);
     assert.equal(reg.status, "needs_correction");
-    assert.equal(reg.correctionNote, "UTR number is illegible in screenshot. Please re-upload clearer image.");
+    assert.equal(
+      reg.correctionNote,
+      "UTR number is illegible in screenshot. Please re-upload clearer image.",
+    );
     assert.equal(reg.reviewedBy, prMember.code);
     assert.equal(reg.history.length, 2);
     assert.equal(reg.history[1].action, "requested_correction");
     assert.equal(reg.history[1].status, "needs_correction");
-    console.log("✔ Correction request updated status to 'needs_correction' and logged history!");
+    console.log(
+      "✔ Correction request updated status to 'needs_correction' and logged history!",
+    );
 
     // 5. Duplicate Prevention & Contributor Resubmission
-    console.log("\n[Test 5] Contributor Resubmission (In-Place Update & Duplicate Prevention):");
-    const countBefore = await Registration.countDocuments({ event: event._id, studentEmail: "alice@example.com" });
+    console.log(
+      "\n[Test 5] Contributor Resubmission (In-Place Update & Duplicate Prevention):",
+    );
+    const countBefore = await Registration.countDocuments({
+      event: event._id,
+      studentEmail: "alice@example.com",
+    });
     assert.equal(countBefore, 1);
 
-    const resubmitRes = await registrationService.resubmitRegistration(reg._id.toString(), {
-      studentPhone: "9998887776",
-      utr: "UTR99999",
-      paymentScreenshot: "https://res.cloudinary.com/demo/image/upload/v12345/zephyr-payments/ss_02.jpg",
-      paymentScreenshotPublicId: "zephyr-payments/ss_02",
-    });
+    const resubmitRes = await registrationService.resubmitRegistration(
+      reg._id.toString(),
+      {
+        studentPhone: "9998887776",
+        utr: "UTR99999",
+        paymentScreenshot:
+          "https://res.cloudinary.com/demo/image/upload/v12345/zephyr-payments/ss_02.jpg",
+        paymentScreenshotPublicId: "zephyr-payments/ss_02",
+      },
+      regRes.accessToken,
+    );
 
     assert.equal(resubmitRes.ok, true);
     assert.equal(resubmitRes.data.status, "resubmitted");
 
-    const countAfter = await Registration.countDocuments({ event: event._id, studentEmail: "alice@example.com" });
+    const countAfter = await Registration.countDocuments({
+      event: event._id,
+      studentEmail: "alice@example.com",
+    });
     assert.equal(countAfter, 1); // Exact same record modified, no duplicates created!
 
     reg = await Registration.findById(reg._id);
@@ -145,19 +186,33 @@ async function runCorrectionWorkflowTests() {
     assert.equal(reg.history[2].action, "resubmitted");
     assert.equal(reg.history[2].status, "resubmitted");
     assert.ok(reg.history[2].changes.utr);
-    console.log("✔ Contributor resubmitted successfully in-place without creating duplicate records!");
+    console.log(
+      "✔ Contributor resubmitted successfully in-place without creating duplicate records!",
+    );
 
     // 6. Block Resubmission when NOT in 'needs_correction'
-    console.log("\n[Test 6] Block Resubmission when Not in 'needs_correction' State:");
+    console.log(
+      "\n[Test 6] Block Resubmission when Not in 'needs_correction' State:",
+    );
     await assert.rejects(
       async () => {
-        await registrationService.resubmitRegistration(reg._id.toString(), {
-          utr: "UTR123",
-        });
+        await registrationService.resubmitRegistration(
+          reg._id.toString(),
+          {
+            utr: "UTR123",
+          },
+          regRes.accessToken,
+        );
       },
-      (err) => err.statusCode === 400 && err.message.includes("Resubmission is only allowed when status is 'needs_correction'")
+      (err) =>
+        err.statusCode === 400 &&
+        err.message.includes(
+          "Resubmission is only allowed when status is 'needs_correction'",
+        ),
     );
-    console.log("✔ Duplicate or invalid resubmission blocked when status is 'resubmitted'!");
+    console.log(
+      "✔ Duplicate or invalid resubmission blocked when status is 'resubmitted'!",
+    );
 
     // 7. Final Reviewer Approval after Resubmission
     console.log("\n[Test 7] Reviewer Approval of Resubmitted Registration:");
@@ -176,7 +231,9 @@ async function runCorrectionWorkflowTests() {
     console.log("✔ Resubmitted registration approved with sequential regNo!");
 
     // 8. Cannot request correction on approved registration
-    console.log("\n[Test 8] Cannot request correction on approved registration:");
+    console.log(
+      "\n[Test 8] Cannot request correction on approved registration:",
+    );
     await assert.rejects(
       async () => {
         await registrationReviewService.requestCorrection({
@@ -185,14 +242,20 @@ async function runCorrectionWorkflowTests() {
           auth: clubAuth,
         });
       },
-      (err) => err.statusCode === 409
+      (err) => err.statusCode === 409,
     );
     console.log("✔ Cannot request correction on approved registration!");
 
-    console.log("\n=== ALL CORRECTION & RESUBMISSION WORKFLOW TESTS PASSED ===");
+    console.log(
+      "\n=== ALL CORRECTION & RESUBMISSION WORKFLOW TESTS PASSED ===",
+    );
   } finally {
     await mongoose.disconnect();
     await mongoServer.stop();
+    for (const [key, value] of Object.entries(cloudinaryEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 }
 
