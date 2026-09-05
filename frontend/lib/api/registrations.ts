@@ -27,7 +27,7 @@ export async function uploadPaymentScreenshot(file: File): Promise<{
 }> {
   const signatureData = await apiFetch<UploadSignature & { error?: string }>(
     "/registrations/upload-signature",
-    { method: "GET", cache: "no-store" }
+    { method: "GET", cache: "no-store" },
   );
 
   const uploadBody = new FormData();
@@ -36,16 +36,21 @@ export async function uploadPaymentScreenshot(file: File): Promise<{
   uploadBody.append("timestamp", String(signatureData.timestamp));
   uploadBody.append("signature", signatureData.signature);
   uploadBody.append("folder", signatureData.folder);
+  uploadBody.append("upload_preset", signatureData.upload_preset);
+  uploadBody.append("resource_type", signatureData.resource_type);
+  uploadBody.append("allowed_formats", signatureData.allowed_formats.join(","));
+  uploadBody.append("max_file_size", String(signatureData.max_file_size));
 
   const uploadRes = await fetch(
     `https://api.cloudinary.com/v1_1/${signatureData.cloud_name}/image/upload`,
-    { method: "POST", body: uploadBody }
+    { method: "POST", body: uploadBody },
   );
-  const uploadData = await readJsonResponse<CloudinaryUploadResponse>(uploadRes);
+  const uploadData =
+    await readJsonResponse<CloudinaryUploadResponse>(uploadRes);
 
   if (!uploadRes.ok || !uploadData.secure_url || !uploadData.public_id) {
     throw new Error(
-      uploadData.error?.message || "Payment screenshot upload failed"
+      uploadData.error?.message || "Payment screenshot upload failed",
     );
   }
 
@@ -56,7 +61,7 @@ export async function uploadPaymentScreenshot(file: File): Promise<{
 }
 
 export async function submitRegistration(
-  form: SubmitRegistrationForm
+  form: SubmitRegistrationForm,
 ): Promise<{ id: string; status: string }> {
   return apiFetch<{ id: string; status: string }>("/registrations", {
     method: "POST",
@@ -66,19 +71,19 @@ export async function submitRegistration(
 
 export async function resubmitRegistration(
   id: string,
-  form: ResubmitRegistrationForm
+  form: ResubmitRegistrationForm,
 ): Promise<{ ok: boolean; message: string; data: RegistrationStatus }> {
   return apiFetch<{ ok: boolean; message: string; data: RegistrationStatus }>(
     `/registrations/${id}/resubmit`,
     {
       method: "POST",
       body: form,
-    }
+    },
   );
 }
 
 export async function getRegistrationStatus(
-  id: string
+  id: string,
 ): Promise<RegistrationStatus> {
   try {
     return await apiFetch<RegistrationStatus>(`/registrations/${id}`, {
@@ -90,19 +95,20 @@ export async function getRegistrationStatus(
 }
 
 export async function checkDuplicateRegistration(
-  params: CheckDuplicateParams
+  params: CheckDuplicateParams,
 ): Promise<{ exists: boolean; registrationId?: string; status?: string }> {
-  return apiFetch<{ exists: boolean; registrationId?: string; status?: string }>(
-    "/registrations/check-duplicate",
-    {
-      method: "POST",
-      body: params,
-    }
-  );
+  return apiFetch<{
+    exists: boolean;
+    registrationId?: string;
+    status?: string;
+  }>("/registrations/check-duplicate", {
+    method: "POST",
+    body: params,
+  });
 }
 
 export async function lookupRegistrations(
-  params: LookupParams
+  params: LookupParams,
 ): Promise<{ registrations: LookupResult[] }> {
   return apiFetch<{ registrations: LookupResult[] }>("/registrations/lookup", {
     method: "POST",

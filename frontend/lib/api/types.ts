@@ -93,6 +93,10 @@ export type UploadSignature = {
   api_key: string;
   cloud_name: string;
   folder: string;
+  upload_preset: string;
+  resource_type: "image";
+  allowed_formats: string[];
+  max_file_size: number;
 };
 
 export type CloudinaryUploadResponse = {
