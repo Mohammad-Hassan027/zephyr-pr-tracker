@@ -1,6 +1,9 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
-import { canReviewRegistration, getReviewerCode } from "../policies/registration.policy.js";
+import {
+  canReviewRegistration,
+  getReviewerCode,
+} from "../policies/registration.policy.js";
 import {
   toTrimmedString,
   isValidCloudinaryPublicId,
@@ -20,8 +23,16 @@ async function runDomainUnitTests() {
   const prAuth = { role: "pr", code: "RAHUL123", clubId: "club123" };
   const wrongClubAuth = { role: "club", clubId: "other_club" };
 
-  const regMatch = { club: "club123", referralCode: "RAHUL123", status: "pending" };
-  const regOtherCode = { club: "club123", referralCode: "SNEHA999", status: "pending" };
+  const regMatch = {
+    club: "club123",
+    referralCode: "RAHUL123",
+    status: "pending",
+  };
+  const regOtherCode = {
+    club: "club123",
+    referralCode: "SNEHA999",
+    status: "pending",
+  };
 
   assert.equal(getReviewerCode(clubAuth), "admin");
   assert.equal(getReviewerCode(prAuth), "RAHUL123");
@@ -95,7 +106,7 @@ async function runDomainUnitTests() {
       initialDelayMs: 10,
       connection: mockConnection,
       logger: { warn: () => {}, debug: () => {} },
-    }
+    },
   );
 
   assert.equal(retryResult.success, true);
@@ -111,7 +122,7 @@ async function runDomainUnitTests() {
         maxRetries: 3,
         connection: mockConnection,
         logger: { warn: () => {}, debug: () => {} },
-      }
+      },
     );
   } catch (err) {
     aborted = err instanceof ConflictError;

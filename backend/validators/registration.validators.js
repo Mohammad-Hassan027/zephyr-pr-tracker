@@ -1,4 +1,6 @@
 export const CLOUDINARY_UPLOAD_FOLDER = "zephyr-payments";
+export const CLOUDINARY_ALLOWED_FORMATS = ["jpg", "jpeg", "png", "webp"];
+export const CLOUDINARY_MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export function toTrimmedString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -16,7 +18,7 @@ export function isValidCloudinaryPublicId(value) {
   );
 }
 
-export function isValidCloudinaryImageUrl(value, publicId) {
+export function isValidCloudinaryImageUrl(value, publicId, cloudName = null) {
   try {
     const url = new URL(value);
     const pathWithoutExtension = url.pathname.replace(/\.[^/.]+$/, "");
@@ -24,7 +26,10 @@ export function isValidCloudinaryImageUrl(value, publicId) {
     return (
       url.protocol === "https:" &&
       url.hostname === "res.cloudinary.com" &&
+      url.search === "" &&
+      url.hash === "" &&
       url.pathname.includes("/image/upload/") &&
+      (!cloudName || url.pathname.includes(`/${cloudName}/image/upload/`)) &&
       pathWithoutExtension.endsWith(`/${publicId}`)
     );
   } catch (_err) {

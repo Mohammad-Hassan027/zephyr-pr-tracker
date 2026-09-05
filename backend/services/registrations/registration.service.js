@@ -6,6 +6,8 @@ import {
 } from "../../validators/registration.validators.js";
 import { AppError, ConflictError, NotFoundError } from "../../utils/errors.js";
 import { statusEmitter } from "../../utils/statusEmitter.js";
+import { isCloudinaryConfigured } from "../../config/cloudinary.js";
+import { registrationUploadService } from "./registration-upload.service.js";
 
 export const registrationService = {
   async createRegistration(body) {
@@ -32,7 +34,10 @@ export const registrationService = {
       throw new NotFoundError("Club not found");
     }
 
-    const event = await registrationRepository.findEventBySlugAndClub(eventSlug, club._id);
+    const event = await registrationRepository.findEventBySlugAndClub(
+      eventSlug,
+      club._id,
+    );
     if (!event) {
       throw new NotFoundError("Event not found for this club");
     }
@@ -41,7 +46,9 @@ export const registrationService = {
       const approvedCount =
         typeof event.approvedCount === "number"
           ? event.approvedCount
-          : await registrationRepository.countApprovedRegistrationsForEvent(event._id);
+          : await registrationRepository.countApprovedRegistrationsForEvent(
+              event._id,
+            );
       if (approvedCount >= event.capacity) {
         throw new AppError("Event capacity has been reached", 400);
       }
@@ -49,7 +56,10 @@ export const registrationService = {
 
     let validCode = null;
     if (referralCode) {
-      const member = await registrationRepository.findPRMemberByCodeAndClub(referralCode, event.club);
+      const member = await registrationRepository.findPRMemberByCodeAndClub(
+        referralCode,
+        event.club,
+      );
       if (member) validCode = member.code;
     }
 
@@ -57,7 +67,10 @@ export const registrationService = {
     const screenshotPublicId = toTrimmedString(paymentScreenshotPublicId);
 
     if (!screenshotUrl || !screenshotPublicId) {
-      throw new AppError("Payment screenshot URL and public ID are required", 400);
+      throw new AppError(
+        "Payment screenshot URL and public ID are required",
+        400,
+      );
     }
 
     if (!isValidCloudinaryPublicId(screenshotPublicId)) {
@@ -66,6 +79,13 @@ export const registrationService = {
 
     if (!isValidCloudinaryImageUrl(screenshotUrl, screenshotPublicId)) {
       throw new AppError("Invalid payment screenshot URL", 400);
+    }
+
+    if (isCloudinaryConfigured()) {
+      await registrationUploadService.verifyUploadedAsset({
+        publicId: screenshotPublicId,
+        secureUrl: screenshotUrl,
+      });
     }
 
     try {
@@ -99,10 +119,11 @@ export const registrationService = {
     } catch (err) {
       if (err.code === 11000) {
         try {
-          const existing = await registrationRepository.findRegistrationByEventAndEmail(
-            event._id,
-            studentEmail
-          );
+          const existing =
+            await registrationRepository.findRegistrationByEventAndEmail(
+              event._id,
+              studentEmail,
+            );
 
           throw new ConflictError("You already registered for this event", {
             registrationId: existing?._id || null,
@@ -126,7 +147,7 @@ export const registrationService = {
     if (reg.status !== "needs_correction") {
       throw new AppError(
         `Cannot resubmit registration in '${reg.status}' status. Resubmission is only allowed when status is 'needs_correction'.`,
-        400
+        400,
       );
     }
 
@@ -144,11 +165,17 @@ export const registrationService = {
     let screenshotPublicId = reg.paymentScreenshotPublicId;
 
     if (paymentScreenshot || paymentScreenshotPublicId) {
-      screenshotUrl = toTrimmedString(paymentScreenshot) || reg.paymentScreenshot;
-      screenshotPublicId = toTrimmedString(paymentScreenshotPublicId) || reg.paymentScreenshotPublicId;
+      screenshotUrl =
+        toTrimmedString(paymentScreenshot) || reg.paymentScreenshot;
+      screenshotPublicId =
+        toTrimmedString(paymentScreenshotPublicId) ||
+        reg.paymentScreenshotPublicId;
 
       if (!screenshotUrl || !screenshotPublicId) {
-        throw new AppError("Payment screenshot URL and public ID are required when updating screenshot", 400);
+        throw new AppError(
+          "Payment screenshot URL and public ID are required when updating screenshot",
+          400,
+        );
       }
 
       if (!isValidCloudinaryPublicId(screenshotPublicId)) {
@@ -157,6 +184,13 @@ export const registrationService = {
 
       if (!isValidCloudinaryImageUrl(screenshotUrl, screenshotPublicId)) {
         throw new AppError("Invalid payment screenshot URL", 400);
+      }
+
+      if (isCloudinaryConfigured()) {
+        await registrationUploadService.verifyUploadedAsset({
+          publicId: screenshotPublicId,
+          secureUrl: screenshotUrl,
+        });
       }
     }
 
@@ -236,7 +270,10 @@ export const registrationService = {
 
   async checkDuplicate({ clubSlug, eventSlug, studentEmail }) {
     if (!clubSlug || !eventSlug || !studentEmail) {
-      throw new AppError("clubSlug, eventSlug, and studentEmail are required", 400);
+      throw new AppError(
+        "clubSlug, eventSlug, and studentEmail are required",
+        400,
+      );
     }
 
     const club = await registrationRepository.findClubBySlug(clubSlug);
@@ -244,15 +281,19 @@ export const registrationService = {
       throw new NotFoundError("Club not found");
     }
 
-    const event = await registrationRepository.findEventBySlugAndClub(eventSlug, club._id);
+    const event = await registrationRepository.findEventBySlugAndClub(
+      eventSlug,
+      club._id,
+    );
     if (!event) {
       throw new NotFoundError("Event not found");
     }
 
-    const existing = await registrationRepository.findRegistrationByEventAndEmail(
-      event._id,
-      studentEmail
-    );
+    const existing =
+      await registrationRepository.findRegistrationByEventAndEmail(
+        event._id,
+        studentEmail,
+      );
 
     if (existing) {
       return {
@@ -282,7 +323,8 @@ export const registrationService = {
       }
     }
 
-    const registrations = await registrationRepository.findRegistrationsByFilter(filter);
+    const registrations =
+      await registrationRepository.findRegistrationsByFilter(filter);
 
     return {
       registrations: registrations.map((r) => ({
@@ -346,7 +388,9 @@ export const registrationService = {
     try {
       const reg = await registrationRepository.findRegistrationById(id);
       if (!reg) {
-        res.write(`event: error\ndata: ${JSON.stringify({ error: "Registration not found" })}\n\n`);
+        res.write(
+          `event: error\ndata: ${JSON.stringify({ error: "Registration not found" })}\n\n`,
+        );
         return res.end();
       }
 
@@ -394,7 +438,9 @@ export const registrationService = {
         unsubscribe();
       });
     } catch (err) {
-      res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`,
+      );
       res.end();
     }
   },

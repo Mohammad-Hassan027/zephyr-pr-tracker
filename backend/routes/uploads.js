@@ -1,7 +1,6 @@
 import { Router } from "express";
-// import cloudinary from "../config/cloudinary.js";
 import rateLimit from "express-rate-limit";
-import crypto from "node:crypto";
+import registrationUploadService from "../services/registrations/registration-upload.service.js";
 
 const router = Router();
 
@@ -30,27 +29,16 @@ const signLimiter = rateLimit({
  * preventing abuse of the API credentials.
  */
 router.post("/sign", signLimiter, (req, res) => {
-  try {
-    const folder = "zephyr-payments";
-    const timestamp = Math.round(Date.now() / 1000);
-
-    // Build the string-to-sign exactly as the Cloudinary docs specify
-    const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
-    const signature = crypto
-      .createHash("sha256")
-      .update(paramsToSign + process.env.CLOUDINARY_API_SECRET)
-      .digest("hex");
-
-    return res.json({
-      timestamp,
-      signature,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      folder,
-    });
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to generate upload signature" });
-  }
+  return registrationUploadService
+    .generateUploadSignature()
+    .then((signature) => res.json(signature))
+    .catch((err) =>
+      res.status(err.statusCode || 500).json({
+        error: err.statusCode
+          ? err.message
+          : "Failed to generate upload signature",
+      }),
+    );
 });
 
 export default router;
