@@ -19,7 +19,11 @@ export async function createRegistration(req, res, next) {
 
 export async function resubmitRegistration(req, res, next) {
   try {
-    const result = await registrationService.resubmitRegistration(req.params.id, req.body);
+    const result = await registrationService.resubmitRegistration(
+      req.params.id,
+      req.body,
+      req.get("x-registration-token"),
+    );
     return res.status(200).json(result);
   } catch (err) {
     return next(err);
@@ -37,7 +41,10 @@ export async function checkDuplicate(req, res, next) {
 
 export async function lookupRegistrations(req, res, next) {
   try {
-    const result = await registrationService.lookupRegistrations(req.body);
+    const result = await registrationService.lookupRegistrations({
+      ...req.body,
+      accessToken: req.get("x-registration-token"),
+    });
     return res.json(result);
   } catch (err) {
     return next(err);
@@ -46,7 +53,10 @@ export async function lookupRegistrations(req, res, next) {
 
 export async function getRegistrationById(req, res, next) {
   try {
-    const result = await registrationService.getRegistrationById(req.params.id);
+    const result = await registrationService.getRegistrationById(
+      req.params.id,
+      req.get("x-registration-token"),
+    );
     return res.json(result);
   } catch (err) {
     return next(err);
@@ -55,7 +65,14 @@ export async function getRegistrationById(req, res, next) {
 
 export async function streamRegistrationStatus(req, res, next) {
   try {
-    return await registrationService.streamRegistrationStatus(req.params.id, req, res);
+    // Require X-Registration-Token. Do not accept query-string tokens because
+    // URLs can be logged or leaked through referrers and browser history.
+    return await registrationService.streamRegistrationStatus(
+      req.params.id,
+      req,
+      res,
+      req.get("x-registration-token"),
+    );
   } catch (err) {
     return next(err);
   }

@@ -9,9 +9,15 @@ const registrationSchema = new mongoose.Schema(
     amount: { type: Number, default: 0 },
     utr: { type: String, trim: true, default: "" }, // UPI transaction reference number
     regNo: { type: String, unique: true, sparse: true }, // assigned on approval only
-    event: { type: mongoose.Schema.Types.ObjectId, ref: "Event", required: true },
+    event: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Event",
+      required: true,
+    },
     club: { type: mongoose.Schema.Types.ObjectId, ref: "Club", required: true },
     referralCode: { type: String, uppercase: true, trim: true, default: null }, // PRMember.code, null if direct/organic
+    accessTokenHash: { type: String, select: false, index: true },
+    accessTokenIssuedAt: { type: Date, default: null },
 
     // UPI payment proof, hosted on Cloudinary
     paymentScreenshot: { type: String, required: true }, // secure_url
@@ -19,7 +25,14 @@ const registrationSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "needs_correction", "resubmitted", "under_review"],
+      enum: [
+        "pending",
+        "approved",
+        "rejected",
+        "needs_correction",
+        "resubmitted",
+        "under_review",
+      ],
       default: "pending",
     },
     reviewedBy: { type: String, default: null }, // PRMember.code that approved/rejected
@@ -38,7 +51,7 @@ const registrationSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Prevent duplicate signup for same event+email

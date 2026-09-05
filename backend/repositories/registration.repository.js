@@ -143,8 +143,12 @@ export const registrationRepository = {
     return Registration.create(data);
   },
 
-  async findRegistrationById(id, { populate = true, session = null } = {}) {
+  async findRegistrationById(
+    id,
+    { populate = true, session = null, selectAccessToken = false } = {},
+  ) {
     let query = Registration.findById(id);
+    if (selectAccessToken) query = query.select("+accessTokenHash");
     if (populate) {
       query = query
         .populate("event", "name slug date venue fee description capacity approvedCount")

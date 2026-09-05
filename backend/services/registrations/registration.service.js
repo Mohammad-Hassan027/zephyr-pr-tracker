@@ -8,6 +8,18 @@ import { AppError, ConflictError, NotFoundError } from "../../utils/errors.js";
 import { statusEmitter } from "../../utils/statusEmitter.js";
 import { isCloudinaryConfigured } from "../../config/cloudinary.js";
 import { registrationUploadService } from "./registration-upload.service.js";
+import {
+  hashRegistrationAccessToken,
+  isValidRegistrationAccessToken,
+  issueRegistrationAccessToken,
+} from "../../utils/registration-access.js";
+
+function requireRegistrationAccess(registration, accessToken) {
+  if (!registration || !isValidRegistrationAccessToken(accessToken, registration.accessTokenHash)) {
+    // Do not reveal whether an ID belongs to a real registration.
+    throw new NotFoundError("Registration not found");
+  }
+}
 
 export const registrationService = {
   async createRegistration(body) {
@@ -89,6 +101,7 @@ export const registrationService = {
     }
 
     try {
+      const { rawToken, tokenHash } = issueRegistrationAccessToken();
       const initialHistory = [
         {
           action: "submitted",
@@ -111,11 +124,14 @@ export const registrationService = {
         referralCode: validCode,
         paymentScreenshot: screenshotUrl,
         paymentScreenshotPublicId: screenshotPublicId,
+        accessTokenHash: tokenHash,
+        accessTokenIssuedAt: new Date(),
         status: "pending",
         history: initialHistory,
       });
 
-      return { id: registration._id, status: registration.status };
+      // Return the raw token once. Never persist or log it.
+      return { id: registration._id, status: registration.status, accessToken: rawToken };
     } catch (err) {
       if (err.code === 11000) {
         try {
@@ -138,11 +154,12 @@ export const registrationService = {
     }
   },
 
-  async resubmitRegistration(id, body) {
-    const reg = await registrationRepository.findRegistrationById(id);
+  async resubmitRegistration(id, body, accessToken) {
+    const reg = await registrationRepository.findRegistrationById(id, { selectAccessToken: true });
     if (!reg) {
       throw new NotFoundError("Registration not found");
     }
+    requireRegistrationAccess(reg, accessToken);
 
     if (reg.status !== "needs_correction") {
       throw new AppError(
@@ -298,7 +315,6 @@ export const registrationService = {
     if (existing) {
       return {
         exists: true,
-        registrationId: existing._id,
         status: existing.status,
         regNo: existing.regNo || null,
       };
@@ -307,13 +323,17 @@ export const registrationService = {
     return { exists: false };
   },
 
-  async lookupRegistrations({ studentEmail, clubSlug }) {
+  async lookupRegistrations({ studentEmail, clubSlug, accessToken }) {
     if (!studentEmail) {
       throw new AppError("Student email is required", 400);
+    }
+    if (!accessToken) {
+      throw new AppError("Registration access token is required", 401);
     }
 
     const filter = {
       studentEmail: String(studentEmail).trim().toLowerCase(),
+      accessTokenHash: hashRegistrationAccessToken(accessToken),
     };
 
     if (clubSlug) {
@@ -350,11 +370,12 @@ export const registrationService = {
     };
   },
 
-  async getRegistrationById(id) {
-    const reg = await registrationRepository.findRegistrationById(id);
+  async getRegistrationById(id, accessToken) {
+    const reg = await registrationRepository.findRegistrationById(id, { selectAccessToken: true });
     if (!reg) {
       throw new NotFoundError("Not found");
     }
+    requireRegistrationAccess(reg, accessToken);
 
     return {
       id: reg._id,
@@ -378,7 +399,7 @@ export const registrationService = {
     };
   },
 
-  async streamRegistrationStatus(id, req, res) {
+  async streamRegistrationStatus(id, req, res, accessToken) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
@@ -386,13 +407,14 @@ export const registrationService = {
     res.flushHeaders?.();
 
     try {
-      const reg = await registrationRepository.findRegistrationById(id);
+      const reg = await registrationRepository.findRegistrationById(id, { selectAccessToken: true });
       if (!reg) {
         res.write(
           `event: error\ndata: ${JSON.stringify({ error: "Registration not found" })}\n\n`,
         );
         return res.end();
       }
+      requireRegistrationAccess(reg, accessToken);
 
       const payload = {
         id: reg._id,
