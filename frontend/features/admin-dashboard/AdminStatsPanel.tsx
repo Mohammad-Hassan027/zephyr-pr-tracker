@@ -1,4 +1,4 @@
-import { Settings } from "@/lib/icons";
+import { Settings, Download } from "@/lib/icons";
 import type { ClubInfo } from "./admin-dashboard.types";
 
 interface AdminStatsPanelProps {
@@ -6,6 +6,7 @@ interface AdminStatsPanelProps {
   eventCount: number;
   memberCount: number;
   onOpenSettings: () => void;
+  onOpenExport?: () => void;
 }
 
 export function AdminStatsPanel({
@@ -13,6 +14,7 @@ export function AdminStatsPanel({
   eventCount,
   memberCount,
   onOpenSettings,
+  onOpenExport,
 }: AdminStatsPanelProps) {
   return (
     <section className="surface-card p-5 sm:p-7">
@@ -43,10 +45,21 @@ export function AdminStatsPanel({
             <p className="font-mono text-base font-bold text-zinc-900">{memberCount}</p>
             <p className="text-[10px] font-mono uppercase text-zinc-400">PR Members</p>
           </div>
+          {onOpenExport && (
+            <button
+              type="button"
+              onClick={onOpenExport}
+              className="btn-primary px-3 py-2 text-xs"
+              title="Export Club Data"
+            >
+              <Download size={13} className="shrink-0" aria-hidden="true" />
+              Export
+            </button>
+          )}
           <button
             type="button"
             onClick={onOpenSettings}
-            className="btn-secondary col-span-2 px-3 py-2 text-xs min-[480px]:col-auto"
+            className="btn-secondary px-3 py-2 text-xs"
             title="Club Settings"
           >
             <Settings size={13} className="shrink-0" aria-hidden="true" />

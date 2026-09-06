@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { SlidersHorizontal, Download, ChevronLeft, ChevronRight, Eye } from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
+import { downloadExport } from "@/lib/api/export";
 
 type AuditRegistration = {
   _id: string;
@@ -132,77 +133,21 @@ export default function AuditPage() {
     return Array.from(set).sort();
   }, [registrations]);
 
-  // CSV Export Handler
+  // Streaming CSV Export Handler
   async function handleExportCsv() {
     setExporting(true);
     try {
-      const params = new URLSearchParams();
-      params.set("page", "1");
-      params.set("limit", "1000"); // export up to 1000 matching records
-      if (statusFilter !== "all") params.set("status", statusFilter);
-      if (debouncedReviewerFilter.trim()) {
-        params.set("reviewer", debouncedReviewerFilter.trim());
-      }
-      if (fromDate) params.set("from", fromDate);
-      if (toDate) params.set("to", toDate);
-
-      const res = await fetch(`/api/admin/registrations/audit?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to export data");
-      const data = await res.json();
-      const items: AuditRegistration[] = data.items ?? data;
-
-      if (!items.length) {
-        alert("No records to export with current filters.");
-        return;
-      }
-
-      const headers = [
-        "Reg No",
-        "Student Name",
-        "Student Email",
-        "Student Phone",
-        "College",
-        "Event",
-        "Amount (INR)",
-        "UTR / Ref",
-        "Referral Code",
-        "Status",
-        "Reviewed By",
-        "Rejection Reason",
-        "Submitted At",
-        "Reviewed At",
-      ];
-
-      const csvRows = [
-        headers.join(","),
-        ...items.map((r) =>
-          [
-            `"${r.regNo || ""}"`,
-            `"${(r.studentName || "").replace(/"/g, '""')}"`,
-            `"${(r.studentEmail || "").replace(/"/g, '""')}"`,
-            `"${(r.studentPhone || "").replace(/"/g, '""')}"`,
-            `"${(r.college || "").replace(/"/g, '""')}"`,
-            `"${(r.event?.name || "").replace(/"/g, '""')}"`,
-            r.amount ?? 0,
-            `"${(r.utr || "").replace(/"/g, '""')}"`,
-            `"${r.referralCode || ""}"`,
-            `"${r.status}"`,
-            `"${r.reviewedBy || ""}"`,
-            `"${(r.rejectionReason || "").replace(/"/g, '""')}"`,
-            `"${r.createdAt ? new Date(r.createdAt).toISOString() : ""}"`,
-            `"${r.updatedAt ? new Date(r.updatedAt).toISOString() : ""}"`,
-          ].join(","),
-        ),
-      ];
-
-      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `zephyr-audit-export-${new Date().toISOString().split("T")[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await downloadExport(
+        {
+          type: "all",
+          status: statusFilter !== "all" ? statusFilter : undefined,
+          code: debouncedReviewerFilter.trim() || undefined,
+          from: fromDate || undefined,
+          to: toDate || undefined,
+          dateField: "updatedAt",
+        },
+        "admin",
+      );
     } catch (err: any) {
       alert(err.message || "Failed to generate CSV export");
     } finally {

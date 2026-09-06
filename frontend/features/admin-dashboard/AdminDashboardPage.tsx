@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Header from "@/components/Header";
 import PRQueue from "@/components/PRQueue";
 import { Settings } from "@/lib/icons";
@@ -7,8 +8,10 @@ import { useAdminDashboard } from "./useAdminDashboard";
 import { AdminStatsPanel } from "./AdminStatsPanel";
 import { AdminLeaderboard } from "./AdminLeaderboard";
 import { AdminAuditTable } from "./AdminAuditTable";
+import { AdminExportModal } from "./AdminExportModal";
 
 export function AdminDashboardPage() {
+  const [showExportModal, setShowExportModal] = useState(false);
   const {
     club,
     members,
@@ -61,6 +64,7 @@ export function AdminDashboardPage() {
           eventCount={events.length}
           memberCount={members.length}
           onOpenSettings={openSettingsModal}
+          onOpenExport={() => setShowExportModal(true)}
         />
 
         {msg && (
@@ -103,6 +107,13 @@ export function AdminDashboardPage() {
           </div>
           <PRQueue />
         </section>
+
+        {/* Export Data Modal */}
+        <AdminExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          events={events}
+        />
 
         {/* Edit Event Modal */}
         {editEventModal.isOpen && (

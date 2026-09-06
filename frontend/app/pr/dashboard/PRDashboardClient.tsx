@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import PRHeader from "@/components/PRHeader";
 import PRQueue from "@/components/PRQueue";
+import { Download } from "@/lib/icons";
 import { getPRMemberStats } from "@/lib/api/members";
 import type { PRMemberStats } from "@/lib/api/members";
+import { downloadExport } from "@/lib/api/export";
 import { useChangePRPin } from "@/features/pr-dashboard/useChangePRPin";
 
 export default function PRDashboardClient({ code }: { code: string }) {
   const [stats, setStats] = useState<PRMemberStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [activeTab, setActiveTab] = useState<"queue" | "referrals">("queue");
+  const [exporting, setExporting] = useState(false);
 
   const {
     pinModalOpen,
@@ -45,6 +48,17 @@ export default function PRDashboardClient({ code }: { code: string }) {
   useEffect(() => {
     loadStats();
   }, []);
+
+  async function handleExportReferrals() {
+    setExporting(true);
+    try {
+      await downloadExport({ type: "all", code }, "pr");
+    } catch (err: any) {
+      alert(err.message || "Failed to export referrals");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const totalReferrals = stats
     ? stats.totalApproved + stats.totalPending + stats.totalRejected
@@ -162,13 +176,25 @@ export default function PRDashboardClient({ code }: { code: string }) {
               <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-900">
                 Registrations Referred by {code}
               </h2>
-              <button
-                type="button"
-                onClick={loadStats}
-                className="min-h-8 self-start text-xs font-medium text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                Refresh Log
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportReferrals}
+                  disabled={exporting || !stats?.referrals?.length}
+                  className="btn-primary min-h-8 px-3 py-1.5 text-xs disabled:opacity-50"
+                  title="Export Referral CSV"
+                >
+                  <Download size={13} className="shrink-0" aria-hidden="true" />
+                  <span>{exporting ? "Exporting..." : "Export CSV"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={loadStats}
+                  className="min-h-8 self-start text-xs font-medium text-brand-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                >
+                  Refresh Log
+                </button>
+              </div>
             </div>
 
             {loadingStats ? (
