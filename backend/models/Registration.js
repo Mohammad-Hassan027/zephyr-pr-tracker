@@ -40,6 +40,13 @@ const registrationSchema = new mongoose.Schema(
     correctionNote: { type: String, default: null },
     lastCorrectionRequestedAt: { type: Date, default: null },
     resubmittedAt: { type: Date, default: null },
+    customFields: { type: mongoose.Schema.Types.Mixed, default: {} },
+    attendanceStatus: {
+      type: String,
+      enum: ["present", "absent", "not_marked"],
+      default: "not_marked",
+    },
+    checkedInAt: { type: Date, default: null },
     history: [
       {
         action: { type: String, required: true },

@@ -31,6 +31,7 @@ import {
   checkCapacityConsistency,
   reconcileCapacityCounters,
 } from "../controllers/registration-capacity.controller.js";
+import { exportRegistrations } from "../controllers/registration-export.controller.js";
 
 const router = Router();
 
@@ -53,7 +54,8 @@ router.post("/check-duplicate", checkDuplicate);
 router.post("/lookup", lookupRegistrations);
 router.post("/:id/resubmit", resubmitRegistration);
 
-// Admin & PR Member Statistics, Queues, Audit
+// Admin & PR Member Statistics, Queues, Audit & Export
+router.get("/export", requireClubOrPRMember, exportRegistrations);
 router.get("/queue/pending", requireClubOrPRMember, getPendingQueue);
 router.get("/stats/summary", requireClub, getStatsSummary);
 router.get("/stats/leaderboard", requireClub, getLeaderboard);
