@@ -48,6 +48,20 @@ const nextConfig = {
     ];
   },
   async headers() {
+    const connectSrcOrigins = [
+      "'self'",
+      "https://vercel.live",
+      "https://api.cloudinary.com",
+      "https://*.onrender.com",
+      backendOrigin,
+      "wss://ws-us3.pusher.com",
+      "wss://*.pusher.com",
+      "https://*.pusher.com",
+      isDev ? "ws://localhost:* http://localhost:*" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return [
       {
         source: "/(.*)",
@@ -72,7 +86,7 @@ const nextConfig = {
               // vercel.live is needed for the Vercel preview feedback widget.
               `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://vercel.live`,
               // localhost WebSocket is required for HMR in development only.
-              `connect-src 'self' https://vercel.live wss://ws-us3.pusher.com${isDev ? " ws://localhost:* http://localhost:*" : ""}`,
+              `connect-src ${connectSrcOrigins}`,
               "frame-src https://vercel.live",
               // vercel.live + assets.vercel.com required for Vercel Toolbar fonts
               "font-src 'self' https://vercel.live https://assets.vercel.com",
