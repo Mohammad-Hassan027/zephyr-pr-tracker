@@ -73,6 +73,29 @@ export function validateEnv(options = {}) {
     warnings.push("Cloudinary configuration missing. File upload signature generation will be disabled.");
   }
 
+  // 6. Email Provider Configuration
+  const emailProvider = (process.env.EMAIL_PROVIDER || (isTest ? "mock" : "console")).toLowerCase().trim();
+  const validProviders = ["console", "mock", "smtp", "nodemailer"];
+  if (!validProviders.includes(emailProvider)) {
+    errors.push(`Invalid EMAIL_PROVIDER '${emailProvider}'. Must be one of: ${validProviders.join(", ")}`);
+  }
+
+  if (["smtp", "nodemailer"].includes(emailProvider)) {
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
+
+    if (!smtpHost) errors.push("SMTP_HOST is required when EMAIL_PROVIDER is smtp/nodemailer.");
+    if (!smtpPort) {
+      errors.push("SMTP_PORT is required when EMAIL_PROVIDER is smtp/nodemailer.");
+    } else if (isNaN(Number(smtpPort)) || Number(smtpPort) <= 0 || Number(smtpPort) > 65535) {
+      errors.push(`SMTP_PORT must be a valid port number (1-65535). Received: ${smtpPort}`);
+    }
+    if (!smtpUser) warnings.push("SMTP_USER is not set; attempting unauthenticated SMTP.");
+    if (!smtpPass && smtpUser) warnings.push("SMTP_PASSWORD is not set while SMTP_USER is specified.");
+  }
+
   if (errors.length > 0) {
     const diagnosticMessage = [
       "============================================================",
@@ -100,6 +123,15 @@ export function validateEnv(options = {}) {
     platformAdminPassword: PLATFORM_ADMIN_PASSWORD,
     clientOrigin: CLIENT_ORIGIN || "*",
     isCloudinaryConfigured: hasFullCloudinary,
+    email: {
+      provider: emailProvider,
+      from: process.env.EMAIL_FROM || "Zephyr Events <noreply@zephyr.local>",
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS,
+      secure: process.env.SMTP_SECURE === "true" || process.env.SMTP_PORT === "465",
+    },
   };
 }
 
