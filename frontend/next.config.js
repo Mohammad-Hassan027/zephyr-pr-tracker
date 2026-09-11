@@ -48,6 +48,14 @@ const nextConfig = {
     ];
   },
   async headers() {
+    const backendApiUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL;
+    const backendOrigin =
+      backendApiUrl && /^(https?:)?\/\//.test(backendApiUrl)
+        ? backendApiUrl.replace(/\/api\/?$/, "")
+        : "";
     const connectSrcOrigins = [
       "'self'",
       "https://vercel.live",
