@@ -21,10 +21,10 @@ export const registrationUploadService = {
 
     const timestamp = Math.round(Date.now() / 1000);
     const paramsToSign = {
+      allowed_formats: CLOUDINARY_ALLOWED_FORMATS.join(","),
       folder: CLOUDINARY_UPLOAD_FOLDER,
       timestamp,
       upload_preset: uploadPreset,
-      resource_type: "image",
     };
     const signature = cloudinary.utils.api_sign_request(
       paramsToSign,

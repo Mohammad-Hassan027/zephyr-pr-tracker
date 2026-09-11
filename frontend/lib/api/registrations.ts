@@ -30,6 +30,10 @@ export async function uploadPaymentScreenshot(file: File): Promise<{
   paymentScreenshot: string;
   paymentScreenshotPublicId: string;
 }> {
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Payment screenshot must be 5MB or smaller");
+  }
+
   const signatureData = await apiFetch<UploadSignature & { error?: string }>(
     "/registrations/upload-signature",
     { method: "GET", cache: "no-store" },
@@ -42,9 +46,7 @@ export async function uploadPaymentScreenshot(file: File): Promise<{
   uploadBody.append("signature", signatureData.signature);
   uploadBody.append("folder", signatureData.folder);
   uploadBody.append("upload_preset", signatureData.upload_preset);
-  uploadBody.append("resource_type", signatureData.resource_type);
   uploadBody.append("allowed_formats", signatureData.allowed_formats.join(","));
-  uploadBody.append("max_file_size", String(signatureData.max_file_size));
 
   const uploadRes = await fetch(
     `https://api.cloudinary.com/v1_1/${signatureData.cloud_name}/image/upload`,
@@ -107,6 +109,7 @@ export async function getRegistrationStatus(
     return await apiFetch<RegistrationStatus>(`/registrations/${id}`, {
       cache: "no-store",
       headers,
+      params: token ? { token } : undefined,
     });
   } catch {
     throw new Error("Registration not found");

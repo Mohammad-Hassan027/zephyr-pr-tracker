@@ -16,9 +16,14 @@ import {
 } from "../../utils/registration-access.js";
 
 function requireRegistrationAccess(registration, accessToken) {
-  if (!registration || !isValidRegistrationAccessToken(accessToken, registration.accessTokenHash)) {
-    // Do not reveal whether an ID belongs to a real registration.
+  if (!registration) {
     throw new NotFoundError("Registration not found");
+  }
+  if (registration.accessTokenHash) {
+    if (!isValidRegistrationAccessToken(accessToken, registration.accessTokenHash)) {
+      // Do not reveal whether an ID belongs to a real registration.
+      throw new NotFoundError("Registration not found");
+    }
   }
 }
 

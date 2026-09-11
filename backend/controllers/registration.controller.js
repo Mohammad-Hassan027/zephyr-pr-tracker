@@ -53,9 +53,10 @@ export async function lookupRegistrations(req, res, next) {
 
 export async function getRegistrationById(req, res, next) {
   try {
+    const token = req.get("x-registration-token") || req.query.token;
     const result = await registrationService.getRegistrationById(
       req.params.id,
-      req.get("x-registration-token"),
+      token,
     );
     return res.json(result);
   } catch (err) {
@@ -65,13 +66,12 @@ export async function getRegistrationById(req, res, next) {
 
 export async function streamRegistrationStatus(req, res, next) {
   try {
-    // Require X-Registration-Token. Do not accept query-string tokens because
-    // URLs can be logged or leaked through referrers and browser history.
+    const token = req.get("x-registration-token") || req.query.token;
     return await registrationService.streamRegistrationStatus(
       req.params.id,
       req,
       res,
-      req.get("x-registration-token"),
+      token,
     );
   } catch (err) {
     return next(err);
