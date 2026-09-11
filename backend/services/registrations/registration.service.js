@@ -8,6 +8,7 @@ import { AppError, ConflictError, NotFoundError } from "../../utils/errors.js";
 import { statusEmitter } from "../../utils/statusEmitter.js";
 import { isCloudinaryConfigured } from "../../config/cloudinary.js";
 import { registrationUploadService } from "./registration-upload.service.js";
+import { emailService } from "../email/email.service.js";
 import {
   hashRegistrationAccessToken,
   isValidRegistrationAccessToken,
@@ -128,6 +129,11 @@ export const registrationService = {
         accessTokenIssuedAt: new Date(),
         status: "pending",
         history: initialHistory,
+      });
+
+      // Dispatch asynchronous confirmation email non-blockingly
+      emailService.sendRegistrationSubmitted(registration, event, club).catch((emailErr) => {
+        console.error("Non-blocking email dispatch failed for registration submission:", emailErr?.message || emailErr);
       });
 
       // Return the raw token once. Never persist or log it.
@@ -277,6 +283,23 @@ export const registrationService = {
     };
 
     statusEmitter.emitStatusUpdate(id, responseData);
+
+    // Dispatch payment proof resubmission notification non-blockingly
+    (async () => {
+      try {
+        let eventDoc = reg.event;
+        let clubDoc = reg.club;
+        if (eventDoc && !eventDoc.name) {
+          eventDoc = await registrationRepository.findEventById(eventDoc).catch(() => null);
+        }
+        if (clubDoc && !clubDoc.name) {
+          clubDoc = await registrationRepository.findClubById(clubDoc).catch(() => null);
+        }
+        await emailService.sendPaymentProofUploaded(reg, eventDoc, clubDoc);
+      } catch (emailErr) {
+        console.error("Non-blocking email dispatch failed for payment proof resubmission:", emailErr?.message || emailErr);
+      }
+    })();
 
     return {
       ok: true,

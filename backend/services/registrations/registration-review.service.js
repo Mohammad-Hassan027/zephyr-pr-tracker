@@ -4,6 +4,7 @@ import { withTransaction } from "../../utils/transaction.js";
 import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../../utils/errors.js";
 import { statusEmitter } from "../../utils/statusEmitter.js";
 import cloudinary, { isCloudinaryConfigured } from "../../config/cloudinary.js";
+import { emailService } from "../email/email.service.js";
 
 const REVIEWABLE_STATUSES = ["pending", "resubmitted", "under_review", "needs_correction"];
 
@@ -88,6 +89,23 @@ export const registrationReviewService = {
     });
 
     statusEmitter.emitStatusUpdate(id, result);
+
+    // Dispatch correction requested email non-blockingly
+    (async () => {
+      try {
+        let eventDoc = result.event;
+        let clubDoc = eventDoc?.club;
+        if (eventDoc && !eventDoc.name) {
+          eventDoc = await registrationRepository.findEventById(eventDoc).catch(() => null);
+        }
+        if (clubDoc && !clubDoc.name) {
+          clubDoc = await registrationRepository.findClubById(clubDoc).catch(() => null);
+        }
+        await emailService.sendCorrectionRequested(result, eventDoc, clubDoc, trimmedNote);
+      } catch (emailErr) {
+        console.error("Non-blocking email dispatch failed for correction request:", emailErr?.message || emailErr);
+      }
+    })();
 
     return {
       ok: true,
@@ -204,6 +222,35 @@ export const registrationReviewService = {
 
     statusEmitter.emitStatusUpdate(id, result);
 
+    // Dispatch approval confirmation and capacity alerts non-blockingly
+    if (!result._alreadyApproved) {
+      (async () => {
+        try {
+          let eventDoc = result.event;
+          let clubDoc = eventDoc?.club;
+          if (eventDoc && !eventDoc.name) {
+            eventDoc = await registrationRepository.findEventById(eventDoc).catch(() => null);
+          }
+          if (clubDoc && !clubDoc.name) {
+            clubDoc = await registrationRepository.findClubById(clubDoc).catch(() => null);
+          }
+          await emailService.sendRegistrationApproved(result, eventDoc, clubDoc);
+
+          // Capacity alert checks for organizers
+          const snap = result.capacitySnapshot;
+          if (snap && typeof snap.capacity === "number" && snap.capacity > 0) {
+            if (snap.isFull) {
+              await emailService.sendEventClosed(eventDoc, clubDoc, snap, [auth?.email].filter(Boolean));
+            } else if (snap.approvedCount >= Math.ceil(snap.capacity * 0.8)) {
+              await emailService.sendEventCapacityNearlyFull(eventDoc, clubDoc, snap, [auth?.email].filter(Boolean));
+            }
+          }
+        } catch (emailErr) {
+          console.error("Non-blocking email dispatch failed for registration approval:", emailErr?.message || emailErr);
+        }
+      })();
+    }
+
     return {
       ok: true,
       message: "Registration approved successfully",
@@ -283,6 +330,23 @@ export const registrationReviewService = {
     }
 
     statusEmitter.emitStatusUpdate(id, result);
+
+    // Dispatch rejection email non-blockingly
+    (async () => {
+      try {
+        let eventDoc = result.event;
+        let clubDoc = eventDoc?.club;
+        if (eventDoc && !eventDoc.name) {
+          eventDoc = await registrationRepository.findEventById(eventDoc).catch(() => null);
+        }
+        if (clubDoc && !clubDoc.name) {
+          clubDoc = await registrationRepository.findClubById(clubDoc).catch(() => null);
+        }
+        await emailService.sendRegistrationRejected(result, eventDoc, clubDoc, reason);
+      } catch (emailErr) {
+        console.error("Non-blocking email dispatch failed for registration rejection:", emailErr?.message || emailErr);
+      }
+    })();
 
     return {
       ok: true,
@@ -396,6 +460,22 @@ export const registrationReviewService = {
 
     for (const item of results) {
       statusEmitter.emitStatusUpdate(item.id, item);
+      // Dispatch bulk approval email non-blockingly
+      (async () => {
+        try {
+          let eventDoc = item.event;
+          let clubDoc = eventDoc?.club;
+          if (eventDoc && !eventDoc.name) {
+            eventDoc = await registrationRepository.findEventById(eventDoc).catch(() => null);
+          }
+          if (clubDoc && !clubDoc.name) {
+            clubDoc = await registrationRepository.findClubById(clubDoc).catch(() => null);
+          }
+          await emailService.sendRegistrationApproved(item, eventDoc, clubDoc);
+        } catch (emailErr) {
+          console.error("Non-blocking bulk approval email dispatch failed:", emailErr?.message || emailErr);
+        }
+      })();
     }
 
     return {
@@ -499,6 +579,22 @@ export const registrationReviewService = {
 
     for (const item of results) {
       statusEmitter.emitStatusUpdate(item.id, item);
+      // Dispatch bulk rejection email non-blockingly
+      (async () => {
+        try {
+          let eventDoc = item.event;
+          let clubDoc = eventDoc?.club;
+          if (eventDoc && !eventDoc.name) {
+            eventDoc = await registrationRepository.findEventById(eventDoc).catch(() => null);
+          }
+          if (clubDoc && !clubDoc.name) {
+            clubDoc = await registrationRepository.findClubById(clubDoc).catch(() => null);
+          }
+          await emailService.sendRegistrationRejected(item, eventDoc, clubDoc, rejectionReason);
+        } catch (emailErr) {
+          console.error("Non-blocking bulk rejection email dispatch failed:", emailErr?.message || emailErr);
+        }
+      })();
     }
 
     return {
