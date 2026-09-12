@@ -220,6 +220,81 @@ export const registrationRepository = {
     return query.lean();
   },
 
+  async findRegistrationByRegNo(regNo, { populate = true, session = null } = {}) {
+    if (!regNo) return null;
+    let query = Registration.findOne({ regNo: String(regNo).trim().toUpperCase() });
+    if (populate) {
+      query = query
+        .populate("event", "name slug date venue fee description capacity approvedCount")
+        .populate("club", "name slug email");
+    }
+    if (session) query = query.session(session);
+    return query;
+  },
+
+  async searchApprovedRegistrations({ clubId, eventId, search, limit = 20 }) {
+    const filter = {
+      status: "approved",
+      club: clubId,
+    };
+    if (eventId) {
+      filter.event = eventId;
+    }
+
+    if (search && String(search).trim()) {
+      const term = String(search).trim();
+      const regex = new RegExp(term, "i");
+      filter.$or = [
+        { regNo: { $regex: new RegExp(`^${term}`, "i") } },
+        { studentName: regex },
+        { studentEmail: regex },
+        { studentPhone: regex },
+        { utr: regex },
+      ];
+    }
+
+    return Registration.find(filter)
+      .populate("event", "name slug date venue fee")
+      .populate("club", "name slug")
+      .sort({ checkedInAt: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+  },
+
+  async countAttendanceForEvent(eventId) {
+    if (!eventId) return { approved: 0, present: 0, absent: 0, notMarked: 0 };
+    const [stats] = await Registration.aggregate([
+      { $match: { event: new mongoose.Types.ObjectId(String(eventId)), status: "approved" } },
+      {
+        $group: {
+          _id: null,
+          approved: { $sum: 1 },
+          present: {
+            $sum: { $cond: [{ $eq: ["$attendanceStatus", "present"] }, 1, 0] },
+          },
+          absent: {
+            $sum: { $cond: [{ $eq: ["$attendanceStatus", "absent"] }, 1, 0] },
+          },
+          notMarked: {
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $eq: ["$attendanceStatus", "not_marked"] },
+                    { $not: ["$attendanceStatus"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+    return stats || { approved: 0, present: 0, absent: 0, notMarked: 0 };
+  },
+
   async getNextRegistrationSequence(session = null) {
     const seq = await nextSequence("regNo", session);
     return `REG-${String(seq).padStart(4, "0")}`;

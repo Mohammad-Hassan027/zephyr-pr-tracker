@@ -1,7 +1,7 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { setupTestDb, teardownTestDb } from "./setup-test-db.js";
 import Club from "../models/Club.js";
 import Event from "../models/Event.js";
 import Registration from "../models/Registration.js";
@@ -21,25 +21,21 @@ async function runCorrectionWorkflowTests() {
   delete process.env.CLOUDINARY_API_KEY;
   delete process.env.CLOUDINARY_API_SECRET;
 
-  const mongoServer = await MongoMemoryReplSet.create({
-    replSet: { count: 1 },
-  });
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
+  await setupTestDb();
 
   try {
-    // Setup test Club, Event, and PR Member
+    const testSuffix = Math.random().toString(36).slice(2, 7);
     const club = await Club.create({
-      name: "Tech Club",
-      slug: "tech-club",
-      email: "tech@club.com",
+      name: `Tech Club ${testSuffix}`,
+      slug: `tech-club-${testSuffix}`,
+      email: `tech-${testSuffix}@club.com`,
       passwordHash: "hash123",
       approvedAt: new Date(),
     });
 
     const event = await Event.create({
-      name: "Hackathon 2026",
-      slug: "hackathon-2026",
+      name: `Hackathon ${testSuffix}`,
+      slug: `hackathon-${testSuffix}`,
       club: club._id,
       date: new Date(),
       venue: "Main Hall",
@@ -48,8 +44,8 @@ async function runCorrectionWorkflowTests() {
     });
 
     const prMember = await PRMember.create({
-      name: "John PR",
-      code: "JOHN123",
+      name: `John PR ${testSuffix}`,
+      code: `J${testSuffix.toUpperCase()}`,
       club: club._id,
       passwordHash: "hash",
     });
@@ -250,8 +246,7 @@ async function runCorrectionWorkflowTests() {
       "\n=== ALL CORRECTION & RESUBMISSION WORKFLOW TESTS PASSED ===",
     );
   } finally {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    await teardownTestDb();
     for (const [key, value] of Object.entries(cloudinaryEnv)) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;

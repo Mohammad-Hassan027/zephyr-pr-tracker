@@ -83,22 +83,39 @@ export const registrationStatsService = {
     const clubObjId = new mongoose.Types.ObjectId(String(clubId));
 
     const events = await registrationRepository.findEventsByClub(clubId);
-    const approvedCounts = await registrationRepository.aggregate([
-      { $match: { status: "approved", club: clubObjId } },
-      { $group: { _id: "$event", count: { $sum: 1 } } },
+    const [approvedCounts, attendanceCounts] = await Promise.all([
+      registrationRepository.aggregate([
+        { $match: { status: "approved", club: clubObjId } },
+        { $group: { _id: "$event", count: { $sum: 1 } } },
+      ]),
+      registrationRepository.aggregate([
+        { $match: { status: "approved", attendanceStatus: "present", club: clubObjId } },
+        { $group: { _id: "$event", checkedInCount: { $sum: 1 } } },
+      ]),
     ]);
 
     const countsMap = Object.fromEntries(
       approvedCounts.map((item) => [String(item._id), item.count])
     );
+    const attendanceMap = Object.fromEntries(
+      attendanceCounts.map((item) => [String(item._id), item.checkedInCount])
+    );
 
-    const stats = events.map((ev) => ({
-      eventId: ev._id,
-      name: ev.name,
-      slug: ev.slug,
-      capacity: ev.capacity,
-      count: countsMap[String(ev._id)] || 0,
-    }));
+    const stats = events.map((ev) => {
+      const count = countsMap[String(ev._id)] || 0;
+      const checkedInCount = attendanceMap[String(ev._id)] || 0;
+      const attendanceRate = count > 0 ? Math.round((checkedInCount / count) * 100) : 0;
+
+      return {
+        eventId: ev._id,
+        name: ev.name,
+        slug: ev.slug,
+        capacity: ev.capacity,
+        count,
+        checkedInCount,
+        attendanceRate,
+      };
+    });
 
     stats.sort((a, b) => b.count - a.count);
     return stats;

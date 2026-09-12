@@ -6,8 +6,8 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "node scripts/test-transaction-logic.js && node tests/registration.domain.test.js && node tests/auth.domain.test.js && node tests/correction.workflow.test.js && node tests/capacity.reservation.test.js && node tests/export.domain.test.js && node --test tests/email.domain.test.js",
-    "test:integration": "node tests/phase0.remediation.test.js && node tests/registration.routes.test.js && node tests/auth.routes.test.js && node tests/pr.login.test.js && node tests/sec03.identity.test.js && node tests/sec02.pin.change.test.js && node tests/export.routes.test.js && node --test tests/email.integration.test.js",
+    "test:unit": "node scripts/test-transaction-logic.js && node tests/registration.domain.test.js && node tests/auth.domain.test.js && node tests/correction.workflow.test.js && node tests/capacity.reservation.test.js && node tests/export.domain.test.js && node --test tests/email.domain.test.js && node --test tests/entry-pass.domain.test.js",
+    "test:integration": "node tests/phase0.remediation.test.js && node tests/registration.routes.test.js && node tests/auth.routes.test.js && node tests/pr.login.test.js && node tests/sec03.identity.test.js && node tests/sec02.pin.change.test.js && node tests/export.routes.test.js && node --test tests/email.integration.test.js && node tests/check-in.integration.test.js",
     "seed": "node scripts/seed.js",
     "migrate": "node scripts/migrate-to-clubs.js"
   },
@@ -20,7 +20,8 @@
     "express-rate-limit": "^8.6.2",
     "helmet": "^8.3.0",
     "mongoose": "^8.5.1",
-    "nodemailer": "^10.0.0"
+    "nodemailer": "^10.0.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.2.0",

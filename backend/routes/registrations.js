@@ -32,6 +32,12 @@ import {
   reconcileCapacityCounters,
 } from "../controllers/registration-capacity.controller.js";
 import { exportRegistrations } from "../controllers/registration-export.controller.js";
+import {
+  getEntryPass,
+  verifyCheckIn,
+  confirmCheckIn,
+  lookupAttendees,
+} from "../controllers/registration-checkin.controller.js";
 
 const router = Router();
 
@@ -47,6 +53,11 @@ const uploadSignatureLimiter = rateLimit({
 
 // Upload Signature
 router.get("/upload-signature", uploadSignatureLimiter, getUploadSignature);
+
+// Gate Check-in Endpoints (Admin & PR Staff)
+router.post("/check-in/verify", requireClubOrPRMember, verifyCheckIn);
+router.post("/check-in/confirm", requireClubOrPRMember, confirmCheckIn);
+router.get("/check-in/lookup", requireClubOrPRMember, lookupAttendees);
 
 // Public Registration Submissions, Lookups & Resubmissions
 router.post("/", registrationLimiter, createRegistration);
@@ -66,7 +77,8 @@ router.get("/audit", requireClub, getAuditLog);
 router.get("/capacity/check", requireClub, checkCapacityConsistency);
 router.post("/capacity/reconcile", requireClub, reconcileCapacityCounters);
 
-// Single Registration Status Tracking & Streaming
+// Single Registration Status Tracking, Streaming & Entry Pass
+router.get("/:id/entry-pass", getEntryPass);
 router.get("/:id/stream", streamRegistrationStatus);
 router.get("/:id", getRegistrationById);
 

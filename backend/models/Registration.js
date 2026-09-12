@@ -47,6 +47,13 @@ const registrationSchema = new mongoose.Schema(
       default: "not_marked",
     },
     checkedInAt: { type: Date, default: null },
+    checkedInBy: { type: String, default: null },
+    checkInSource: {
+      type: String,
+      enum: ["qr_scan", "manual", "override", null],
+      default: null,
+    },
+    checkInNotes: { type: String, default: null },
     history: [
       {
         action: { type: String, required: true },
@@ -76,5 +83,9 @@ registrationSchema.index({ club: 1, status: 1, referralCode: 1 });
 
 // 4. Event capacity check and per-event participation statistics
 registrationSchema.index({ event: 1, status: 1 });
+
+// 5. Attendance & Check-in indexes
+registrationSchema.index({ event: 1, attendanceStatus: 1 });
+registrationSchema.index({ club: 1, attendanceStatus: 1 });
 
 export default mongoose.models.Registration || mongoose.model("Registration", registrationSchema);
