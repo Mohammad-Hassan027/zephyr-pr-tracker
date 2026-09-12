@@ -35,9 +35,9 @@ interface UseQrScannerOptions {
 
 interface UseQrScannerReturn {
   /** Ref to attach to the <video> element. */
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+  videoRef: React.RefObject<HTMLVideoElement>;
   /** Ref to attach to the hidden <canvas> element used for frame capture. */
-  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  canvasRef: React.RefObject<HTMLCanvasElement>;
   isScanning: boolean;
   error: string | null;
   start: () => Promise<void>;
@@ -48,14 +48,16 @@ export function useQrScanner({
   onScan,
   fps = 10,
 }: UseQrScannerOptions): UseQrScannerReturn {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
   // Keep a stable ref to the latest onScan so the rAF loop doesn't go stale.
   const onScanRef = useRef(onScan);
-  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,49 +65,52 @@ export function useQrScanner({
   const frameIntervalMs = 1000 / fps;
   const lastFrameTimeRef = useRef(0);
 
-  const tick = useCallback((timestamp: number) => {
-    if (!isRunningRef.current) return;
+  const tick = useCallback(
+    (timestamp: number) => {
+      if (!isRunningRef.current) return;
 
-    // Throttle to the requested fps.
-    if (timestamp - lastFrameTimeRef.current < frameIntervalMs) {
+      // Throttle to the requested fps.
+      if (timestamp - lastFrameTimeRef.current < frameIntervalMs) {
+        animFrameRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      lastFrameTimeRef.current = timestamp;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas || video.readyState < video.HAVE_ENOUGH_DATA) {
+        animFrameRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) {
+        animFrameRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code?.data) {
+        // Pause the loop before firing the callback so we don't scan the same
+        // QR multiple times while the caller is processing the result.
+        isRunningRef.current = false;
+        setIsScanning(false);
+        onScanRef.current(code.data);
+        return;
+      }
+
       animFrameRef.current = requestAnimationFrame(tick);
-      return;
-    }
-    lastFrameTimeRef.current = timestamp;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < video.HAVE_ENOUGH_DATA) {
-      animFrameRef.current = requestAnimationFrame(tick);
-      return;
-    }
-
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) {
-      animFrameRef.current = requestAnimationFrame(tick);
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    });
-
-    if (code?.data) {
-      // Pause the loop before firing the callback so we don't scan the same
-      // QR multiple times while the caller is processing the result.
-      isRunningRef.current = false;
-      setIsScanning(false);
-      onScanRef.current(code.data);
-      return;
-    }
-
-    animFrameRef.current = requestAnimationFrame(tick);
-  }, [frameIntervalMs]);
+    },
+    [frameIntervalMs],
+  );
 
   const stop = useCallback(() => {
     isRunningRef.current = false;
