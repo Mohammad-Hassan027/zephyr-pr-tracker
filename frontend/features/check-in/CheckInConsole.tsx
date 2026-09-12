@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { useState, useCallback } from "react";
+import { useQrScanner } from "./useQrScanner";
 import {
   verifyCheckIn,
   confirmCheckIn,
@@ -18,34 +18,11 @@ interface CheckInConsoleProps {
   clubName?: string;
 }
 
-// Defensive stop helper — swallows the html5-qrcode removeChild crash that
-// occurs when React unmounts the scanner div while the scanner is still running.
-async function safeStop(scanner: Html5Qrcode) {
-  try {
-    await scanner.stop();
-  } catch {
-    // html5-qrcode throws a DOM removeChild error when the mount node has
-    // already been removed by React. We intentionally swallow it here because
-    // the scanner is already stopped (or the node is gone) and there is nothing
-    // meaningful left to clean up.
-  }
-}
-
 export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
   const [selectedEventSlug, setSelectedEventSlug] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"scanner" | "manual" | "lookup">("scanner");
 
-  // ─── Scanner refs ──────────────────────────────────────────────────────────
-  // Use refs for scanner instance and running state so that cleanup callbacks
-  // always capture the live value, avoiding stale-closure issues.
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const isScanningRef = useRef(false);
-
-  // Separate React state just for rendering the Start/Stop button label.
-  const [isScanning, setIsScanning] = useState(false);
-  const [scannerError, setScannerError] = useState<string | null>(null);
-
-  // ─── Manual Token / RegNo ──────────────────────────────────────────────────
+  // ─── Manual input ──────────────────────────────────────────────────────────
   const [manualInput, setManualInput] = useState("");
 
   // ─── Lookup ────────────────────────────────────────────────────────────────
@@ -53,7 +30,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
   const [lookupResults, setLookupResults] = useState<AttendeeLookupItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // ─── Verification & Confirmation ──────────────────────────────────────────
+  // ─── Verification & confirmation ──────────────────────────────────────────
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<CheckInVerificationResult | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -62,11 +39,11 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
 
-  // ─── Override / Notes ──────────────────────────────────────────────────────
+  // ─── Override / notes ──────────────────────────────────────────────────────
   const [notes, setNotes] = useState("");
   const [overrideAllowed, setOverrideAllowed] = useState(false);
 
-  // ─── Session History ───────────────────────────────────────────────────────
+  // ─── Session history ───────────────────────────────────────────────────────
   const [recentCheckIns, setRecentCheckIns] = useState<
     Array<{
       regNo: string;
@@ -77,101 +54,28 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
     }>
   >([]);
 
-  // ─── Stop scanner (safe, idempotent) ──────────────────────────────────────
-  const stopScanner = useCallback(async () => {
-    if (!isScanningRef.current || !scannerRef.current) return;
-    isScanningRef.current = false;
-    setIsScanning(false);
-    await safeStop(scannerRef.current);
-  }, []);
+  // ─── QR Scanner (custom hook — no html5-qrcode DOM mutation) ─────────────
+  const handleTokenScanned = useCallback(
+    async (rawToken: string) => {
+      // Scanner loop is already paused by the hook after a successful scan.
+      await executeVerify({ token: rawToken });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedEventSlug]
+  );
 
-  // ─── Cleanup on unmount ────────────────────────────────────────────────────
-  // The dependency array is intentionally empty so this runs exactly once on
-  // unmount. We read live state through refs, not through closed-over values.
-  useEffect(() => {
-    return () => {
-      if (isScanningRef.current && scannerRef.current) {
-        safeStop(scannerRef.current);
-      }
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { videoRef, canvasRef, isScanning, error: scannerError, start: startScanner, stop: stopScanner } =
+    useQrScanner({ onScan: handleTokenScanned });
 
-  // ─── Start scanner ─────────────────────────────────────────────────────────
-  async function startScanner() {
-    setScannerError(null);
-    try {
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode("qr-reader-container");
-      }
-
-      await scannerRef.current.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          handleTokenScanned(decodedText);
-        },
-        () => {
-          // suppress per-frame "not found" noise
-        }
-      );
-
-      isScanningRef.current = true;
-      setIsScanning(true);
-    } catch (err: any) {
-      isScanningRef.current = false;
-      setIsScanning(false);
-      setScannerError(
-        err.message ||
-          "Could not access camera. Please check permissions or use manual input."
-      );
+  // ─── Tab switching ─────────────────────────────────────────────────────────
+  async function switchTab(tab: "scanner" | "manual" | "lookup") {
+    if (tab !== "scanner" && isScanning) {
+      stopScanner();
     }
+    setActiveTab(tab);
   }
 
-  async function handleTokenScanned(rawToken: string) {
-    if (isVerifying || isConfirming) return;
-    // Pause scanner while verifying so we don't fire twice.
-    await stopScanner();
-    await executeVerify({ token: rawToken });
-  }
-
-  async function handleManualSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const cleanInput = manualInput.trim();
-    if (!cleanInput) return;
-
-    if (cleanInput.includes(".")) {
-      await executeVerify({ token: cleanInput });
-    } else if (
-      cleanInput.toUpperCase().startsWith("REG-") ||
-      cleanInput.toUpperCase().startsWith("ZEP-") ||
-      cleanInput.length >= 4
-    ) {
-      await executeVerify({ regNo: cleanInput.toUpperCase() });
-    } else {
-      await executeVerify({ registrationId: cleanInput });
-    }
-  }
-
-  async function handleSearchAttendees() {
-    if (!searchQuery.trim()) return;
-    setIsSearching(true);
-    try {
-      const res = await lookupAttendees({
-        search: searchQuery.trim(),
-        event: selectedEventSlug || undefined,
-        limit: 20,
-      });
-      setLookupResults(res.items || []);
-    } catch (err: any) {
-      setVerifyError(err.message || "Failed to search attendees");
-    } finally {
-      setIsSearching(false);
-    }
-  }
-
+  // ─── Verify ────────────────────────────────────────────────────────────────
   async function executeVerify(payload: {
     token?: string;
     registrationId?: string;
@@ -189,23 +93,55 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
         ...payload,
         eventSlug: selectedEventSlug || undefined,
       });
-
       setVerificationResult(result);
-      if (result.alreadyCheckedIn) {
-        setOverrideAllowed(true);
-      }
-    } catch (err: any) {
-      setVerifyError(err.message || "Verification failed");
-      if (err.data) {
+      if (result.alreadyCheckedIn) setOverrideAllowed(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Verification failed";
+      setVerifyError(msg);
+      if (err && typeof err === "object" && "data" in err) {
         setVerificationResult({
           eligible: false,
           reason: "ERROR",
-          message: err.message,
-          data: err.data,
+          message: msg,
+          data: (err as { data: CheckInVerificationResult["data"] }).data,
         });
       }
     } finally {
       setIsVerifying(false);
+    }
+  }
+
+  async function handleManualSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const v = manualInput.trim();
+    if (!v) return;
+    if (v.includes(".")) {
+      await executeVerify({ token: v });
+    } else if (
+      v.toUpperCase().startsWith("REG-") ||
+      v.toUpperCase().startsWith("ZEP-") ||
+      v.length >= 4
+    ) {
+      await executeVerify({ regNo: v.toUpperCase() });
+    } else {
+      await executeVerify({ registrationId: v });
+    }
+  }
+
+  async function handleSearchAttendees() {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await lookupAttendees({
+        search: searchQuery.trim(),
+        event: selectedEventSlug || undefined,
+        limit: 20,
+      });
+      setLookupResults(res.items || []);
+    } catch (err: unknown) {
+      setVerifyError(err instanceof Error ? err.message : "Failed to search attendees");
+    } finally {
+      setIsSearching(false);
     }
   }
 
@@ -252,8 +188,8 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
         },
         ...prev.slice(0, 9),
       ]);
-    } catch (err: any) {
-      setConfirmError(err.message || "Failed to confirm check-in");
+    } catch (err: unknown) {
+      setConfirmError(err instanceof Error ? err.message : "Failed to confirm check-in");
     } finally {
       setIsConfirming(false);
     }
@@ -272,17 +208,10 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
     }
   }
 
-  async function switchTab(tab: "scanner" | "manual" | "lookup") {
-    if (tab !== "scanner") {
-      // Stop the scanner first before hiding the scanner div.
-      await stopScanner();
-    }
-    setActiveTab(tab);
-  }
-
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      {/* Header & Controls */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-zinc-900 sm:text-2xl">
@@ -293,7 +222,6 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
           </p>
         </div>
 
-        {/* Event Filter */}
         <div className="flex items-center gap-2">
           <label htmlFor="event-filter" className="text-xs font-semibold text-zinc-700 whitespace-nowrap">
             Active Event:
@@ -317,63 +245,53 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column */}
+
+        {/* ── Left column ──────────────────────────────────────────────────── */}
         <div className="space-y-4 lg:col-span-5">
-          {/* Navigation Tabs */}
+
+          {/* Tab bar */}
           <div className="flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-            <button
-              type="button"
-              onClick={() => switchTab("scanner")}
-              className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
-                activeTab === "scanner"
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-800"
-              }`}
-            >
-              📷 QR Scanner
-            </button>
-            <button
-              type="button"
-              onClick={() => switchTab("manual")}
-              className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
-                activeTab === "manual"
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-800"
-              }`}
-            >
-              ⌨️ Manual Token / ID
-            </button>
-            <button
-              type="button"
-              onClick={() => switchTab("lookup")}
-              className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
-                activeTab === "lookup"
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-800"
-              }`}
-            >
-              🔍 Search Attendees
-            </button>
+            {(["scanner", "manual", "lookup"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => switchTab(tab)}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
+                  activeTab === tab
+                    ? "bg-white text-zinc-900 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {tab === "scanner" ? "📷 QR Scanner" : tab === "manual" ? "⌨️ Manual Token / ID" : "🔍 Search Attendees"}
+              </button>
+            ))}
           </div>
 
+          {/* ── TAB 1: Camera scanner ─────────────────────────────────────── */}
           {/*
-           * IMPORTANT: The #qr-reader-container div MUST always be present in
-           * the DOM. html5-qrcode holds a direct reference to this node and
-           * calls removeChild on it internally. If React conditionally unmounts
-           * the div while the scanner is running, the library panics with a
-           * "removeChild: not a child" error. We keep the div mounted at all
-           * times and hide the entire scanner card with `hidden` instead of
-           * removing it from the tree.
+           * The <video> and <canvas> are React-owned refs.
+           * jsQR reads raw pixel data — it never touches the DOM.
+           * There is no third-party library mutating the DOM tree, so React
+           * can unmount this freely without any removeChild conflicts.
+           *
+           * We keep the scanner card mounted at all times (hidden when the
+           * tab is inactive) so the video element is always available for the
+           * MediaStream even if the user briefly switches tabs.
            */}
-
-          {/* TAB 1: Camera Scanner (always mounted, hidden when inactive) */}
           <div className={`surface-card p-5 text-center space-y-4 ${activeTab !== "scanner" ? "hidden" : ""}`}>
-            <div
-              id="qr-reader-container"
-              className="mx-auto w-full max-w-xs overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 min-h-[250px] flex items-center justify-center"
-            >
+            {/* Hidden canvas used only for pixel capture — not visible to user */}
+            <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+
+            <div className="mx-auto w-full max-w-xs overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 min-h-[250px] flex items-center justify-center">
+              {/* The <video> element React fully owns — no external lib touches it */}
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${isScanning ? "block" : "hidden"}`}
+              />
               {!isScanning && (
                 <p className="p-4 text-xs text-zinc-400 font-mono">
                   Camera is stopped. Click Start Scanner below.
@@ -408,7 +326,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
             </div>
           </div>
 
-          {/* TAB 2: Manual Input */}
+          {/* ── TAB 2: Manual input ───────────────────────────────────────── */}
           {activeTab === "manual" && (
             <div className="surface-card p-5 space-y-3">
               <form onSubmit={handleManualSubmit} className="space-y-3">
@@ -435,7 +353,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
             </div>
           )}
 
-          {/* TAB 3: Attendee Search Fallback */}
+          {/* ── TAB 3: Attendee search ────────────────────────────────────── */}
           {activeTab === "lookup" && (
             <div className="surface-card p-5 space-y-3">
               <div className="flex gap-2">
@@ -466,20 +384,16 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
                       className="p-2.5 hover:bg-white cursor-pointer transition flex items-center justify-between"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-zinc-900 truncate">
-                          {att.studentName}
-                        </p>
+                        <p className="text-xs font-semibold text-zinc-900 truncate">{att.studentName}</p>
                         <p className="text-[11px] text-zinc-500 font-mono truncate">
                           {att.regNo} • {att.studentEmail}
                         </p>
                       </div>
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-                          att.attendanceStatus === "present"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-zinc-200 text-zinc-700"
-                        }`}
-                      >
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                        att.attendanceStatus === "present"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-zinc-200 text-zinc-700"
+                      }`}>
                         {att.attendanceStatus === "present" ? "Checked In" : "Unchecked"}
                       </span>
                     </div>
@@ -490,19 +404,16 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
           )}
         </div>
 
-        {/* Right Column: Verification Result Card */}
+        {/* ── Right column: Verification result ────────────────────────────── */}
         <div className="space-y-4 lg:col-span-7">
+
           {verifyError && !verificationResult && (
             <div className="surface-card border-rose-200 bg-rose-50/70 p-5 space-y-2 text-rose-800">
               <div className="flex items-center gap-2 font-bold text-sm text-rose-900">
                 ❌ Verification Error
               </div>
               <p className="text-xs">{verifyError}</p>
-              <button
-                type="button"
-                onClick={handleReset}
-                className="btn-secondary py-1 px-3 text-xs"
-              >
+              <button type="button" onClick={handleReset} className="btn-secondary py-1 px-3 text-xs">
                 Scan Again
               </button>
             </div>
@@ -516,40 +427,34 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
           )}
 
           {verificationResult && (
-            <div
-              className={`surface-card p-6 space-y-4 border-2 transition ${
-                confirmSuccess || verificationResult.eligible
-                  ? "border-emerald-500 bg-emerald-50/30"
-                  : verificationResult.alreadyCheckedIn
-                  ? "border-amber-400 bg-amber-50/40"
-                  : "border-rose-400 bg-rose-50/40"
-              }`}
-            >
-              {/* Status Header */}
+            <div className={`surface-card p-6 space-y-4 border-2 transition ${
+              confirmSuccess || verificationResult.eligible
+                ? "border-emerald-500 bg-emerald-50/30"
+                : verificationResult.alreadyCheckedIn
+                ? "border-amber-400 bg-amber-50/40"
+                : "border-rose-400 bg-rose-50/40"
+            }`}>
+              {/* Status header */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200/60 pb-3">
-                <div>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
-                      verificationResult.eligible
-                        ? "bg-emerald-100 text-emerald-800"
-                        : verificationResult.alreadyCheckedIn
-                        ? "bg-amber-100 text-amber-900"
-                        : "bg-rose-100 text-rose-800"
-                    }`}
-                  >
-                    {verificationResult.eligible
-                      ? "Ready for Check-in"
-                      : verificationResult.alreadyCheckedIn
-                      ? "Already Checked In"
-                      : "Denied / Ineligible"}
-                  </span>
-                </div>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
+                  verificationResult.eligible
+                    ? "bg-emerald-100 text-emerald-800"
+                    : verificationResult.alreadyCheckedIn
+                    ? "bg-amber-100 text-amber-900"
+                    : "bg-rose-100 text-rose-800"
+                }`}>
+                  {verificationResult.eligible
+                    ? "Ready for Check-in"
+                    : verificationResult.alreadyCheckedIn
+                    ? "Already Checked In"
+                    : "Denied / Ineligible"}
+                </span>
                 <span className="font-mono text-xs font-bold text-zinc-700">
                   {verificationResult.data.regNo}
                 </span>
               </div>
 
-              {/* Participant Details */}
+              {/* Participant details */}
               <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-2.5 text-xs">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
@@ -561,7 +466,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
                     <p className="font-semibold text-zinc-800">{verificationResult.data.event?.name}</p>
                   </div>
                   <div>
-                    <span className="text-zinc-400 uppercase text-[10px] font-mono">Contact Info</span>
+                    <span className="text-zinc-400 uppercase text-[10px] font-mono">Contact</span>
                     <p className="text-zinc-700 truncate">{verificationResult.data.studentEmail}</p>
                     {verificationResult.data.studentPhone && (
                       <p className="text-zinc-500 font-mono">{verificationResult.data.studentPhone}</p>
@@ -590,14 +495,13 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
                   🎉 {confirmSuccess}
                 </div>
               )}
-
               {confirmError && (
                 <div className="rounded-md bg-rose-100 p-3 text-xs font-semibold text-rose-900">
                   ⚠️ {confirmError}
                 </div>
               )}
 
-              {/* Action Buttons */}
+              {/* Actions */}
               <div className="space-y-2 pt-2">
                 {verificationResult.eligible && (
                   <button
@@ -641,7 +545,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
             </div>
           )}
 
-          {/* Recent Check-Ins Live Session Feed */}
+          {/* Live session feed */}
           {recentCheckIns.length > 0 && (
             <div className="surface-card p-4 space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
