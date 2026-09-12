@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import {
   verifyCheckIn,
@@ -18,24 +18,42 @@ interface CheckInConsoleProps {
   clubName?: string;
 }
 
+// Defensive stop helper — swallows the html5-qrcode removeChild crash that
+// occurs when React unmounts the scanner div while the scanner is still running.
+async function safeStop(scanner: Html5Qrcode) {
+  try {
+    await scanner.stop();
+  } catch {
+    // html5-qrcode throws a DOM removeChild error when the mount node has
+    // already been removed by React. We intentionally swallow it here because
+    // the scanner is already stopped (or the node is gone) and there is nothing
+    // meaningful left to clean up.
+  }
+}
+
 export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
   const [selectedEventSlug, setSelectedEventSlug] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"scanner" | "manual" | "lookup">("scanner");
 
-  // Scanner State
+  // ─── Scanner refs ──────────────────────────────────────────────────────────
+  // Use refs for scanner instance and running state so that cleanup callbacks
+  // always capture the live value, avoiding stale-closure issues.
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isScanningRef = useRef(false);
+
+  // Separate React state just for rendering the Start/Stop button label.
   const [isScanning, setIsScanning] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  // Manual Token / RegNo Input
+  // ─── Manual Token / RegNo ──────────────────────────────────────────────────
   const [manualInput, setManualInput] = useState("");
 
-  // Lookup State
+  // ─── Lookup ────────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
   const [lookupResults, setLookupResults] = useState<AttendeeLookupItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Verification & Confirmation State
+  // ─── Verification & Confirmation ──────────────────────────────────────────
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<CheckInVerificationResult | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -44,30 +62,41 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
 
-  // Check-in Notes & Override
+  // ─── Override / Notes ──────────────────────────────────────────────────────
   const [notes, setNotes] = useState("");
   const [overrideAllowed, setOverrideAllowed] = useState(false);
 
-  // Session History
-  const [recentCheckIns, setRecentCheckIns] = useState<Array<{
-    regNo: string;
-    studentName: string;
-    eventName: string;
-    checkedInAt: string;
-    source: string;
-  }>>([]);
+  // ─── Session History ───────────────────────────────────────────────────────
+  const [recentCheckIns, setRecentCheckIns] = useState<
+    Array<{
+      regNo: string;
+      studentName: string;
+      eventName: string;
+      checkedInAt: string;
+      source: string;
+    }>
+  >([]);
 
-  // Auto-stop scanner when unmounting or switching tabs
+  // ─── Stop scanner (safe, idempotent) ──────────────────────────────────────
+  const stopScanner = useCallback(async () => {
+    if (!isScanningRef.current || !scannerRef.current) return;
+    isScanningRef.current = false;
+    setIsScanning(false);
+    await safeStop(scannerRef.current);
+  }, []);
+
+  // ─── Cleanup on unmount ────────────────────────────────────────────────────
+  // The dependency array is intentionally empty so this runs exactly once on
+  // unmount. We read live state through refs, not through closed-over values.
   useEffect(() => {
     return () => {
-      if (scannerRef.current && isScanning) {
-        scannerRef.current
-          .stop()
-          .catch((err) => console.warn("Failed to stop scanner on unmount:", err));
+      if (isScanningRef.current && scannerRef.current) {
+        safeStop(scannerRef.current);
       }
     };
-  }, [isScanning]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Start scanner ─────────────────────────────────────────────────────────
   async function startScanner() {
     setScannerError(null);
     try {
@@ -85,31 +114,25 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
           handleTokenScanned(decodedText);
         },
         () => {
-          // ignore frame errors
+          // suppress per-frame "not found" noise
         }
       );
 
+      isScanningRef.current = true;
       setIsScanning(true);
     } catch (err: any) {
-      setScannerError(err.message || "Could not access camera. Please check permissions or use manual input.");
+      isScanningRef.current = false;
       setIsScanning(false);
-    }
-  }
-
-  async function stopScanner() {
-    if (scannerRef.current && isScanning) {
-      try {
-        await scannerRef.current.stop();
-      } catch (err) {
-        console.warn("Error stopping scanner:", err);
-      }
-      setIsScanning(false);
+      setScannerError(
+        err.message ||
+          "Could not access camera. Please check permissions or use manual input."
+      );
     }
   }
 
   async function handleTokenScanned(rawToken: string) {
     if (isVerifying || isConfirming) return;
-    // Temporarily pause scanner while verifying
+    // Pause scanner while verifying so we don't fire twice.
     await stopScanner();
     await executeVerify({ token: rawToken });
   }
@@ -120,13 +143,14 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
     if (!cleanInput) return;
 
     if (cleanInput.includes(".")) {
-      // Looks like a signed token
       await executeVerify({ token: cleanInput });
-    } else if (cleanInput.toUpperCase().startsWith("REG-") || cleanInput.toUpperCase().startsWith("ZEP-") || cleanInput.length >= 4) {
-      // Looks like a registration sequence / regNo
+    } else if (
+      cleanInput.toUpperCase().startsWith("REG-") ||
+      cleanInput.toUpperCase().startsWith("ZEP-") ||
+      cleanInput.length >= 4
+    ) {
       await executeVerify({ regNo: cleanInput.toUpperCase() });
     } else {
-      // Fallback ID
       await executeVerify({ registrationId: cleanInput });
     }
   }
@@ -148,7 +172,11 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
     }
   }
 
-  async function executeVerify(payload: { token?: string; registrationId?: string; regNo?: string }) {
+  async function executeVerify(payload: {
+    token?: string;
+    registrationId?: string;
+    regNo?: string;
+  }) {
     setIsVerifying(true);
     setVerifyError(null);
     setVerificationResult(null);
@@ -214,7 +242,6 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
           : null
       );
 
-      // Add to session feed
       setRecentCheckIns((prev) => [
         {
           regNo: res.data.regNo,
@@ -243,6 +270,14 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
     if (activeTab === "scanner") {
       startScanner();
     }
+  }
+
+  async function switchTab(tab: "scanner" | "manual" | "lookup") {
+    if (tab !== "scanner") {
+      // Stop the scanner first before hiding the scanner div.
+      await stopScanner();
+    }
+    setActiveTab(tab);
   }
 
   return (
@@ -282,18 +317,15 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
         </div>
       </div>
 
-      {/* Main Grid: Input/Scanner column + Verification Result column */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: Scanner & Inputs (5 cols) */}
+        {/* Left Column */}
         <div className="space-y-4 lg:col-span-5">
           {/* Navigation Tabs */}
           <div className="flex rounded-lg border border-zinc-200 bg-zinc-50 p-1">
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("scanner");
-                stopScanner();
-              }}
+              onClick={() => switchTab("scanner")}
               className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
                 activeTab === "scanner"
                   ? "bg-white text-zinc-900 shadow-sm"
@@ -304,10 +336,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("manual");
-                stopScanner();
-              }}
+              onClick={() => switchTab("manual")}
               className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
                 activeTab === "manual"
                   ? "bg-white text-zinc-900 shadow-sm"
@@ -318,10 +347,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("lookup");
-                stopScanner();
-              }}
+              onClick={() => switchTab("lookup")}
               className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition ${
                 activeTab === "lookup"
                   ? "bg-white text-zinc-900 shadow-sm"
@@ -332,47 +358,55 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
             </button>
           </div>
 
-          {/* TAB 1: Camera Scanner */}
-          {activeTab === "scanner" && (
-            <div className="surface-card p-5 text-center space-y-4">
-              <div
-                id="qr-reader-container"
-                className="mx-auto w-full max-w-xs overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 min-h-[250px] flex items-center justify-center"
-              >
-                {!isScanning && (
-                  <p className="p-4 text-xs text-zinc-400 font-mono">
-                    Camera is stopped. Click Start Scanner below.
-                  </p>
-                )}
-              </div>
+          {/*
+           * IMPORTANT: The #qr-reader-container div MUST always be present in
+           * the DOM. html5-qrcode holds a direct reference to this node and
+           * calls removeChild on it internally. If React conditionally unmounts
+           * the div while the scanner is running, the library panics with a
+           * "removeChild: not a child" error. We keep the div mounted at all
+           * times and hide the entire scanner card with `hidden` instead of
+           * removing it from the tree.
+           */}
 
-              {scannerError && (
-                <div className="rounded-md bg-rose-50 p-2.5 text-xs text-rose-700">
-                  {scannerError}
-                </div>
+          {/* TAB 1: Camera Scanner (always mounted, hidden when inactive) */}
+          <div className={`surface-card p-5 text-center space-y-4 ${activeTab !== "scanner" ? "hidden" : ""}`}>
+            <div
+              id="qr-reader-container"
+              className="mx-auto w-full max-w-xs overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 min-h-[250px] flex items-center justify-center"
+            >
+              {!isScanning && (
+                <p className="p-4 text-xs text-zinc-400 font-mono">
+                  Camera is stopped. Click Start Scanner below.
+                </p>
               )}
-
-              <div className="flex justify-center gap-2">
-                {!isScanning ? (
-                  <button
-                    type="button"
-                    onClick={startScanner}
-                    className="btn-primary py-2 text-xs font-semibold"
-                  >
-                    Start Camera Scanner
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={stopScanner}
-                    className="btn-secondary py-2 text-xs font-semibold text-rose-600"
-                  >
-                    Stop Scanner
-                  </button>
-                )}
-              </div>
             </div>
-          )}
+
+            {scannerError && (
+              <div className="rounded-md bg-rose-50 p-2.5 text-xs text-rose-700">
+                {scannerError}
+              </div>
+            )}
+
+            <div className="flex justify-center gap-2">
+              {!isScanning ? (
+                <button
+                  type="button"
+                  onClick={startScanner}
+                  className="btn-primary py-2 text-xs font-semibold"
+                >
+                  Start Camera Scanner
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={stopScanner}
+                  className="btn-secondary py-2 text-xs font-semibold text-rose-600"
+                >
+                  Stop Scanner
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* TAB 2: Manual Input */}
           {activeTab === "manual" && (
@@ -456,7 +490,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
           )}
         </div>
 
-        {/* Right Column: Verification Result Card (7 cols) */}
+        {/* Right Column: Verification Result Card */}
         <div className="space-y-4 lg:col-span-7">
           {verifyError && !verificationResult && (
             <div className="surface-card border-rose-200 bg-rose-50/70 p-5 space-y-2 text-rose-800">
@@ -515,7 +549,7 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
                 </span>
               </div>
 
-              {/* Participant Details Table */}
+              {/* Participant Details */}
               <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-2.5 text-xs">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
@@ -551,7 +585,6 @@ export function CheckInConsole({ events, clubName }: CheckInConsoleProps) {
                 )}
               </div>
 
-              {/* Messages / Alerts */}
               {confirmSuccess && (
                 <div className="rounded-md bg-emerald-100 p-3 text-xs font-semibold text-emerald-900">
                   🎉 {confirmSuccess}
