@@ -240,6 +240,8 @@ export type EventStat = {
   slug: string;
   capacity: number | null;
   count: number;
+  checkedInCount?: number;
+  attendanceRate?: number;
 };
 
 export type LeaderboardEntry = {
@@ -282,4 +284,103 @@ export type PRMemberStats = {
 export type PublicClub = {
   name: string;
   slug: string;
+};
+
+/**
+ * Entry Pass & Check-In Domain Types
+ */
+export type AttendanceStatus = "present" | "absent" | "not_marked";
+
+export type EntryPassData = {
+  ok: boolean;
+  token: string;
+  qrCodeDataUrl: string;
+  pass: {
+    id: string;
+    regNo: string;
+    studentName: string;
+    studentEmail: string;
+    college?: string;
+    amount?: number;
+    status: WorkflowStatus;
+    attendanceStatus: AttendanceStatus;
+    checkedInAt?: string | null;
+    checkedInBy?: string | null;
+    event: {
+      id: string;
+      name: string;
+      slug: string;
+      date?: string | null;
+      venue?: string;
+    };
+    club: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+};
+
+export type CheckInVerificationResult = {
+  eligible: boolean;
+  alreadyCheckedIn?: boolean;
+  reason?: string;
+  message: string;
+  data: {
+    id: string;
+    regNo: string;
+    studentName: string;
+    studentEmail: string;
+    studentPhone?: string;
+    college?: string;
+    amount?: number;
+    status: WorkflowStatus;
+    attendanceStatus: AttendanceStatus;
+    checkedInAt?: string | null;
+    checkedInBy?: string | null;
+    checkInSource?: string | null;
+    event: {
+      id: string;
+      name: string;
+      slug: string;
+      date?: string | null;
+      venue?: string;
+    };
+    club: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  };
+};
+
+export type CheckInConfirmationResult = {
+  ok: boolean;
+  message: string;
+  data: CheckInVerificationResult["data"];
+};
+
+export type AttendeeLookupItem = {
+  id: string;
+  regNo: string;
+  studentName: string;
+  studentEmail: string;
+  studentPhone?: string;
+  college?: string;
+  amount?: number;
+  status: WorkflowStatus;
+  attendanceStatus: AttendanceStatus;
+  checkedInAt?: string | null;
+  checkedInBy?: string | null;
+  event: {
+    _id?: string;
+    name?: string;
+    slug?: string;
+    venue?: string;
+  };
+  club?: {
+    _id?: string;
+    name?: string;
+    slug?: string;
+  };
 };

@@ -45,11 +45,18 @@ export function AdminStatsPanel({
             <p className="font-mono text-base font-bold text-zinc-900">{memberCount}</p>
             <p className="text-[10px] font-mono uppercase text-zinc-400">PR Members</p>
           </div>
+          <a
+            href="/admin/check-in"
+            className="btn-primary px-3 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+            title="Gate Check-in Scanner"
+          >
+            Gate Check-in
+          </a>
           {onOpenExport && (
             <button
               type="button"
               onClick={onOpenExport}
-              className="btn-primary px-3 py-2 text-xs"
+              className="btn-secondary px-3 py-2 text-xs"
               title="Export Club Data"
             >
               <Download size={13} className="shrink-0" aria-hidden="true" />

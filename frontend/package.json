@@ -6,11 +6,15 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "node tests/review-queue.test.js && node tests/check-in.test.js"
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.33.0",
     "next": "^16.3.2",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

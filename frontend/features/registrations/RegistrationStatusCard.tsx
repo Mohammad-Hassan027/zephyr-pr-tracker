@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Copy, Check, MapPin, ExternalLink, Ticket, AlertTriangle, RefreshCw, Eye } from "@/lib/icons";
+import { Copy, Check, MapPin, ExternalLink, Ticket, AlertTriangle, RefreshCw, Eye, Download, Printer } from "@/lib/icons";
 import StatusIcon from "@/components/icons/StatusIcon";
-import type { RegistrationStatus } from "@/lib/api/types";
+import type { RegistrationStatus, EntryPassData } from "@/lib/api/types";
 import { resubmitRegistration, uploadPaymentScreenshot } from "@/lib/api/registrations";
+import { getEntryPass } from "@/lib/api/check-in";
+import { resolveRegistrationToken } from "@/lib/registration-token";
 
 interface RegistrationStatusCardProps {
   data: RegistrationStatus;
@@ -35,6 +37,21 @@ export function RegistrationStatusCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resubmitError, setResubmitError] = useState<string | null>(null);
   const [resubmitSuccess, setResubmitSuccess] = useState(false);
+
+  // Entry pass QR data
+  const [entryPass, setEntryPass] = useState<EntryPassData | null>(null);
+  const [passLoading, setPassLoading] = useState(false);
+
+  useEffect(() => {
+    if (data.status === "approved" && data.id) {
+      setPassLoading(true);
+      const token = resolveRegistrationToken(data.id) || undefined;
+      getEntryPass(data.id, token)
+        .then((res) => setEntryPass(res))
+        .catch((err) => console.warn("Could not load entry pass QR:", err.message))
+        .finally(() => setPassLoading(false));
+    }
+  }, [data.status, data.id]);
 
   async function handleConfirmResubmit() {
     if (!data.id) return;
@@ -71,6 +88,22 @@ export function RegistrationStatusCard({
     }
   }
 
+  function handleDownloadPass() {
+    if (!entryPass?.qrCodeDataUrl) return;
+    const a = document.createElement("a");
+    a.href = entryPass.qrCodeDataUrl;
+    a.download = `EntryPass-${data.regNo || data.id || "ticket"}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function handlePrintPass() {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  }
+
   // Needs Correction State
   if (data.status === "needs_correction") {
     return (
@@ -98,177 +131,148 @@ export function RegistrationStatusCard({
           {/* Prominent Correction Note Display */}
           <div className="rounded-lg border border-amber-300 bg-amber-50/90 p-4 text-xs space-y-1 text-amber-900 shadow-sm">
             <div className="flex items-center gap-1.5 font-bold uppercase text-[10px] tracking-wider text-amber-800">
-              <AlertTriangle size={14} className="text-amber-600" aria-hidden="true" />
-              <span>Reviewer Correction Note:</span>
+              <AlertTriangle size={14} className="shrink-0 text-amber-600" aria-hidden="true" />
+              <span>Reviewer Correction Note</span>
             </div>
-            <p className="break-words pl-5 font-medium leading-relaxed">
-              {data.correctionNote || "Please verify your UPI reference number (UTR) or re-upload a readable payment screenshot."}
+            <p className="break-words font-medium leading-relaxed">
+              {data.correctionNote || "Please update your payment screenshot or UTR number."}
             </p>
           </div>
 
-          {resubmitSuccess ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center text-xs space-y-2 text-emerald-900 animate-fadeIn">
-              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <Check size={18} />
-              </div>
-              <h3 className="font-bold text-sm text-emerald-900">Resubmitted Successfully!</h3>
-              <p className="text-emerald-700">
-                Your corrected details have been sent to the review queue. The status will automatically update upon approval.
-              </p>
+          {resubmitSuccess && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+              ✓ Corrected details submitted successfully! Your submission is now under review.
             </div>
-          ) : !showEditForm ? (
-            <div className="space-y-3 pt-2">
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>Candidate:</span>
-                  <span className="break-words text-zinc-900 font-sans font-medium">{data.studentName}</span>
-                </div>
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>Phone:</span>
-                  <span className="break-all text-zinc-900 font-medium">{data.studentPhone || "—"}</span>
-                </div>
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>UTR Reference:</span>
-                  <span className="break-all text-zinc-900 font-bold">{data.utr || "—"}</span>
-                </div>
-              </div>
+          )}
 
+          {!showEditForm ? (
+            <div className="space-y-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowEditForm(true)}
-                className="btn-primary w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2"
+                className="btn-primary w-full py-2.5 text-xs font-semibold"
               >
-                <RefreshCw size={14} />
-                <span>Fix & Resubmit for Review</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onCopy}
-                className="btn-secondary w-full py-2 text-xs font-medium block text-center"
-              >
-                {copied ? "Copied Link" : "Copy Status Link"}
+                ✏️ Edit & Resubmit Payment Details
               </button>
             </div>
           ) : (
-            <div className="space-y-3 pt-2 border-t border-zinc-100">
-              <h2 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">
-                Update Corrected Details
-              </h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setConfirmModalOpen(true);
+              }}
+              className="space-y-3 pt-2 text-xs border-t border-zinc-100"
+            >
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-700">Full Name</label>
+                <input
+                  type="text"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  className="field-input mt-1 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-700">Phone Number</label>
+                <input
+                  type="tel"
+                  value={studentPhone}
+                  onChange={(e) => setStudentPhone(e.target.value)}
+                  className="field-input mt-1 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-700">College / Institution</label>
+                <input
+                  type="text"
+                  value={college}
+                  onChange={(e) => setCollege(e.target.value)}
+                  className="field-input mt-1 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-700">Amount Paid (₹)</label>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="field-input mt-1 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-700">UTR / Transaction Ref</label>
+                <input
+                  type="text"
+                  value={utr}
+                  onChange={(e) => setUtr(e.target.value)}
+                  className="field-input mt-1 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-700">
+                  Update Payment Screenshot (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full text-xs text-zinc-500 file:mr-2 file:rounded-md file:border-0 file:bg-zinc-100 file:px-2.5 file:py-1.5 file:text-xs file:font-medium hover:file:bg-zinc-200"
+                />
+              </div>
 
               {resubmitError && (
-                <div className="rounded border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-800">
+                <div className="rounded bg-rose-50 p-2.5 text-xs text-rose-700 font-medium">
                   {resubmitError}
                 </div>
               )}
 
-              <div className="space-y-2 text-left">
-                <div>
-                  <label className="block text-[11px] font-semibold text-zinc-600 mb-0.5">
-                    Student Name
-                  </label>
-                  <input
-                    type="text"
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                    className="field-input text-xs"
-                    placeholder="Full Name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-zinc-600 mb-0.5">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={studentPhone}
-                    onChange={(e) => setStudentPhone(e.target.value)}
-                    className="field-input text-xs"
-                    placeholder="10-digit Mobile Number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-zinc-600 mb-0.5">
-                    UPI UTR / Reference Number
-                  </label>
-                  <input
-                    type="text"
-                    value={utr}
-                    onChange={(e) => setUtr(e.target.value)}
-                    className="field-input text-xs font-mono"
-                    placeholder="12-digit UTR No"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-zinc-600 mb-0.5">
-                    New Payment Screenshot (Optional if only fixing UTR/text)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="block min-h-10 w-full text-xs text-zinc-500 file:mr-2 file:rounded file:border-0 file:bg-brand-50 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-brand-700 hover:file:bg-brand-100"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 pt-2 min-[400px]:grid-cols-2">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowEditForm(false)}
-                  className="btn-secondary py-2 text-xs"
+                  className="btn-secondary flex-1 py-2 text-xs"
                 >
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setConfirmModalOpen(true)}
+                  type="submit"
                   disabled={isSubmitting}
-                  className="btn-primary py-2 text-xs font-semibold"
+                  className="btn-primary flex-1 py-2 text-xs font-semibold"
                 >
-                  {isSubmitting ? (
-                    <span>Uploading...</span>
-                  ) : (
-                    <span>Resubmit for Review</span>
-                  )}
+                  {isSubmitting ? "Submitting..." : "Review Changes →"}
                 </button>
               </div>
-            </div>
+            </form>
           )}
 
-          {/* Confirmation Modal */}
+          {/* Confirm Resubmission Modal */}
           {confirmModalOpen && (
-            <div className="modal-backdrop bg-zinc-950/60" role="dialog" aria-modal="true" aria-labelledby="confirm-resubmit-title">
-              <div className="modal-panel max-w-sm space-y-3">
-                <h3 id="confirm-resubmit-title" className="text-sm font-bold text-zinc-900">
-                  Confirm Resubmission
-                </h3>
-                <p className="text-xs text-zinc-600 leading-relaxed">
-                  Are you sure you want to resubmit this registration with the updated information for reviewer verification?
+            <div className="modal-backdrop" role="dialog" aria-modal="true">
+              <div className="modal-panel max-w-sm space-y-3 p-5">
+                <h3 className="font-bold text-sm text-zinc-900">Confirm Resubmission</h3>
+                <p className="text-xs text-zinc-600">
+                  Please verify that your updated details and screenshot are clear. Are you ready to submit for review?
                 </p>
-                <div className="flex flex-col-reverse gap-2 border-t border-zinc-100 pt-2 min-[400px]:flex-row min-[400px]:justify-end">
+                <div className="flex justify-end gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => setConfirmModalOpen(false)}
-                    className="btn-secondary px-3 py-2 text-xs"
-                    disabled={isSubmitting}
+                    className="btn-secondary px-3 py-1.5 text-xs"
                   >
-                    Back
+                    Go Back
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmResubmit}
                     disabled={isSubmitting}
-                    className="btn-primary px-3 py-2 text-xs font-semibold"
+                    className="btn-primary px-3 py-1.5 text-xs font-semibold"
                   >
-                    {isSubmitting ? (
-                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    ) : (
-                      <span>Confirm & Resubmit</span>
-                    )}
+                    {isSubmitting ? "Submitting..." : "Confirm & Send"}
                   </button>
                 </div>
               </div>
@@ -279,13 +283,13 @@ export function RegistrationStatusCard({
     );
   }
 
-  // Resubmitted / Under Review State
-  if (data.status === "resubmitted" || data.status === "under_review") {
+  // Resubmitted state
+  if (data.status === "resubmitted") {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
         <div className="surface-card w-full p-6 sm:p-8 text-center space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
-            <StatusIcon status={data.status} />
+            <StatusIcon status="resubmitted" />
             {isLiveConnected && (
               <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-600">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
@@ -296,7 +300,7 @@ export function RegistrationStatusCard({
 
           <div className="py-2">
             <h1 className="text-lg font-bold text-zinc-900">
-              Corrected Submission Under Review
+              Resubmitted — Under Review
             </h1>
             <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
               Your corrected registration details have been received and are currently queued for re-verification for{" "}
@@ -305,53 +309,32 @@ export function RegistrationStatusCard({
           </div>
 
           <div className="rounded-lg border border-indigo-200 bg-indigo-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>Candidate:</span>
-                  <span className="break-words text-zinc-900 font-sans font-medium">{data.studentName}</span>
-                </div>
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>Updated UTR:</span>
-                  <span className="break-all text-zinc-900 font-bold">{data.utr || "Submitted"}</span>
-                </div>
-                {data.resubmittedAt && (
-                  <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                    <span>Resubmitted At:</span>
-                    <span className="text-zinc-700">{new Date(data.resubmittedAt).toLocaleString()}</span>
-              </div>
-            )}
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Candidate:</span>
+              <span className="text-zinc-900 font-medium">{data.studentName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Updated UTR:</span>
+              <span className="text-zinc-900 font-bold">{data.utr || "Submitted"}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 pt-2 min-[400px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
             <button
               type="button"
               onClick={onCopy}
               className="btn-secondary py-2 text-xs font-medium"
             >
-              {copied ? (
-                <>
-                  <Check size={14} className="text-emerald-600" aria-hidden="true" />
-                  <span>Copied Link</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={14} aria-hidden="true" />
-                  <span>Copy Pass Link</span>
-                </>
-              )}
+              {copied ? "✓ Copied Link" : "Copy Pass Link"}
             </button>
             <button
               type="button"
               onClick={onWhatsAppShare}
               className="btn-primary py-2 text-xs font-medium"
             >
-              <ExternalLink size={14} aria-hidden="true" />
-              <span>Share Status</span>
+              Share Status
             </button>
           </div>
-
-          <p className="text-[11px] text-zinc-400 font-mono">
-            This screen auto-updates as soon as the reviewer approves your corrected pass.
-          </p>
         </div>
       </main>
     );
@@ -383,53 +366,38 @@ export function RegistrationStatusCard({
           </div>
 
           <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-3.5 text-left text-xs space-y-1.5 font-mono">
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>Candidate:</span>
-                  <span className="break-words text-zinc-900 font-sans font-medium">{data.studentName}</span>
-                </div>
-                <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                  <span>Event:</span>
-                  <span className="break-words text-zinc-900 font-medium">{data.event?.name}</span>
-                </div>
-                {data.amount !== undefined && (
-              <div className="flex flex-col gap-0.5 text-zinc-500 min-[420px]:flex-row min-[420px]:justify-between">
-                <span>Amount:</span>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Candidate:</span>
+              <span className="text-zinc-900 font-medium">{data.studentName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Event:</span>
+              <span className="text-zinc-900 font-medium">{data.event?.name}</span>
+            </div>
+            {data.amount !== undefined && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Amount:</span>
                 <span className="text-zinc-900 font-bold">₹{data.amount}</span>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-2 pt-2 min-[400px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
             <button
               type="button"
               onClick={onCopy}
               className="btn-secondary py-2 text-xs font-medium"
             >
-              {copied ? (
-                <>
-                  <Check size={14} className="text-emerald-600" aria-hidden="true" />
-                  <span>Copied Pass Link</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={14} aria-hidden="true" />
-                  <span>Copy Pass Link</span>
-                </>
-              )}
+              {copied ? "✓ Copied Pass Link" : "Copy Pass Link"}
             </button>
             <button
               type="button"
               onClick={onWhatsAppShare}
               className="btn-primary py-2 text-xs font-medium"
             >
-              <ExternalLink size={14} aria-hidden="true" />
-              <span>Share Status</span>
+              Share Status
             </button>
           </div>
-
-          <p className="text-[11px] text-zinc-400 font-mono">
-            This screen auto-updates instantly upon PR approval.
-          </p>
         </div>
       </main>
     );
@@ -472,128 +440,146 @@ export function RegistrationStatusCard({
             >
               Re-submit with Clear Screenshot →
             </Link>
-
-            {data.club?.email && (
-              <a
-                href={`mailto:${data.club.email}?subject=Registration%20Inquiry%20-%20${encodeURIComponent(data.event?.name || "")}`}
-                className="btn-secondary w-full py-2 text-xs font-medium block text-center"
-              >
-                Contact Club Admin ({data.club.email})
-              </a>
-            )}
           </div>
         </div>
       </main>
     );
   }
 
-  // Approved state: Boarding-pass / Ticket
+  // Approved State: Official Digital QR Entry Pass & Ticket
+  const isCheckedIn = (data as any).attendanceStatus === "present";
+
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-md items-center justify-center p-3 py-5 sm:p-6 print:p-0">
       <div className="w-full space-y-4">
-        <div className="ticket-card shadow-elevated">
-          <div className="ticket-top flex items-start justify-between gap-3">
+        {/* Printable Pass Card */}
+        <div id="official-entry-pass" className="ticket-card shadow-elevated bg-white overflow-hidden rounded-xl border border-zinc-200">
+          {/* Top Header with Event Branding */}
+          <div className="ticket-top bg-zinc-950 p-5 text-white flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <StatusIcon status="approved" showLabel={false} />
-              <span className="ml-1.5 inline-flex max-w-full rounded border border-emerald-200/60 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
-                Confirmed Pass
+              <span className="inline-flex items-center rounded border border-emerald-400/40 bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                {isCheckedIn ? "✓ Attended / Checked In" : "Official Entry Pass"}
               </span>
-              <h2 className="mt-1.5 break-words font-sans text-lg font-bold tracking-tight text-zinc-900">
+              <h2 className="mt-2 break-words font-sans text-lg font-bold tracking-tight text-white">
                 {data.event?.name}
               </h2>
               {data.event?.venue && (
-                <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-zinc-500 font-mono">
+                <p className="mt-1 flex items-center gap-1 text-xs text-zinc-400 font-mono">
                   <MapPin size={12} className="text-zinc-400 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0 break-words">{data.event.venue}</span>
+                  <span>{data.event.venue}</span>
                 </p>
               )}
             </div>
-            <div className="text-right">
-              <Ticket size={28} className="text-brand-600" aria-hidden="true" />
+            <div className="text-right shrink-0">
+              <Ticket size={28} className="text-emerald-400" aria-hidden="true" />
             </div>
           </div>
 
-          <div className="border-t border-dashed border-zinc-200" />
+          {/* QR Code Pass Section */}
+          <div className="p-6 text-center bg-zinc-50/70 border-b border-dashed border-zinc-200">
+            {passLoading ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-2">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+                <p className="text-xs text-zinc-400 font-mono">Generating secure QR pass…</p>
+              </div>
+            ) : entryPass?.qrCodeDataUrl ? (
+              <div className="space-y-3">
+                <div className="inline-block p-3 bg-white rounded-xl shadow-sm border border-zinc-200">
+                  <img
+                    src={entryPass.qrCodeDataUrl}
+                    alt="Entry Pass QR Code"
+                    className="w-48 h-48 mx-auto"
+                  />
+                </div>
+                <div>
+                  <p className="font-mono text-sm font-bold tracking-widest text-zinc-900">
+                    {data.regNo || "CONFIRMED"}
+                  </p>
+                  <p className="text-[11px] text-zinc-500">
+                    {isCheckedIn
+                      ? `Checked in at ${(data as any).checkedInAt ? new Date((data as any).checkedInAt).toLocaleTimeString() : "Event"}`
+                      : "Present this QR code at the venue check-in desk."}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 text-xs text-zinc-500">
+                <p className="font-bold text-zinc-800 text-sm">{data.regNo || "CONFIRMED"}</p>
+                <p className="mt-1 font-mono">Registration verified successfully.</p>
+              </div>
+            )}
+          </div>
 
-          <div className="p-5 space-y-3 bg-white text-xs">
-            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
-                Registration No
-              </span>
-              <span className="break-all rounded border border-brand-200/60 bg-brand-50 px-2 py-0.5 font-mono text-sm font-bold text-brand-700">
-                {data.regNo || "CONFIRMED"}
-              </span>
+          {/* Attendee Details Grid */}
+          <div className="p-5 space-y-2.5 bg-white text-xs">
+            <div className="flex justify-between border-b border-zinc-100 py-1">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">Attendee</span>
+              <span className="font-bold text-zinc-900">{data.studentName}</span>
             </div>
-
-            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
-                Student Name
-              </span>
-              <span className="break-words font-medium text-zinc-900">{data.studentName}</span>
+            <div className="flex justify-between border-b border-zinc-100 py-1">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">Institution</span>
+              <span className="text-zinc-700">{data.college || "—"}</span>
             </div>
-
-            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
-                College
-              </span>
-              <span className="break-words text-zinc-700">{data.college || "—"}</span>
-            </div>
-
-            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
-                Contact
-              </span>
-              <span className="break-all text-zinc-700">{data.studentPhone || data.studentEmail}</span>
-            </div>
-
-            <div className="flex flex-col gap-1 border-b border-zinc-100 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
-                Amount Paid
-              </span>
+            <div className="flex justify-between border-b border-zinc-100 py-1">
+              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">Amount Paid</span>
               <span className="font-mono font-bold text-zinc-900">
                 {data.amount ? `₹${data.amount}` : "Free"}
               </span>
             </div>
-
-            <div className="flex flex-col gap-1 py-1 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-              <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">
-                Confirmed Date
-              </span>
-              <span className="font-mono text-zinc-600">
-                {data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—"}
-              </span>
-            </div>
+            {data.event?.date && (
+              <div className="flex justify-between py-1">
+                <span className="text-zinc-400 uppercase font-mono text-[10px] tracking-wider">Event Date</span>
+                <span className="font-mono text-zinc-700">
+                  {new Date(data.event.date).toLocaleDateString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
-          <button
-            type="button"
-            onClick={onCopy}
-            className="btn-secondary py-2 text-xs font-medium"
-          >
-            {copied ? (
-              <>
-                <Check size={14} className="text-emerald-600" aria-hidden="true" />
-                <span>Copied Pass Link</span>
-              </>
-            ) : (
-              <>
-                <Copy size={14} aria-hidden="true" />
-                <span>Copy Ticket Link</span>
-              </>
+        {/* Action Buttons */}
+        <div className="space-y-2 print:hidden">
+          <div className="grid grid-cols-2 gap-2">
+            {entryPass?.qrCodeDataUrl && (
+              <button
+                type="button"
+                onClick={handleDownloadPass}
+                className="btn-primary py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
+              >
+                <Download size={14} aria-hidden="true" />
+                <span>Save QR Image</span>
+              </button>
             )}
-          </button>
-          <button
-            type="button"
-            onClick={onWhatsAppShare}
-            className="btn-primary py-2 text-xs font-medium"
-          >
-            <ExternalLink size={14} aria-hidden="true" />
-            <span>Share on WhatsApp</span>
-          </button>
+            <button
+              type="button"
+              onClick={handlePrintPass}
+              className="btn-secondary py-2 text-xs font-semibold flex items-center justify-center gap-1.5"
+            >
+              <Printer size={14} aria-hidden="true" />
+              <span>Print Pass</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onCopy}
+              className="btn-secondary py-2 text-xs font-medium"
+            >
+              {copied ? "✓ Copied Link" : "Copy Pass Link"}
+            </button>
+            <button
+              type="button"
+              onClick={onWhatsAppShare}
+              className="btn-secondary py-2 text-xs font-medium text-emerald-700"
+            >
+              Share WhatsApp
+            </button>
+          </div>
         </div>
       </div>
     </main>
   );
 }
+
+export default RegistrationStatusCard;
