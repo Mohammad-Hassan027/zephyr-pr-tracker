@@ -36,6 +36,8 @@ zephyr-pr-tracker/
 ├── backend/                       # Express Node.js REST API
 │   ├── package.json               # Backend dependencies & npm scripts
 │   ├── server.js                  # Main Express application entry point
+│   ├── .env.example               # Environment variable template (placeholders only)
+│   ├── .env.test.example          # Safe test-only env values (for reference / CI)
 │   ├── config/
 │   │   └── cloudinary.js          # Cloudinary SDK image upload & deletion helper
 │   ├── middleware/
@@ -56,7 +58,10 @@ zephyr-pr-tracker/
 │   │   ├── seed.js                # Database seeder script
 │   │   ├── migrate-to-clubs.js    # Data migration script for multi-tenancy
 │   │   └── test-transaction-logic.js # Concurrency & transaction retry unit tests
-│   └── utils/
+│   ├── tests/                     # Integration & Unit Test Suite
+│   │   ├── setup-test-db.js       # MongoMemoryServer helper (setupTestDb / teardownTestDb)
+│   │   └── test-env-setup.js      # Env bootstrap loaded via --import before tests run
+│   └── utils/                     # Utility & Helper Functions
 │       ├── auth.js                # JWT session signing & PIN verification
 │       ├── errors.js              # Custom AppError & HTTP error classes
 │       ├── statusEmitter.js       # Server-Sent Events (SSE) manager
@@ -68,25 +73,49 @@ zephyr-pr-tracker/
     ├── tailwind.config.ts         # Tailwind CSS styling design system
     ├── proxy.ts                   # Next.js API BFF proxy helper
     ├── app/                       # App Router Pages & API Route Proxies
-    │   ├── page.tsx               # Public home page / club directory
+    │   ├── page.tsx               # Root redirect → /clubs (server component)
     │   ├── clubs/page.tsx         # Active clubs directory
     │   ├── register/              # Participant registration forms
     │   │   ├── page.tsx           # Default club selector / registration page
     │   │   └── [clubSlug]/        # Dynamic club-specific registration route
     │   ├── status/[id]/page.tsx   # Real-time participant status tracking (SSE)
+    │   │                          #   requires tracking ID + access token
     │   ├── my-status/page.tsx     # Tracking ID lookup page
     │   ├── pr/                    # PR Member Portal
-    │   │   ├── page.tsx           # PR member login
+    │   │   ├── page.tsx           # PR member login (code + PIN)
     │   │   └── dashboard/         # PR referral queue & analytics
     │   ├── admin/                 # Club Admin Portal
     │   │   ├── page.tsx           # Club admin queue & overview
-    │   │   └── audit/page.tsx     # Review audit logs
-    │   ├── platform/clubs/page.tsx# Platform super-admin club approvals
+    │   │   ├── audit/page.tsx     # Review audit logs
+    │   │   └── check-in/page.tsx  # Event day attendee check-in
+    │   ├── platform/              # Platform Admin Area
+    │   │   ├── page.tsx           # Compat redirect → /platform/clubs
+    │   │   └── clubs/page.tsx     # Platform super-admin governance console
     │   ├── login/page.tsx         # Club admin login
     │   ├── signup/page.tsx        # Club registration request
     │   └── api/                   # BFF proxy route handlers forwarding to Express
     └── components/                # Reusable React components (Header, Queue, Icons)
 ```
+
+### 2.1 Canonical Route Map
+
+| Category | Route | Protection / Auth | Description |
+| --- | --- | --- | --- |
+| **Public** | `/` | None (Public) | Permanent-style server redirect to `/clubs` |
+| **Public** | `/clubs` | None (Public) | Multi-tenant club and event directory with search |
+| **Public** | `/register` | None (Public) | Club selector for participant registration |
+| **Public** | `/register/[clubSlug]` | None (Public) | Dynamic event registration & proof upload form |
+| **Public** | `/my-status` | None (Public) | Email/tracking ID lookup form |
+| **Public** | `/status/[id]` | Public ID + Token | Real-time participant status tracking (SSE stream) |
+| **Public** | `/signup` | None (Public) | University club onboarding request form |
+| **Club Admin** | `/login` | None (Public Form) | Club admin login page |
+| **Club Admin** | `/admin` | `pr_admin_session` cookie | Club admin dashboard, queue review, member mgmt |
+| **Club Admin** | `/admin/audit` | `pr_admin_session` cookie | Review history audit logs |
+| **Club Admin** | `/admin/check-in` | `pr_admin_session` cookie | Event day QR code scanner and attendee check-in |
+| **PR Member** | `/pr` | None (Public Form) | PR team member login (referral code + PIN) |
+| **PR Member** | `/pr/dashboard` | `pr_member_session` cookie | Assigned queue review & personal stats |
+| **Platform** | `/platform` | None (Public) | Compatibility redirect to `/platform/clubs` |
+| **Platform** | `/platform/clubs` | Master Key Auth | Super-admin governance console for club approvals |
 
 ---
 

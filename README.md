@@ -14,7 +14,7 @@
 
 ## Overview
 
-**Zephyr PR Tracker** is a comprehensive, production-ready web application designed to streamline event registrations, public relations (PR ) referral tracking, and payment verification workflows. It bridges the gap between student event registration and manual or automated payment approvals via UPI screenshot uploads.
+**Zephyr PR Tracker** is a comprehensive, production-ready web application designed to streamline event registrations, public relations (PR) referral tracking, and payment verification workflows. It bridges the gap between student event registration and manual or automated payment approvals via UPI screenshot uploads.
 
 The platform features a multi-tenant club architecture allowing multiple student organizations or clubs to operate independently, manage their own events, onboard PR team members, review pending submissions, and monitor verified registration analytics and leaderboards.
 
@@ -24,7 +24,7 @@ The platform features a multi-tenant club architecture allowing multiple student
 
 1. **Student Registration**: Participants fill out the registration form at `/register`, providing personal details, selecting an event from the active dropdown, supplying an optional referral code, entering the payment amount, and uploading a UPI transaction screenshot.
 
-1. **Status Tracking**: Upon submission, the student receives a tracking ID and is redirected to `/status/[id]`, which continuously polls for verification updates.
+1. **Status Tracking**: Upon submission, the student receives a tracking ID and is redirected to `/status/[id]`, which continuously polls for verification updates. The `[id]` segment is a unique registration ID; an access token is also returned at submission time for authenticated status polling.
 
 1. **Queue Attribution**: Submissions tagged with a valid PR member referral code land directly in that specific PR member's review queue. Unmatched or un-referred submissions route to the club or platform admin queue.
 
@@ -60,13 +60,53 @@ The platform features a multi-tenant club architecture allowing multiple student
 
 ---
 
+## Canonical Routes
+
+### Public Routes
+
+| Route | Description |
+| --- | --- |
+| `/` | Redirects to `/clubs` |
+| `/clubs` | Club and event directory |
+| `/register` | Club selector for registration |
+| `/register/[clubSlug]` | Event registration form for a specific club |
+| `/my-status` | Tracking ID lookup form |
+| `/status/[id]` | Real-time registration status page (requires tracking ID + access token) |
+| `/signup` | Club registration request form |
+
+### Club Admin Routes
+
+| Route | Description |
+| --- | --- |
+| `/login` | Club admin login |
+| `/admin` | Club admin dashboard and pending queue |
+| `/admin/audit` | Review audit log |
+| `/admin/check-in` | Attendee check-in |
+
+### PR Member Routes
+
+| Route | Description |
+| --- | --- |
+| `/pr` | PR member login |
+| `/pr/dashboard` | PR review dashboard and referral queue |
+
+### Platform Admin Routes
+
+| Route | Description |
+| --- | --- |
+| `/platform/clubs` | Platform governance and club approval console |
+| `/platform` | Redirects to `/platform/clubs` (compatibility redirect) |
+
+---
+
 ## Key Account Types & Roles
 
 | Role | Access URL | Authentication Method | Capabilities |
 | --- | --- | --- | --- |
-| **Platform / Club Admin** | `/login` or `/platform` | Shared Admin Password / Club Email & Password | Create events, manage PR team members, approve/reject global queues, oversee club multi-tenant settings. |
-| **PR Team Member** | `/pr` | Referral Code + 6-digit PIN | View and review pending submissions tagged to their specific referral code. |
-| **Student Participant** | `/register` & `/status/[id]` | Public Tracking ID | Submit event registrations, upload payment proofs, and monitor real-time verification status. |
+| **Platform Admin** | `/platform/clubs` | Shared `PLATFORM_ADMIN_PASSWORD` (inline login) | Approve or reject club activation requests, manage the full club registry. |
+| **Club Admin** | `/login` | Club email & password | Create events, manage PR team members, approve/reject global queues, oversee club multi-tenant settings. |
+| **PR Team Member** | `/pr` | Referral code + 6-digit PIN | View and review pending submissions tagged to their specific referral code. |
+| **Student Participant** | `/register` & `/status/[id]` | Public tracking ID + access token | Submit event registrations, upload payment proofs, and monitor real-time verification status. |
 
 ---
 
@@ -80,7 +120,7 @@ To run Zephyr PR Tracker locally for development or testing, follow the instruct
 
 - MongoDB instance (local or MongoDB Atlas)
 
-- Cloudinary account credentials
+- Cloudinary account credentials (optional for local dev — upload is gracefully disabled if not set)
 
 ### 1. Backend Setup
 
@@ -91,17 +131,21 @@ cp .env.example .env
 
 Configure your `.env` file with the following variables:
 
-```
+```env
 PORT=5000
 MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/zephyr
 CLIENT_ORIGIN=http://localhost:3000
 CLIENT_URL=http://localhost:3000
-PR_ADMIN_PASSWORD=your_secure_admin_password
-AUTH_SECRET=your_long_random_secret_string
+AUTH_SECRET=<generate a random string of at least 32 characters>
+PLATFORM_ADMIN_PASSWORD=<your secure admin password>
 
+# Optional — upload disabled if absent
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+# Email — defaults to "console" (logs to stdout)
+EMAIL_PROVIDER=console
 ```
 
 Install dependencies and start the backend development server:
@@ -124,7 +168,7 @@ cp .env.local.example .env.local
 
 Configure your `.env.local` file:
 
-```
+```env
 BACKEND_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -138,6 +182,40 @@ npm run dev
 ```
 
 *(The frontend application will run on **`http://localhost:3000`** )*
+
+### 3. Running Backend Tests (hermetic — no external services needed)
+
+The backend test suite is fully self-contained. From the repository root:
+
+```bash
+npm ci --prefix backend
+npm run check:backend
+```
+
+Tests use MongoDB Memory Server (no Atlas connection required), the `mock` email provider (no SMTP server), and safe deterministic test-only secrets injected automatically via `backend/tests/test-env-setup.js`.
+
+---
+
+## Production Deployment
+
+### Backend (Render)
+
+1. Connect the repository to Render and use the provided `render.yaml` blueprint.
+2. In the Render dashboard, set the following secrets under **Environment**:
+   - `MONGO_URI` — MongoDB Atlas connection string
+   - `AUTH_SECRET` — random string of at least 32 characters
+   - `PLATFORM_ADMIN_PASSWORD` — strong password for the platform console
+   - `CLIENT_ORIGIN` — your Vercel frontend URL (e.g. `https://your-app.vercel.app`)
+   - `CLIENT_URL` — same as `CLIENT_ORIGIN`
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (if using uploads)
+
+### Frontend (Vercel)
+
+1. Connect the repository to Vercel, set the root directory to `frontend`.
+2. Add the following environment variables in the Vercel dashboard:
+   - `BACKEND_API_URL` — your Render backend URL, e.g. `https://zephyr-backend.onrender.com/api`
+   - `NEXT_PUBLIC_API_URL` — set to `/api` (proxied through Next.js rewrites to avoid CORS)
+   - `NEXT_PUBLIC_SITE_URL` — your Vercel deployment URL
 
 ---
 
