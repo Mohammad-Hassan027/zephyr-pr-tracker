@@ -48,6 +48,7 @@ export function ReviewQueue({ code }: { code?: string }) {
     handlePageChange,
     handleClearFilters,
     setSelectedIds,
+    handleResolveDuplicate,
   } = useReviewQueue(code);
 
   return (
@@ -89,6 +90,7 @@ export function ReviewQueue({ code }: { code?: string }) {
         onBulkApprove={handleBulkApprove}
         onBulkReject={openBulkRejectModal}
         onDeselectAll={() => setSelectedIds(new Set())}
+        onResolveDuplicate={handleResolveDuplicate}
       />
 
       <QueuePagination

@@ -141,3 +141,16 @@ export async function lookupRegistrations(
     headers,
   });
 }
+
+export async function resolveDuplicate(
+  id: string,
+  params: import("./types").ResolveDuplicateParams,
+): Promise<import("./types").ResolveDuplicateResponse> {
+  return apiFetch<import("./types").ResolveDuplicateResponse>(
+    `/registrations/${id}/resolve-duplicate`,
+    {
+      method: "PATCH",
+      body: params,
+    },
+  );
+}

@@ -18,6 +18,11 @@ interface QueueTableProps {
   onApprove: (id: string) => void;
   onOpenRejectModal: (id: string) => void;
   onOpenCorrectionModal: (id: string) => void;
+  onResolveDuplicate?: (
+    id: string,
+    action: "confirm_duplicate" | "mark_legitimate" | "link" | "ignore",
+    notes?: string
+  ) => void;
   onZoom: (url: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
@@ -39,6 +44,7 @@ export function QueueTable({
   onApprove,
   onOpenRejectModal,
   onOpenCorrectionModal,
+  onResolveDuplicate,
   onZoom,
   onBulkApprove,
   onBulkReject,
@@ -107,6 +113,7 @@ export function QueueTable({
           onApprove={onApprove}
           onOpenRejectModal={onOpenRejectModal}
           onOpenCorrectionModal={onOpenCorrectionModal}
+          onResolveDuplicate={onResolveDuplicate}
           onZoom={onZoom}
         />
       ))}

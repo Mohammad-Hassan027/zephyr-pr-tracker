@@ -184,6 +184,58 @@ export type LookupResult = {
 };
 
 /**
+ * Duplicate and Suspicious Registration Types
+ */
+export type SuspicionSignalType =
+  | "SAME_EMAIL_SAME_EVENT"
+  | "SAME_PHONE_SAME_EVENT"
+  | "REUSED_TRANSACTION_ID"
+  | "REUSED_PAYMENT_PROOF"
+  | "SIMILAR_NAME_MATCHING_CONTACT"
+  | "HIGH_FREQUENCY_SUBMISSION"
+  | "OTHER";
+
+export type SuspicionSignal = {
+  signal: SuspicionSignalType;
+  reason: string;
+  matchingRegistrationId?: string | null;
+  matchingField?: string | null;
+  detectedAt: string;
+  confidence: "low" | "medium" | "high";
+};
+
+export type SuspicionResolution = {
+  status: "pending" | "confirmed_duplicate" | "marked_legitimate" | "linked" | "ignored";
+  resolvedBy?: string | null;
+  resolvedAt?: string | null;
+  notes?: string | null;
+  linkedRegistrationId?: string | null;
+};
+
+export type SuspicionFlags = {
+  isSuspicious: boolean;
+  signals: SuspicionSignal[];
+  resolution: SuspicionResolution;
+};
+
+export type ResolveDuplicateParams = {
+  action: "confirm_duplicate" | "mark_legitimate" | "link" | "ignore";
+  notes?: string;
+  linkedRegistrationId?: string;
+};
+
+export type ResolveDuplicateResponse = {
+  ok: boolean;
+  message: string;
+  data: {
+    id: string;
+    status: WorkflowStatus;
+    suspicionFlags: SuspicionFlags;
+    history: HistoryItem[];
+  };
+};
+
+/**
  * Review Queue Domain Types
  */
 export type PendingRegistration = {
@@ -200,6 +252,7 @@ export type PendingRegistration = {
   correctionNote?: string | null;
   lastCorrectionRequestedAt?: string | null;
   resubmittedAt?: string | null;
+  suspicionFlags?: SuspicionFlags;
   history?: HistoryItem[];
   createdAt: string;
   event: {

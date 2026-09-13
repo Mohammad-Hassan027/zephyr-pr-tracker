@@ -22,6 +22,11 @@ interface QueueRowProps {
   onApprove: (id: string) => void;
   onOpenRejectModal: (id: string) => void;
   onOpenCorrectionModal: (id: string) => void;
+  onResolveDuplicate?: (
+    id: string,
+    action: "confirm_duplicate" | "mark_legitimate" | "link" | "ignore",
+    notes?: string
+  ) => void;
   onZoom: (url: string) => void;
 }
 
@@ -74,6 +79,7 @@ export function QueueRow({
   onApprove,
   onOpenRejectModal,
   onOpenCorrectionModal,
+  onResolveDuplicate,
   onZoom,
 }: QueueRowProps) {
   const isActionDisabled = isBusy || isBulkBusy;
@@ -115,6 +121,21 @@ export function QueueRow({
                     </span>
                   </span>
                 )}
+
+              {/* Duplicate & Suspicion Flag Warning Badge */}
+              {r.suspicionFlags?.isSuspicious && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                  <AlertTriangle size={11} className="shrink-0 text-amber-700" aria-hidden="true" />
+                  Flagged Duplicate / Suspicious
+                </span>
+              )}
+
+              {r.suspicionFlags?.resolution?.status &&
+                r.suspicionFlags.resolution.status !== "pending" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 border border-zinc-300 px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
+                    Resolution: {r.suspicionFlags.resolution.status.replace("_", " ")}
+                  </span>
+                )}
             </div>
 
             <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -140,6 +161,83 @@ export function QueueRow({
                 </span>
               )}
             </div>
+
+            {/* Suspicion Flags Banner */}
+            {r.suspicionFlags &&
+              (r.suspicionFlags.isSuspicious ||
+                (r.suspicionFlags.signals && r.suspicionFlags.signals.length > 0)) && (
+                <div
+                  className={`mt-2.5 rounded-lg border p-3 text-xs space-y-2 font-sans ${
+                    r.suspicionFlags.resolution?.status === "marked_legitimate" ||
+                    r.suspicionFlags.resolution?.status === "ignored"
+                      ? "bg-zinc-50 border-zinc-200 text-zinc-700"
+                      : r.suspicionFlags.resolution?.status === "confirmed_duplicate"
+                      ? "bg-rose-50 border-rose-200 text-rose-900"
+                      : "bg-amber-50/90 border-amber-300 text-amber-900"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <AlertTriangle size={14} className="shrink-0 text-amber-600" aria-hidden="true" />
+                      <span>
+                        {r.suspicionFlags.resolution?.status === "marked_legitimate"
+                          ? "Resolved as Legitimate"
+                          : r.suspicionFlags.resolution?.status === "confirmed_duplicate"
+                          ? "Confirmed Duplicate"
+                          : "Possible Duplicate / Suspicious Registration"}
+                      </span>
+                    </div>
+                    {r.suspicionFlags.resolution?.status && (
+                      <span className="rounded px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider bg-white/80 border border-current/20">
+                        {r.suspicionFlags.resolution.status.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
+
+                  {r.suspicionFlags.signals && r.suspicionFlags.signals.length > 0 && (
+                    <ul className="space-y-1 list-disc list-inside text-[11px] font-medium">
+                      {r.suspicionFlags.signals.map((sig, sIdx) => (
+                        <li key={sIdx} className="break-words">
+                          <strong className="font-semibold">{sig.signal.replace(/_/g, " ")}:</strong>{" "}
+                          {sig.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Quick Reviewer Resolution Actions */}
+                  {onResolveDuplicate &&
+                    (!r.suspicionFlags.resolution?.status ||
+                      r.suspicionFlags.resolution.status === "pending") && (
+                      <div className="flex flex-wrap gap-2 pt-1 border-t border-amber-200/60">
+                        <button
+                          type="button"
+                          disabled={isActionDisabled}
+                          onClick={() => onResolveDuplicate(r._id, "mark_legitimate")}
+                          className="rounded bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-300 shadow-sm hover:bg-emerald-50 transition"
+                        >
+                          ✓ Mark as Legitimate
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isActionDisabled}
+                          onClick={() => onResolveDuplicate(r._id, "confirm_duplicate")}
+                          className="rounded bg-white px-2 py-1 text-[11px] font-semibold text-rose-700 border border-rose-300 shadow-sm hover:bg-rose-50 transition"
+                        >
+                          ⚠ Confirm Duplicate
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isActionDisabled}
+                          onClick={() => onResolveDuplicate(r._id, "ignore")}
+                          className="rounded bg-white px-2 py-1 text-[11px] font-semibold text-zinc-600 border border-zinc-300 shadow-sm hover:bg-zinc-100 transition"
+                        >
+                          Ignore Warning
+                        </button>
+                      </div>
+                    )}
+                </div>
+              )}
 
             {/* Correction note */}
             {r.correctionNote && (

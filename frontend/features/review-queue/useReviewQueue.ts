@@ -10,6 +10,7 @@ import {
   rejectRegistration,
   requestCorrection,
 } from "@/lib/api/review-queue";
+import { resolveDuplicate } from "@/lib/api/registrations";
 import type { EventItem, PendingRegistration } from "@/lib/api/types";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import type { ReviewModalState } from "./review-queue.types";
@@ -278,6 +279,20 @@ export function useReviewQueue(code?: string) {
     setTo("");
   }
 
+  async function handleResolveDuplicate(
+    id: string,
+    action: "confirm_duplicate" | "mark_legitimate" | "link" | "ignore",
+    notes?: string,
+  ) {
+    setBusyId(id);
+    try {
+      await resolveDuplicate(id, { action, notes });
+      await load(page);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const isAllSelected = items.length > 0 && selectedIds.size === items.length;
 
   return {
@@ -321,6 +336,7 @@ export function useReviewQueue(code?: string) {
     handleBulkApprove,
     handlePageChange,
     handleClearFilters,
+    handleResolveDuplicate,
     setSelectedIds,
   };
 }
