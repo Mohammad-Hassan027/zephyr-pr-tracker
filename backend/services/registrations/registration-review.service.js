@@ -5,6 +5,7 @@ import { AppError, ConflictError, ForbiddenError, NotFoundError } from "../../ut
 import { statusEmitter } from "../../utils/statusEmitter.js";
 import cloudinary, { isCloudinaryConfigured } from "../../config/cloudinary.js";
 import { emailService } from "../email/email.service.js";
+import { normalizeUtr } from "./duplicate-detection.service.js";
 
 const REVIEWABLE_STATUSES = ["pending", "resubmitted", "under_review", "needs_correction"];
 
@@ -152,6 +153,22 @@ export const registrationReviewService = {
 
       if (!REVIEWABLE_STATUSES.includes(reg.status)) {
         throw new ConflictError(`Registration has already been finalized (${reg.status})`);
+      }
+
+      // --- Duplicate transaction ID (UTR) approval defense ---
+      const cleanUtr = (reg.normalizedUtr || (reg.utr ? normalizeUtr(reg.utr) : "")).trim().toUpperCase();
+      if (cleanUtr && cleanUtr.length >= 4) {
+        const existingApproved = await registrationRepository.findApprovedRegistrationByUtr(cleanUtr, reg._id, session);
+        if (existingApproved) {
+          throw new ConflictError(
+            `Cannot approve registration: Payment transaction ID (UTR) '${reg.utr}' has already been approved on registration ${existingApproved.regNo || existingApproved._id}`,
+            {
+              code: "DUPLICATE_TRANSACTION_APPROVED",
+              duplicateRegistrationId: existingApproved._id,
+              duplicateRegNo: existingApproved.regNo,
+            }
+          );
+        }
       }
 
       // --- Atomic capacity reservation ---
@@ -362,6 +379,7 @@ export const registrationReviewService = {
 
     const results = [];
     const errors = [];
+    const batchApprovedUtrs = new Set();
 
     await withTransaction(async (session) => {
       for (const id of ids) {
@@ -398,6 +416,30 @@ export const registrationReviewService = {
           if (!REVIEWABLE_STATUSES.includes(reg.status)) {
             errors.push({ id, error: `Already finalized (${reg.status})` });
             continue;
+          }
+
+          // Duplicate transaction ID (UTR) approval defense
+          const cleanUtr = (reg.normalizedUtr || (reg.utr ? normalizeUtr(reg.utr) : "")).trim().toUpperCase();
+          if (cleanUtr && cleanUtr.length >= 4) {
+            if (batchApprovedUtrs.has(cleanUtr)) {
+              errors.push({
+                id,
+                error: `Duplicate payment transaction ID (UTR) '${reg.utr}' appears multiple times in this batch`,
+                code: "DUPLICATE_TRANSACTION_APPROVED",
+              });
+              continue;
+            }
+
+            const existingApproved = await registrationRepository.findApprovedRegistrationByUtr(cleanUtr, reg._id, session);
+            if (existingApproved) {
+              errors.push({
+                id,
+                error: `Payment transaction ID (UTR) '${reg.utr}' already approved on registration ${existingApproved.regNo || existingApproved._id}`,
+                code: "DUPLICATE_TRANSACTION_APPROVED",
+                duplicateRegistrationId: existingApproved._id,
+              });
+              continue;
+            }
           }
 
           // Atomic per-item capacity reservation
@@ -437,6 +479,7 @@ export const registrationReviewService = {
           });
 
           await reg.save({ session });
+          if (cleanUtr) batchApprovedUtrs.add(cleanUtr);
 
           results.push({
             id: reg._id,
@@ -603,6 +646,97 @@ export const registrationReviewService = {
       failed: errors.length,
       results,
       errors,
+    };
+  },
+
+  async resolveDuplicateFlag({ id, action, notes, linkedRegistrationId, auth }) {
+    const VALID_ACTIONS = ["confirm_duplicate", "mark_legitimate", "link", "ignore"];
+    if (!VALID_ACTIONS.includes(action)) {
+      throw new AppError(`Invalid action '${action}'. Must be one of: ${VALID_ACTIONS.join(", ")}`, 400);
+    }
+
+    const result = await withTransaction(async (session) => {
+      const reg = await registrationRepository.findRegistrationById(id, {
+        populate: true,
+        session,
+      });
+
+      if (!reg) {
+        throw new NotFoundError("Registration not found");
+      }
+
+      if (!canReviewRegistration(auth, reg)) {
+        throw new ForbiddenError("You cannot review this registration");
+      }
+
+      const reviewerCode = getReviewerCode(auth);
+      const trimmedNotes = typeof notes === "string" ? notes.trim() : "";
+
+      let resolutionStatus = "pending";
+      let isSuspicious = reg.suspicionFlags?.isSuspicious ?? false;
+      let auditNote = "";
+
+      if (action === "confirm_duplicate") {
+        resolutionStatus = "confirmed_duplicate";
+        isSuspicious = true;
+        auditNote = `Confirmed duplicate flag${trimmedNotes ? `: ${trimmedNotes}` : ""}`;
+      } else if (action === "mark_legitimate") {
+        resolutionStatus = "marked_legitimate";
+        isSuspicious = false;
+        auditNote = `Marked registration as legitimate${trimmedNotes ? `: ${trimmedNotes}` : ""}`;
+      } else if (action === "link") {
+        if (!linkedRegistrationId) {
+          throw new AppError("linkedRegistrationId is required when linking registrations", 400);
+        }
+        resolutionStatus = "linked";
+        isSuspicious = true;
+        auditNote = `Linked to primary registration ${linkedRegistrationId}${trimmedNotes ? `: ${trimmedNotes}` : ""}`;
+      } else if (action === "ignore") {
+        resolutionStatus = "ignored";
+        isSuspicious = false;
+        auditNote = `Ignored duplicate flag warning${trimmedNotes ? `: ${trimmedNotes}` : ""}`;
+      }
+
+      reg.suspicionFlags = {
+        isSuspicious,
+        signals: reg.suspicionFlags?.signals || [],
+        resolution: {
+          status: resolutionStatus,
+          resolvedBy: reviewerCode,
+          resolvedAt: new Date(),
+          notes: trimmedNotes || null,
+          linkedRegistrationId: linkedRegistrationId || null,
+        },
+      };
+
+      if (!Array.isArray(reg.history)) {
+        reg.history = [];
+      }
+
+      reg.history.push({
+        action: "duplicate_flag_resolved",
+        status: reg.status,
+        performedBy: reviewerCode,
+        note: auditNote,
+        timestamp: new Date(),
+      });
+
+      await reg.save({ session });
+
+      return {
+        id: reg._id,
+        status: reg.status,
+        suspicionFlags: reg.suspicionFlags,
+        history: reg.history,
+      };
+    });
+
+    statusEmitter.emitStatusUpdate(id, result);
+
+    return {
+      ok: true,
+      message: `Duplicate flag resolved as '${action}' successfully`,
+      data: result,
     };
   },
 };

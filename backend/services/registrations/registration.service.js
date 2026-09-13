@@ -14,6 +14,12 @@ import {
   isValidRegistrationAccessToken,
   issueRegistrationAccessToken,
 } from "../../utils/registration-access.js";
+import {
+  duplicateDetectionService,
+  normalizeEmail,
+  normalizePhone,
+  normalizeUtr,
+} from "./duplicate-detection.service.js";
 
 function requireRegistrationAccess(registration, accessToken) {
   if (!registration) {
@@ -108,12 +114,46 @@ export const registrationService = {
 
     try {
       const { rawToken, tokenHash } = issueRegistrationAccessToken();
+      const normEmail = normalizeEmail(studentEmail);
+      const normPhone = normalizePhone(studentPhone);
+      const normUtr = normalizeUtr(utr);
+
+      // Evaluate duplicate & suspicion signals without blocking registration ingestion
+      const detectionResult = await duplicateDetectionService.detectSuspiciousSignals(
+        {
+          studentName,
+          studentEmail,
+          studentPhone,
+          college,
+          utr,
+          paymentScreenshotPublicId: screenshotPublicId,
+        },
+        {
+          eventId: event._id,
+          clubId: event.club,
+        }
+      );
+
+      const suspicionFlags = {
+        isSuspicious: detectionResult.isSuspicious,
+        signals: detectionResult.signals,
+        resolution: {
+          status: "pending",
+          resolvedBy: null,
+          resolvedAt: null,
+          notes: null,
+          linkedRegistrationId: null,
+        },
+      };
+
       const initialHistory = [
         {
           action: "submitted",
           status: "pending",
           performedBy: "contributor",
-          note: "Initial submission",
+          note: detectionResult.isSuspicious
+            ? `Initial submission (flagged: ${detectionResult.signals.map((s) => s.signal).join(", ")})`
+            : "Initial submission",
           timestamp: new Date(),
         },
       ];
@@ -122,9 +162,12 @@ export const registrationService = {
         studentName,
         studentEmail,
         studentPhone,
+        normalizedEmail: normEmail,
+        normalizedPhone: normPhone,
         college,
         amount: amount ? Number(amount) : 0,
         utr: toTrimmedString(utr),
+        normalizedUtr: normUtr,
         event: event._id,
         club: event.club,
         referralCode: validCode,
@@ -133,6 +176,7 @@ export const registrationService = {
         accessTokenHash: tokenHash,
         accessTokenIssuedAt: new Date(),
         status: "pending",
+        suspicionFlags,
         history: initialHistory,
       });
 
@@ -230,6 +274,7 @@ export const registrationService = {
     if (studentPhone !== undefined && studentPhone !== reg.studentPhone) {
       changes.studentPhone = { from: reg.studentPhone, to: studentPhone };
       reg.studentPhone = studentPhone;
+      reg.normalizedPhone = normalizePhone(studentPhone);
     }
     if (college !== undefined && college !== reg.college) {
       changes.college = { from: reg.college, to: college };
@@ -242,6 +287,7 @@ export const registrationService = {
     if (utr !== undefined && toTrimmedString(utr) !== reg.utr) {
       changes.utr = { from: reg.utr, to: toTrimmedString(utr) };
       reg.utr = toTrimmedString(utr);
+      reg.normalizedUtr = normalizeUtr(utr);
     }
     if (screenshotUrl !== reg.paymentScreenshot) {
       changes.paymentScreenshot = { from: "previous", to: "updated" };

@@ -64,10 +64,26 @@ export async function bulkReject(req, res, next) {
   }
 }
 
+export async function resolveDuplicate(req, res, next) {
+  try {
+    const result = await registrationReviewService.resolveDuplicateFlag({
+      id: req.params.id,
+      action: req.body?.action,
+      notes: req.body?.notes,
+      linkedRegistrationId: req.body?.linkedRegistrationId,
+      auth: req.auth,
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 export default {
   approveRegistration,
   rejectRegistration,
   requestCorrection,
   bulkApprove,
   bulkReject,
+  resolveDuplicate,
 };

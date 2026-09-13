@@ -19,6 +19,7 @@ import {
   requestCorrection,
   bulkApprove,
   bulkReject,
+  resolveDuplicate,
 } from "../controllers/registration-review.controller.js";
 import {
   getPendingQueue,
@@ -90,5 +91,6 @@ router.post("/bulk-reject", requireClubOrPRMember, bulkReject);
 router.patch("/:id/approve", requireClubOrPRMember, approveRegistration);
 router.patch("/:id/reject", requireClubOrPRMember, rejectRegistration);
 router.patch("/:id/request-correction", requireClubOrPRMember, requestCorrection);
+router.patch("/:id/resolve-duplicate", requireClubOrPRMember, resolveDuplicate);
 
 export default router;

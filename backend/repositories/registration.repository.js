@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Registration from "../models/Registration.js";
 import Event from "../models/Event.js";
 import Club from "../models/Club.js";
@@ -298,6 +299,94 @@ export const registrationRepository = {
   async getNextRegistrationSequence(session = null) {
     const seq = await nextSequence("regNo", session);
     return `REG-${String(seq).padStart(4, "0")}`;
+  },
+
+  async findMatchesForDuplicateDetection({
+    eventId,
+    clubId,
+    normalizedEmail,
+    normalizedPhone,
+    normalizedUtr,
+    paymentScreenshotPublicId,
+    excludeRegistrationId = null,
+    session = null,
+  }) {
+    const conditions = [];
+
+    if (eventId && normalizedEmail) {
+      conditions.push({ event: eventId, normalizedEmail });
+      conditions.push({ event: eventId, studentEmail: normalizedEmail });
+    }
+
+    if (eventId && normalizedPhone && normalizedPhone.length >= 7) {
+      conditions.push({ event: eventId, normalizedPhone });
+    }
+
+    if (normalizedUtr && normalizedUtr.length >= 4) {
+      conditions.push({ normalizedUtr });
+      conditions.push({ utr: normalizedUtr });
+    }
+
+    if (paymentScreenshotPublicId) {
+      conditions.push({ paymentScreenshotPublicId });
+    }
+
+    // Include recent registrations for the same event (limit to last 50) for name similarity / frequency
+    if (eventId) {
+      conditions.push({ event: eventId });
+    }
+
+    if (conditions.length === 0) return [];
+
+    const filter = { $or: conditions };
+    if (excludeRegistrationId) {
+      filter._id = { $ne: excludeRegistrationId };
+    }
+
+    const query = Registration.find(filter)
+      .select(
+        "_id regNo studentName studentEmail studentPhone college utr normalizedEmail normalizedPhone normalizedUtr paymentScreenshot paymentScreenshotPublicId status event club createdAt suspicionFlags"
+      )
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    if (session) query.session(session);
+    return query.lean();
+  },
+
+  async findApprovedRegistrationByUtr(normalizedUtr, excludeRegistrationId = null, session = null) {
+    if (!normalizedUtr || typeof normalizedUtr !== "string" || normalizedUtr.trim().length === 0) {
+      return null;
+    }
+
+    const cleanUtr = normalizedUtr.trim().toUpperCase();
+    const filter = {
+      $or: [{ normalizedUtr: cleanUtr }, { utr: cleanUtr }],
+      status: "approved",
+    };
+
+    if (excludeRegistrationId) {
+      filter._id = { $ne: excludeRegistrationId };
+    }
+
+    const query = Registration.findOne(filter);
+    if (session) query.session(session);
+    return query;
+  },
+
+  async updateDuplicateResolution(id, resolutionData, session = null) {
+    const query = Registration.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          "suspicionFlags.resolution": resolutionData,
+          "suspicionFlags.isSuspicious": resolutionData.status === "pending" || resolutionData.status === "confirmed_duplicate",
+        },
+      },
+      { new: true }
+    );
+    if (session) query.session(session);
+    return query;
   },
 };
 
