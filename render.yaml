@@ -1,7 +1,7 @@
 services:
   - type: web
     name: zephyr-backend
-    env: node
+    runtime: node
     region: oregon
     plan: free
     buildCommand: cd backend && npm install
@@ -12,9 +12,16 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        sync: false # paste your MongoDB Atlas connection string in the Render dashboard
+        sync: false
       - key: CLIENT_ORIGIN
-        sync: false # set to your Vercel frontend URL, e.g. https://your-app.vercel.app
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      # node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+      - key: AUTH_SECRET
+        sync: false
+      - key: PLATFORM_ADMIN_PASSWORD
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -23,3 +30,19 @@ services:
         sync: false
       - key: CLOUDINARY_UPLOAD_PRESET
         sync: false
+      - key: EMAIL_PROVIDER
+        value: nodemailer
+
+      - key: EMAIL_FROM
+        value: Zephyr Events <noreply@zephyr.local>
+
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_SECURE
+        value: "false"
