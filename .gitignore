@@ -8,3 +8,8 @@ coverage/
 .DS_Store
 *.log
 *.tsbuildinfo
+.presentation-credentials
+backend/.presentation-credentials
+*.presentation-credentials
+!.presentation-credentials.example
+!backend/.presentation-credentials.example

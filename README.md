@@ -227,10 +227,43 @@ Tests use MongoDB Memory Server (no Atlas connection required), the `mock` email
 
 - **Rate Limiting**: Express rate limiters protect authentication and submission endpoints against brute-force attacks and automated spam.
 
-### PR member logins:
+---
 
-- **Rahul Sharma** code=RAHUL851 pin=428160
-- **Sneha Patil** code=SNEHA305 pin=882020
-- **Aman Khan** code=AMAN126 pin=741051
-- **Priya Desai** code=PRIYA114 pin=687901
-- **Hassan** code=HASSAN653 pin=330807
+## Presentation & Demo Data Seeding
+
+The repository includes a clean, idempotent seed script designed for product demonstrations and local evaluations.
+
+```bash
+cd backend
+npm install
+npm run seed:presentation
+```
+
+### Presentation Credentials & Configuration
+
+Presentation credentials must be configured locally using the environment variables or local credentials file described in the setup instructions. No usable credentials are committed to this repository.
+
+To configure demo credentials for local presentations:
+
+1. Copy the example credentials template:
+   ```bash
+   cp backend/.presentation-credentials.example backend/.presentation-credentials
+   ```
+2. Adjust your local presentation credentials inside `backend/.presentation-credentials` or configure them directly in your environment:
+   - `MONGO_URI`: (Required) MongoDB connection string to the target development database.
+   - `DEMO_CLUB_EMAIL`: (Optional) Email address for the presentation club administrator.
+   - `DEMO_CLUB_PASSWORD`: (Optional) Password for the presentation club administrator.
+   - `DEMO_PR_PIN`: (Optional) 6-digit login PIN for presentation PR team members.
+
+> **Note:** The `backend/.presentation-credentials` file is ignored by git to protect local secrets. Never commit usable passwords, PINs, or secrets.
+
+### Seeder Characteristics & Safety
+
+- **Idempotency**: The presentation seeder uses deterministic lookup keys (`slug`, `code`, `customFields.presentationSeedId`). Executing the script multiple times updates existing presentation records in-place rather than generating duplicate entries.
+- **Dataset Scope**: The seeder creates a complete demonstration dataset:
+  - An approved multi-tenant club (`Zephyr Tech Society`)
+  - Fictional events with future dates, capacities, and descriptions
+  - PR team members with assigned referral codes
+  - Participant registrations illustrating the full lifecycle (pending, approved, rejected, correction requested, resubmitted, check-in records, and duplicate resolution flags)
+- **Capacity Integrity**: Event `approvedCount` is dynamically synchronized to match approved registrations.
+- **Data Protection**: The seeder strictly scopes modifications to presentation records and will never wipe, drop, or alter unrelated user or production records. Do not run the seeder against production databases unless intentionally deploying demonstration records.

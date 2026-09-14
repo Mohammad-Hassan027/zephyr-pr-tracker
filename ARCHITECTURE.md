@@ -55,8 +55,7 @@ zephyr-pr-tracker/
 │   │   ├── members.js             # PR member management & member login
 │   │   └── registrations.js       # Registration submission, queues, approvals & SSE
 │   ├── scripts/                   # Utility Scripts & Tests
-│   │   ├── seed.js                # Database seeder script
-│   │   ├── migrate-to-clubs.js    # Data migration script for multi-tenancy
+│   │   ├── seed-presentation.js   # Idempotent presentation/demo dataset seeder
 │   │   └── test-transaction-logic.js # Concurrency & transaction retry unit tests
 │   ├── tests/                     # Integration & Unit Test Suite
 │   │   ├── setup-test-db.js       # MongoMemoryServer helper (setupTestDb / teardownTestDb)
@@ -189,9 +188,6 @@ Re-approving an already-approved registration (`reg.status === 'approved'`) retu
 **Transaction Safety:**  
 The reservation and `reg.save()` execute in the same `withTransaction` session. If `reg.save()` fails, MongoDB automatically rolls back the `$inc` increment.
 
-**Migration:**  
-Run `node scripts/migrate-event-capacity.js` once before deploying to production to backfill `approvedCount` for all existing events.
-
 **Admin Consistency Check:**  
 `GET /api/registrations/capacity/check` — compares `Event.approvedCount` against the actual approved registration count (ground truth). `POST /api/registrations/capacity/reconcile` re-syncs any drifted counters.
 
@@ -234,8 +230,8 @@ All standard commands required to build, run, test, and manage the project are r
 | Start dev server (Nodemon) | `npm run dev`     |
 | Start production server    | `npm start`       |
 | Run transaction unit tests | `npm test`        |
-| Seed database              | `npm run seed`    |
-| Run multi-tenant migration | `npm run migrate` |
+| Seed database              | `npm run seed`              |
+| Seed presentation dataset  | `npm run seed:presentation` |
 
 ### 5.3 Standalone Frontend Commands (`cd frontend`)
 
