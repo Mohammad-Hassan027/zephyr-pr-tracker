@@ -59,7 +59,8 @@ zephyr-pr-tracker/
 │   │   └── test-transaction-logic.js # Concurrency & transaction retry unit tests
 │   ├── tests/                     # Integration & Unit Test Suite
 │   │   ├── setup-test-db.js       # MongoMemoryServer helper (setupTestDb / teardownTestDb)
-│   │   └── test-env-setup.js      # Env bootstrap loaded via --import before tests run
+│   │   ├── test-env-setup.js      # Env bootstrap loaded via --import before tests run
+│   │   └── health.routes.test.js  # Liveness (/healthz) & readiness (/readyz) probe tests
 │   └── utils/                     # Utility & Helper Functions
 │       ├── auth.js                # JWT session signing & PIN verification
 │       ├── errors.js              # Custom AppError & HTTP error classes

@@ -4,6 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
+    healthCheckPath: /healthz
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
     envVars:

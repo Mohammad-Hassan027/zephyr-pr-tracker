@@ -200,7 +200,7 @@ Tests use MongoDB Memory Server (no Atlas connection required), the `mock` email
 
 ### Backend (Render)
 
-1. Connect the repository to Render and use the provided `render.yaml` blueprint.
+1. Connect the repository to Render and use the provided `render.yaml` blueprint. The service automatically uses `/healthz` as its zero-auth health check path.
 2. In the Render dashboard, set the following secrets under **Environment**:
    - `MONGO_URI` — MongoDB Atlas connection string
    - `AUTH_SECRET` — random string of at least 32 characters
@@ -216,6 +216,60 @@ Tests use MongoDB Memory Server (no Atlas connection required), the `mock` email
    - `BACKEND_API_URL` — your Render backend URL, e.g. `https://zephyr-backend.onrender.com/api`
    - `NEXT_PUBLIC_API_URL` — set to `/api` (proxied through Next.js rewrites to avoid CORS)
    - `NEXT_PUBLIC_SITE_URL` — your Vercel deployment URL
+
+---
+
+## Health Checks & Readiness Probes
+
+The system provides dedicated liveness and readiness endpoints with `Cache-Control: no-store` headers:
+
+| Endpoint | Probe Type | Description | Healthy Status | Degraded Status |
+| --- | --- | --- | --- | --- |
+| `GET /healthz` | Liveness | Lightweight probe verifying the Node/Express process is running. Zero authentication or database dependencies. | `200 OK` (`{"ok":true,"status":"live"}`) | Service down |
+| `GET /readyz` | Readiness | Verifies database connectivity (`mongoose.connection.readyState === 1`) and startup environment validity. Safe: secrets are never leaked. | `200 OK` (`{"ok":true,"status":"ready"}`) | `503 Service Unavailable` (`{"ok":false,"status":"not_ready"}`) |
+
+---
+
+## Public API Boundary & Routing Contracts
+
+To ensure consistency and security across Vercel (frontend origin) and Render (backend origin):
+
+- **Served by Next.js Route Handlers**:
+  - `GET /api/clubs` — Public listing of approved clubs (`[{ name, slug }]`).
+  - `GET /api/clubs/public/:slug` — Public single club lookup.
+  - `GET /api/events` / `GET /api/events/:slug` — Public events listing (with optional `?club=slug`).
+  - `GET /api/clubs-directory` — Aggregated club + event directory.
+  - `GET /api/healthz` & `GET /api/readyz` — Frontend liveness and backend readiness reflection.
+  - Authenticated operations (`/api/admin/*`, `/api/pr/*`, `/api/platform/*`, `/api/login`, `/api/pr-login`) — HTTP-only cookies forwarded securely.
+- **Rewritten directly to Backend (Public Flows)**:
+  - `POST /api/registrations`, `/api/registrations/check-duplicate`, `/api/registrations/lookup`, `/api/registrations/:id/resubmit`, `/api/registrations/:id`, `/api/registrations/upload-signature`
+  - `POST /api/uploads/sign`
+- **Internal / Protected Endpoints**:
+  - `/api/members` endpoints are strictly managed through authenticated Next.js proxy route handlers and never exposed via unauthenticated rewrites.
+
+### Deployment Smoke Test Commands
+
+You can verify both origins using curl:
+
+```bash
+# 1. Test Render Backend Origin
+curl -i https://<render-backend-host>/healthz
+curl -i https://<render-backend-host>/readyz
+curl -i https://<render-backend-host>/api/clubs
+curl -i https://<render-backend-host>/api/events
+
+# 2. Test Vercel Frontend Origin
+curl -i https://<vercel-frontend-host>/api/healthz
+curl -i https://<vercel-frontend-host>/api/readyz
+curl -i https://<vercel-frontend-host>/api/clubs
+curl -i https://<vercel-frontend-host>/api/clubs/public/<club-slug>
+curl -i https://<vercel-frontend-host>/api/events
+curl -i https://<vercel-frontend-host>/api/clubs-directory
+
+# 3. Verify Admin Route is Protected (Must return 401 Unauthorized)
+curl -i https://<vercel-frontend-host>/api/admin/club
+curl -i https://<vercel-frontend-host>/api/platform/clubs/all
+```
 
 ---
 
