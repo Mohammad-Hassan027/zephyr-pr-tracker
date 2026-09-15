@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "type-check": "tsc --noEmit",
-    "test": "node tests/review-queue.test.js && node tests/check-in.test.js"
+    "test": "node tests/review-queue.test.js && node tests/check-in.test.js && node tests/api-routing.test.js"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",

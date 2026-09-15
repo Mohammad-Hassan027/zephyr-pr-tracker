@@ -34,16 +34,32 @@ const nextConfig = {
 
     return [
       {
+        source: "/api/clubs",
+        destination: `${baseUrl}/api/clubs`,
+      },
+      {
+        source: "/api/clubs/public/:slug*",
+        destination: `${baseUrl}/api/clubs/public/:slug*`,
+      },
+      {
+        source: "/api/events",
+        destination: `${baseUrl}/api/events`,
+      },
+      {
         source: "/api/events/:path*",
         destination: `${baseUrl}/api/events/:path*`,
       },
       {
-        source: "/api/members/:path*",
-        destination: `${baseUrl}/api/members/:path*`,
+        source: "/api/registrations",
+        destination: `${baseUrl}/api/registrations`,
       },
       {
         source: "/api/registrations/:path*",
         destination: `${baseUrl}/api/registrations/:path*`,
+      },
+      {
+        source: "/api/uploads/:path*",
+        destination: `${baseUrl}/api/uploads/:path*`,
       },
     ];
   },
