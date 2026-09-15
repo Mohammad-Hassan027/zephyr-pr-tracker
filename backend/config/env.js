@@ -105,14 +105,16 @@ export function validateEnv(options = {}) {
       "============================================================",
     ].join("\n");
 
-    console.error(diagnosticMessage);
+    if (!options.silent) {
+      console.error(diagnosticMessage);
+    }
     const configErr = new Error("Environment configuration validation failed");
     configErr.errors = errors;
     configErr.diagnosticMessage = diagnosticMessage;
     throw configErr;
   }
 
-  if (warnings.length > 0 && !isTest) {
+  if (warnings.length > 0 && !isTest && !options.silent) {
     console.warn("Environment Configuration Warnings:\n" + warnings.map((w) => `  ! ${w}`).join("\n"));
   }
 

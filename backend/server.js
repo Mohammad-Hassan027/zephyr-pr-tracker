@@ -72,7 +72,53 @@ app.use("/api/clubs/platform/login", authLimiter);
 app.use("/api/clubs/register", authLimiter);
 app.use("/api/members/login", authLimiter);
 
-// 5. Mount Routes
+// 5. Health & Readiness Probes (Zero-Auth, Uncached)
+app.get(["/healthz", "/api/healthz"], (_req, res) => {
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  return res.status(200).json({
+    ok: true,
+    service: "zephyr-backend",
+    status: "live",
+  });
+});
+
+app.get(["/readyz", "/api/readyz"], (_req, res) => {
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+
+  const isDbConnected = Boolean(
+    mongoose.connection && mongoose.connection.readyState === 1,
+  );
+
+  let isConfigValid = false;
+  try {
+    validateEnv({ isTest: process.env.NODE_ENV === "test", silent: true });
+    isConfigValid = true;
+  } catch (_err) {
+    isConfigValid = false;
+  }
+
+  const checks = {
+    database: isDbConnected ? "connected" : "disconnected",
+    configuration: isConfigValid ? "valid" : "invalid",
+  };
+
+  const isReady = isDbConnected && isConfigValid;
+
+  return res.status(isReady ? 200 : 503).json({
+    ok: isReady,
+    service: "zephyr-backend",
+    status: isReady ? "ready" : "not_ready",
+    checks,
+  });
+});
+
+// 6. Mount Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/clubs", clubRoutes);
 app.use("/api/events", eventRoutes);
