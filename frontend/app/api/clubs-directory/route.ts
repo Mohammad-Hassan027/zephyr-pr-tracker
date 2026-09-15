@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/lib/server-auth";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type ClubSummary = {
   name: string;
@@ -32,7 +32,9 @@ export type ClubDirectoryEntry = {
 
 export async function GET() {
   try {
-    const clubsRes = await fetch(backendUrl("/clubs"), { cache: "no-store" });
+    const clubsRes = await fetch(backendUrl("/clubs"), {
+      next: { revalidate: 60 },
+    });
     if (!clubsRes.ok) {
       return NextResponse.json(
         { error: "Failed to load clubs" },
@@ -52,7 +54,7 @@ export async function GET() {
       clubs.map(async (club) => {
         const eventsRes = await fetch(
           backendUrl(`/events?club=${encodeURIComponent(club.slug)}`),
-          { cache: "no-store" },
+          { next: { revalidate: 60 } },
         );
         const events = eventsRes.ok
           ? ((await eventsRes.json()) as BackendEvent[])

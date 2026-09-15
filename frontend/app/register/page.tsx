@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
+import RegisterLoading from "./loading";
 
 type ClubDirectoryItem = {
   id: string;
@@ -21,16 +22,7 @@ type ClubDirectoryItem = {
 
 export default function RegisterPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="mx-auto flex min-h-screen max-w-md items-center justify-center p-4 sm:p-6">
-          <div className="surface-card w-full p-8 text-center animate-pulse">
-            <div className="mx-auto mb-3 h-6 w-6 rounded-full border-2 border-brand-600 border-t-transparent animate-spin" />
-            <p className="text-xs font-medium text-zinc-500">Loading portal…</p>
-          </div>
-        </main>
-      }
-    >
+    <Suspense fallback={<RegisterLoading />}>
       <RegisterSelector />
     </Suspense>
   );
@@ -138,7 +130,14 @@ function RegisterSelector() {
               />
 
               {loading ? (
-                <div className="p-6 text-center text-xs text-zinc-400">Loading clubs directory…</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div key={n} className="h-20 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 animate-pulse space-y-2">
+                      <div className="h-4 bg-zinc-200 rounded w-2/3" />
+                      <div className="h-3 bg-zinc-100 rounded w-1/3" />
+                    </div>
+                  ))}
+                </div>
               ) : filteredClubs.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-zinc-200 p-4 text-center text-xs text-zinc-400">
                   No matching clubs found.
