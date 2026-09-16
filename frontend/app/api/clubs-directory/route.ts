@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendUrl } from "@/lib/server-auth";
+import { isEventPubliclyVisible } from "@/lib/event-lifecycle";
 
 export const revalidate = 60;
 
@@ -15,6 +16,7 @@ type BackendEvent = {
   venue?: string;
   fee?: number;
   description?: string;
+  status?: string;
 };
 
 export type ClubDirectoryEntry = {
@@ -27,6 +29,7 @@ export type ClubDirectoryEntry = {
     venue?: string;
     fee?: number;
     description?: string;
+    status?: string;
   }>;
 };
 
@@ -50,26 +53,34 @@ export async function GET() {
       );
     }
 
+    // Filter out known placeholder club slug 't' defensively
+    const validClubs = clubs.filter((c) => c && c.slug && c.slug.toLowerCase() !== "t");
+
     const directory: ClubDirectoryEntry[] = await Promise.all(
-      clubs.map(async (club) => {
+      validClubs.map(async (club) => {
         const eventsRes = await fetch(
           backendUrl(`/events?club=${encodeURIComponent(club.slug)}`),
           { next: { revalidate: 60 } },
         );
-        const events = eventsRes.ok
+        const rawEvents = eventsRes.ok
           ? ((await eventsRes.json()) as BackendEvent[])
           : [];
+
+        const openEvents = (Array.isArray(rawEvents) ? rawEvents : []).filter((event) =>
+          isEventPubliclyVisible(event),
+        );
 
         return {
           name: club.name,
           slug: club.slug,
-          events: (Array.isArray(events) ? events : []).map((event) => ({
+          events: openEvents.map((event) => ({
             title: event.name,
             slug: event.slug,
             date: event.date ?? null,
             venue: event.venue || "",
             fee: event.fee ?? 0,
             description: event.description || "",
+            status: event.status || "open",
           })),
         };
       }),

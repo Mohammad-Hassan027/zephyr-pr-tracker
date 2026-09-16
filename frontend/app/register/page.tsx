@@ -173,18 +173,24 @@ function RegisterSelector() {
                 <label className="block break-words text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
                   2. Select Event ({currentClub.name})
                 </label>
-                <select
-                  value={selectedEventSlug}
-                  onChange={(e) => setSelectedEventSlug(e.target.value)}
-                  className="field-input text-xs"
-                >
-                  <option value="">Choose an event (or decide on next screen)</option>
-                  {currentClub.events.map((ev) => (
-                    <option key={ev.slug} value={ev.slug}>
-                      {ev.name} {ev.fee !== undefined ? `(₹${ev.fee})` : ""}
-                    </option>
-                  ))}
-                </select>
+                {currentClub.events.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-zinc-200 p-3 text-center text-xs text-zinc-400">
+                    No open events available right now.
+                  </div>
+                ) : (
+                  <select
+                    value={selectedEventSlug}
+                    onChange={(e) => setSelectedEventSlug(e.target.value)}
+                    className="field-input text-xs"
+                  >
+                    <option value="">Choose an event (or decide on next screen)</option>
+                    {currentClub.events.map((ev) => (
+                      <option key={ev.slug} value={ev.slug}>
+                        {ev.name || (ev as any).title} {ev.fee !== undefined ? `(₹${ev.fee})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 
@@ -206,7 +212,7 @@ function RegisterSelector() {
 
             <button
               type="submit"
-              disabled={!selectedClubSlug || loading}
+              disabled={!selectedClubSlug || loading || (Boolean(currentClub) && currentClub?.events.length === 0)}
               className="btn-primary mt-2 w-full py-2.5 text-xs font-medium"
             >
               Continue to Registration Form →

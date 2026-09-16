@@ -144,7 +144,7 @@ export default function ClubsSearch({
                     </p>
                     {club.events.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-zinc-200 p-4 text-center text-xs text-zinc-400">
-                        No events listed yet. Check back soon.
+                        No open events available right now.
                       </div>
                     ) : (
                       <div className={`grid gap-2 ${isLargeBento ? "sm:grid-cols-2" : "grid-cols-1"}`}>
@@ -199,12 +199,18 @@ export default function ClubsSearch({
                   >
                     Quick selector →
                   </Link>
-                  <Link
-                    href={`/register/${encodeURIComponent(club.slug)}`}
-                    className="btn-primary px-4 py-2 text-xs font-medium"
-                  >
-                    Register Now →
-                  </Link>
+                  {club.events.length > 0 ? (
+                    <Link
+                      href={`/register/${encodeURIComponent(club.slug)}`}
+                      className="btn-primary px-4 py-2 text-xs font-medium"
+                    >
+                      Register Now →
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-zinc-400 font-medium py-2">
+                      No open registrations
+                    </span>
+                  )}
                 </div>
               </article>
             );

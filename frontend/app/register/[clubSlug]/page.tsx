@@ -3,6 +3,8 @@ import { backendUrl } from "@/lib/server-auth";
 import type { EventItem } from "@/lib/api";
 import RegisterForm from "./RegisterForm";
 
+import { isEventPubliclyVisible } from "@/lib/event-lifecycle";
+
 export const revalidate = 60;
 
 type ClubDetails = {
@@ -59,7 +61,8 @@ export default async function ClubRegisterPage({
 
     const club = (await clubRes.json()) as ClubDetails;
     const eventsData = eventsRes.ok ? await eventsRes.json() : [];
-    const events = (Array.isArray(eventsData) ? eventsData : []) as EventItem[];
+    const allEvents = (Array.isArray(eventsData) ? eventsData : []) as EventItem[];
+    const events = allEvents.filter((ev) => isEventPubliclyVisible(ev));
 
     return (
       <RegisterForm

@@ -10,6 +10,7 @@ import {
   uploadPaymentScreenshot,
 } from "@/lib/api/registrations";
 import { saveRegistrationToken } from "@/lib/registration-token";
+import { isEventRegistrationOpen } from "@/lib/event-lifecycle";
 import type { EventItem } from "@/lib/api/events";
 
 type ClubDetails = {
@@ -69,6 +70,9 @@ export default function RegisterForm({
   });
 
   const selectedEvent = events.find((ev) => ev.slug === form.eventSlug);
+  const requestedEventWasClosed = Boolean(
+    initialEventSlug && !events.some((ev) => ev.slug === initialEventSlug)
+  );
 
   // Auto-fill amount or update fee hint when event changes
   useEffect(() => {
@@ -179,6 +183,13 @@ export default function RegisterForm({
 
     if (duplicateCheck.exists) {
       router.push("/my-status");
+      return;
+    }
+
+    const isRegisterable = Boolean(selectedEvent && isEventRegistrationOpen(selectedEvent));
+    if (!isRegisterable) {
+      setErrorMsg("Registration for this event is closed.");
+      setStatus("error");
       return;
     }
 
@@ -293,13 +304,33 @@ export default function RegisterForm({
               </h2>
             </div>
 
-            {events.length === 0 ? (
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-center text-xs text-zinc-500 space-y-1">
-                <p className="font-semibold text-zinc-700">No events available</p>
-                <p>
-                  {club.name} has not published any open events yet. Please
-                  check back later or contact the club directly.
+            {requestedEventWasClosed && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50/90 p-4 text-xs text-amber-900 space-y-2">
+                <p className="font-semibold text-amber-950">
+                  Registration for this event is closed.
                 </p>
+                <p className="text-[11px] text-amber-800">
+                  The requested event is no longer accepting registrations or its date has passed. Please select an active open event below or browse other clubs.
+                </p>
+                <div className="pt-1">
+                  <Link href="/clubs" className="btn-secondary text-xs px-3 py-1.5 inline-block">
+                    ← Browse Clubs Directory
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {events.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-xs text-zinc-500 space-y-2">
+                <p className="font-semibold text-zinc-800">No open events available right now.</p>
+                <p>
+                  {club.name} has no open events accepting registrations at this moment.
+                </p>
+                <div className="pt-2">
+                  <Link href="/clubs" className="btn-secondary text-xs px-4 py-2 inline-block">
+                    ← Browse All Clubs
+                  </Link>
+                </div>
               </div>
             ) : (
               <div>
@@ -476,19 +507,32 @@ export default function RegisterForm({
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="btn-primary w-full py-2.5 text-xs font-semibold"
-          >
-            {status === "uploading"
-              ? "Uploading receipt..."
-              : status === "submitting"
-                ? "Recording registration..."
-                : duplicateCheck.exists
-                  ? "View Existing Status →"
-                  : "Submit Registration for Verification →"}
-          </button>
+          {events.length === 0 ? (
+            <Link
+              href="/clubs"
+              className="btn-secondary w-full py-2.5 text-xs font-semibold text-center block"
+            >
+              ← Return to Clubs Directory
+            </Link>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting || !selectedEvent || !isEventRegistrationOpen(selectedEvent)}
+              className="btn-primary w-full py-2.5 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {status === "uploading"
+                ? "Uploading receipt..."
+                : status === "submitting"
+                  ? "Recording registration..."
+                  : duplicateCheck.exists
+                    ? "View Existing Status →"
+                    : !selectedEvent
+                      ? "Select an Event to Continue"
+                      : !isEventRegistrationOpen(selectedEvent)
+                        ? "Registration Closed for this Event"
+                        : "Submit Registration for Verification →"}
+            </button>
+          )}
         </form>
       </div>
     </main>

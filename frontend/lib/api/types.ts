@@ -26,6 +26,7 @@ export type EventItem = {
   date?: string;
   capacity: number | null;
   approvedCount?: number;
+  status?: "draft" | "open" | "closed" | "completed";
 };
 
 export type EventCapacityInfo = {
