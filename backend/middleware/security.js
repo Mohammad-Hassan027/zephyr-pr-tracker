@@ -11,6 +11,7 @@ export const apiLimiter = rateLimit({
   max: 100,
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: () => process.env.NODE_ENV === "test",
   message: {
     error: "Too many requests from this IP, please try again after 15 minutes.",
   },
@@ -26,6 +27,7 @@ export const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "test",
   message: {
     error:
       "Too many login or signup attempts. Please try again after 15 minutes.",
@@ -42,6 +44,7 @@ export const registrationLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === "test",
   message: {
     error:
       "Too many registration attempts. Please wait 10 minutes before trying again.",

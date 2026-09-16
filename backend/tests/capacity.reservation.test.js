@@ -80,6 +80,8 @@ async function runCapacityReservationTests() {
       name: `Capped Event ${fx}`,
       slug: `capped-event-${fx}`,
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
       fee: 100,
       capacity: 3, // Small cap for easy boundary testing
     });
@@ -88,6 +90,8 @@ async function runCapacityReservationTests() {
       name: `Open Event ${fx}`,
       slug: `open-event-${fx}`,
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
       fee: 100,
       capacity: null, // Unlimited
     });
@@ -212,6 +216,8 @@ async function runCapacityReservationTests() {
         name: `Race Event ${fx}`,
         slug: `race-event-${fx}`,
         club: club._id,
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "open",
         fee: 50,
         capacity: 1,
       });
@@ -336,6 +342,8 @@ async function runCapacityReservationTests() {
         name: `Empty Event ${fx}`,
         slug: `empty-event-${fx}`,
         club: club._id,
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "open",
         capacity: 5,
         approvedCount: 0,
       });
@@ -415,6 +423,8 @@ async function runCapacityReservationTests() {
           name: `Rollback Event ${Math.random().toString(36).slice(2, 5)}`,
           slug: `rollback-event-${Math.random().toString(36).slice(2, 5)}`,
           club: club._id,
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          status: "open",
           capacity: 10,
           approvedCount: 0,
         });
@@ -463,6 +473,8 @@ async function runCapacityReservationTests() {
         name: `Bulk Event ${fx}`,
         slug: `bulk-event-${fx}`,
         club: club._id,
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "open",
         capacity: 2,
         approvedCount: 0,
       });
@@ -506,6 +518,8 @@ async function runCapacityReservationTests() {
         name: `Drift Event ${fx}`,
         slug: `drift-event-${fx}`,
         club: club._id,
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "open",
         capacity: 10,
         approvedCount: 5, // Manually set to wrong value to simulate drift
       });
@@ -557,6 +571,8 @@ async function runCapacityReservationTests() {
         name: `Auth Event ${fx}`,
         slug: `auth-event-${fx}`,
         club: club._id,
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "open",
         capacity: 10,
       });
 

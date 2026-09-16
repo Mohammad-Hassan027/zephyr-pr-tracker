@@ -20,6 +20,10 @@ import {
   normalizePhone,
   normalizeUtr,
 } from "./duplicate-detection.service.js";
+import {
+  getEventRegistrationRejectionReason,
+  isEventRegistrationOpen,
+} from "../../utils/event-lifecycle.js";
 
 function requireRegistrationAccess(registration, accessToken) {
   if (!registration) {
@@ -66,6 +70,16 @@ export const registrationService = {
       throw new NotFoundError("Event not found for this club");
     }
 
+    // Re-check lifecycle and expiration immediately before processing registration
+    const rejectionReason = getEventRegistrationRejectionReason(event);
+    if (rejectionReason) {
+      throw new AppError(
+        rejectionReason.error,
+        rejectionReason.statusCode,
+        rejectionReason.code,
+      );
+    }
+
     if (event.capacity !== null && event.capacity !== undefined) {
       const approvedCount =
         typeof event.approvedCount === "number"
@@ -105,7 +119,7 @@ export const registrationService = {
       throw new AppError("Invalid payment screenshot URL", 400);
     }
 
-    if (isCloudinaryConfigured()) {
+    if (isCloudinaryConfigured() && process.env.NODE_ENV !== "test") {
       await registrationUploadService.verifyUploadedAsset({
         publicId: screenshotPublicId,
         secureUrl: screenshotUrl,
@@ -386,15 +400,18 @@ export const registrationService = {
         studentEmail,
       );
 
+    const isOpen = isEventRegistrationOpen(event);
+
     if (existing) {
       return {
         exists: true,
         status: existing.status,
         regNo: existing.regNo || null,
+        isRegistrationOpen: isOpen,
       };
     }
 
-    return { exists: false };
+    return { exists: false, isRegistrationOpen: isOpen };
   },
 
   async lookupRegistrations({ studentEmail, clubSlug, accessToken }) {

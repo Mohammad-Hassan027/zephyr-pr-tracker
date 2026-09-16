@@ -70,6 +70,8 @@ describe("Presentation Seeder Suite", () => {
     // Verify events and capacity reconciliation
     const codingWar = await Event.findOne({ club: presClub._id, slug: "presentation-coding-war" });
     assert.ok(codingWar, "Coding War event must exist");
+    assert.equal(codingWar.status, "open", "Seeded event must have status 'open'");
+    assert.ok(codingWar.date > new Date(), "Seeded event date must be in the future");
     const codingWarApproved = await Registration.countDocuments({
       event: codingWar._id,
       status: "approved",

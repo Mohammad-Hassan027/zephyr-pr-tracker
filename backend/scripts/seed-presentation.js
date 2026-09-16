@@ -352,9 +352,16 @@ export async function seedPresentation({ disconnectOnComplete = true, silent = f
     stats.clubs.updated++;
   }
 
-  // 2. Seed or Update Presentation Events
+  // 2. Seed or Update Presentation Events (dynamically future-dated)
+  const now = Date.now();
+  const dynamicEvents = [
+    { ...PRESENTATION_EVENTS[0], date: new Date(now + 30 * 24 * 60 * 60 * 1000) },
+    { ...PRESENTATION_EVENTS[1], date: new Date(now + 45 * 24 * 60 * 60 * 1000) },
+    { ...PRESENTATION_EVENTS[2], date: new Date(now + 60 * 24 * 60 * 60 * 1000) },
+  ];
+
   const eventMap = new Map();
-  for (const eventSpec of PRESENTATION_EVENTS) {
+  for (const eventSpec of dynamicEvents) {
     let event = await Event.findOne({ club: club._id, slug: eventSpec.slug });
     if (!event) {
       event = await Event.create({
@@ -365,6 +372,7 @@ export async function seedPresentation({ disconnectOnComplete = true, silent = f
         fee: eventSpec.fee,
         capacity: eventSpec.capacity,
         date: eventSpec.date,
+        status: "open",
         approvedCount: 0,
         club: club._id,
       });
@@ -376,6 +384,7 @@ export async function seedPresentation({ disconnectOnComplete = true, silent = f
       event.fee = eventSpec.fee;
       event.capacity = eventSpec.capacity;
       event.date = eventSpec.date;
+      event.status = "open";
       await event.save();
       stats.events.updated++;
     }

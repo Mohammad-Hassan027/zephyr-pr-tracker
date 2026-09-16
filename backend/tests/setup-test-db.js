@@ -8,7 +8,7 @@ export async function setupTestDb() {
     return mongoose.connection;
   }
 
-  if (process.env.MONGO_URI) {
+  if (process.env.USE_EXTERNAL_TEST_DB === "true" && process.env.MONGO_URI) {
     try {
       await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 5000 });
       return mongoose.connection;
@@ -18,7 +18,9 @@ export async function setupTestDb() {
   }
 
   // Spin up disposable MongoMemoryServer
-  mongoServer = await MongoMemoryServer.create();
+  if (!mongoServer) {
+    mongoServer = await MongoMemoryServer.create();
+  }
   const uri = mongoServer.getUri();
   process.env.MONGO_URI = uri;
 

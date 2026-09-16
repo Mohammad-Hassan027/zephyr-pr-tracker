@@ -8,7 +8,7 @@ export async function createRegistration(req, res, next) {
     if (err.statusCode === 409 || err.code === 11000) {
       return res.status(409).json({
         error: err.message || "You already registered for this event",
-        code: "CONFLICT_ERROR",
+        code: err.code === 11000 ? "CONFLICT_ERROR" : (err.code || "CONFLICT_ERROR"),
         registrationId: err.details?.registrationId || null,
         status: err.details?.status || null,
       });

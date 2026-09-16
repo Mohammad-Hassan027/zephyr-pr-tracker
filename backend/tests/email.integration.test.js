@@ -70,6 +70,8 @@ test("Email Integration & Workflow Trigger Suite", async (t) => {
       name: "RoboWars 2026",
       slug: "robowars-2026",
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
       fee: 200,
       capacity: 50,
     });
@@ -108,6 +110,8 @@ test("Email Integration & Workflow Trigger Suite", async (t) => {
       name: "ML Summit",
       slug: "ml-summit",
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
       fee: 100,
       capacity: 5,
       approvedCount: 3, // 3/5 = 60%, approving next reaches 4/5 = 80% (triggers capacity alert)
@@ -159,6 +163,8 @@ test("Email Integration & Workflow Trigger Suite", async (t) => {
       name: "React Workshop",
       slug: "react-workshop",
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
     });
 
     const reg = await Registration.create({
@@ -201,6 +207,8 @@ test("Email Integration & Workflow Trigger Suite", async (t) => {
       name: "CTF 2026",
       slug: "ctf-2026",
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
     });
 
     const reg = await Registration.create({
@@ -245,6 +253,8 @@ test("Email Integration & Workflow Trigger Suite", async (t) => {
       name: "Quantum Day",
       slug: "quantum-day",
       club: club._id,
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "open",
     });
 
     const reg = await Registration.create({

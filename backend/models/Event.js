@@ -18,11 +18,17 @@ const eventSchema = new mongoose.Schema(
      */
     approvedCount: { type: Number, default: 0, min: 0 },
     club: { type: mongoose.Schema.Types.ObjectId, ref: "Club", required: true },
+    status: {
+      type: String,
+      enum: ["draft", "open", "closed", "completed"],
+      default: "open",
+    },
   },
   { timestamps: true }
 );
 
 eventSchema.index({ club: 1, slug: 1 }, { unique: true });
+eventSchema.index({ club: 1, status: 1, date: 1 });
 
 /**
  * Pre-save guard: enforce 0 <= approvedCount <= capacity invariant.
