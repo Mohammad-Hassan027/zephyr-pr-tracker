@@ -71,6 +71,21 @@ async function runTests() {
       !sources.some((s) => s.startsWith("/api/members")),
       "Does NOT expose internal /api/members as unauthenticated rewrite",
     );
+
+    const headers = await nextConfig.headers();
+    for (const source of ["/robots.txt", "/sitemap.xml"]) {
+      const routeHeaders =
+        headers.find((entry) => entry.source === source)?.headers || [];
+      const cacheControl =
+        routeHeaders.find((header) => header.key.toLowerCase() === "cache-control")
+          ?.value || "";
+
+      assertCondition(
+        cacheControl.includes("s-maxage=60") &&
+          cacheControl.includes("stale-while-revalidate=300"),
+        `${source} uses bounded shared-cache freshness headers`,
+      );
+    }
   } finally {
     process.env.BACKEND_API_URL = originalEnv;
   }

@@ -74,6 +74,8 @@ zephyr-pr-tracker/
     ├── proxy.ts                   # Next.js API BFF proxy helper
     ├── app/                       # App Router Pages & API Route Proxies
     │   ├── page.tsx               # Root redirect → /clubs (server component)
+    │   ├── robots.ts              # App Router metadata route for /robots.txt
+    │   ├── sitemap.ts             # App Router metadata route for /sitemap.xml
     │   ├── clubs/page.tsx         # Active clubs directory
     │   ├── register/              # Participant registration forms
     │   │   ├── page.tsx           # Default club selector / registration page
@@ -105,6 +107,8 @@ zephyr-pr-tracker/
 | **Public** | `/clubs` | None (Public) | Multi-tenant club and event directory with search |
 | **Public** | `/register` | None (Public) | Club selector for participant registration |
 | **Public** | `/register/[clubSlug]` | None (Public) | Dynamic event registration & proof upload form |
+| **Public** | `/robots.txt` | None (Public) | Search crawler policy generated from the canonical site origin |
+| **Public** | `/sitemap.xml` | None (Public) | Public canonical URL index generated from static public routes and approved clubs |
 | **Public** | `/my-status` | None (Public) | Email/tracking ID lookup form |
 | **Public** | `/status/[id]` | Public ID + Token | Real-time participant status tracking (SSE stream) |
 | **Public** | `/signup` | None (Public) | University club onboarding request form |
@@ -231,8 +235,7 @@ All standard commands required to build, run, test, and manage the project are r
 | Start dev server (Nodemon) | `npm run dev`     |
 | Start production server    | `npm start`       |
 | Run transaction unit tests | `npm test`        |
-| Seed database              | `npm run seed`              |
-| Seed presentation dataset  | `npm run seed:presentation` |
+| Seed presentation database | `npm run seed`    |
 
 ### 5.3 Standalone Frontend Commands (`cd frontend`)
 

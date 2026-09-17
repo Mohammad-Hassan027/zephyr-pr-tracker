@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const isDev = process.env.NODE_ENV === "development";
+const seoCacheControl =
+  "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
 
 const nextConfig = {
   images: {
@@ -87,6 +89,18 @@ const nextConfig = {
       .join(" ");
 
     return [
+      {
+        source: "/robots.txt",
+        headers: [
+          { key: "Cache-Control", value: seoCacheControl },
+        ],
+      },
+      {
+        source: "/sitemap.xml",
+        headers: [
+          { key: "Cache-Control", value: seoCacheControl },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [

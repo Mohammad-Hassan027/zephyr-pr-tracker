@@ -215,7 +215,21 @@ Tests use MongoDB Memory Server (no Atlas connection required), the `mock` email
 2. Add the following environment variables in the Vercel dashboard:
    - `BACKEND_API_URL` — your Render backend URL, e.g. `https://zephyr-backend.onrender.com/api`
    - `NEXT_PUBLIC_API_URL` — set to `/api` (proxied through Next.js rewrites to avoid CORS)
-   - `NEXT_PUBLIC_SITE_URL` — your Vercel deployment URL
+   - `NEXT_PUBLIC_SITE_URL` — your canonical Vercel deployment origin, e.g. `https://your-app.vercel.app`; this is used for public links, `robots.txt`, and `sitemap.xml`
+
+---
+
+## SEO & Cache Freshness
+
+The Next.js frontend serves crawler documents through App Router metadata routes: `frontend/app/robots.ts` renders `/robots.txt`, and `frontend/app/sitemap.ts` renders `/sitemap.xml`. Both use `NEXT_PUBLIC_SITE_URL` as the canonical origin, with Vercel host environment variables as deployment fallbacks and `http://localhost:3000` only for local development.
+
+`/sitemap.xml` includes only canonical, publicly discoverable URLs: `/clubs`, `/register`, `/my-status`, `/signup`, and `/register/[clubSlug]` for approved clubs returned by the backend. It intentionally excludes redirect-only `/`, API routes, authenticated admin/PR/platform pages, tokenized status URLs, and operational dashboards.
+
+Cache freshness behavior:
+
+- `/robots.txt` and `/sitemap.xml` send `Cache-Control: public, max-age=0, s-maxage=60, stale-while-revalidate=300` from `frontend/next.config.js` and are configured with `export const revalidate = 60`. Browsers revalidate on each request; shared caches may reuse a response for up to 60 seconds and may serve a stale copy for up to 300 seconds while revalidating in the background.
+- The public club catalog, club registration pages, and `/api/clubs-directory` use `next: { revalidate: 60 }`, so published club or event changes can take up to one minute to appear in the app and sitemap unless the deployment platform is redeployed or its cache is explicitly purged.
+- Health/readiness probes, CSV exports, authenticated proxy requests, and registration status polling use `Cache-Control: no-store` or `cache: "no-store"`. The registration SSE stream uses `Cache-Control: no-cache, no-transform`, so live status updates are not treated like cached catalog documents.
 
 ---
 
@@ -290,7 +304,7 @@ The repository includes a clean, idempotent seed script designed for product dem
 ```bash
 cd backend
 npm install
-npm run seed:presentation
+npm run seed
 ```
 
 ### Presentation Credentials & Configuration
