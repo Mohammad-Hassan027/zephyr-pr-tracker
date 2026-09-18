@@ -29,8 +29,10 @@ flowchart TD
 ```
 zephyr-pr-tracker/
 ├── package.json                   # Root Developer Scripts & Workspace Management
-├── Procfile                       # Production deployment process spec (backend)
-├── render.yaml                    # Infrastructure-as-code specification for Render
+├── render.yaml                    # Canonical Infrastructure-as-code specification for Render
+├── Procfile                       # Compatibility/development-only process spec (Heroku/Foreman fallback)
+├── scripts/
+│   └── validate-deployment-config.js # CI deployment configuration & blueprint audit
 ├── README.md                      # General user setup documentation
 ├── ARCHITECTURE.md                # Technical system design & refactoring baseline (This File)
 ├── backend/                       # Express Node.js REST API

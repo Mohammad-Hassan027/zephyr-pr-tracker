@@ -198,24 +198,39 @@ Tests use MongoDB Memory Server (no Atlas connection required), the `mock` email
 
 ## Production Deployment
 
-### Backend (Render)
+### Canonical Backend Specification (`render.yaml`)
 
-1. Connect the repository to Render and use the provided `render.yaml` blueprint. The service automatically uses `/healthz` as its zero-auth health check path.
-2. In the Render dashboard, set the following secrets under **Environment**:
+The repository uses **`render.yaml`** as the single canonical Infrastructure-as-Code (IaC) deployment definition for the backend service (`zephyr-backend`). All startup commands (`cd backend && npm start`), build commands (`cd backend && npm install`), health check paths (`/healthz`), and environment variable declarations are defined here.
+
+> **Compatibility Note on `Procfile`**: The root `Procfile` is maintained strictly for backward compatibility with legacy PaaS platforms (e.g. Heroku, Dokku) and local multi-process runners (e.g. Honcho, Foreman). It mirrors the canonical `render.yaml` start command and is validated in CI.
+
+1. Connect the repository to Render as a Blueprint or Web Service using `render.yaml`. The service automatically uses `/healthz` as its zero-auth liveness health check path.
+2. In the Render dashboard, configure the required sync variables under **Environment**:
    - `MONGO_URI` — MongoDB Atlas connection string
    - `AUTH_SECRET` — random string of at least 32 characters
    - `PLATFORM_ADMIN_PASSWORD` — strong password for the platform console
    - `CLIENT_ORIGIN` — your Vercel frontend URL (e.g. `https://your-app.vercel.app`)
    - `CLIENT_URL` — same as `CLIENT_ORIGIN`
-   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (if using uploads)
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_UPLOAD_PRESET` (optional; for payment screenshot uploads)
+   - `EMAIL_PROVIDER` — defaults to `nodemailer` (set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` if using SMTP)
 
 ### Frontend (Vercel)
 
 1. Connect the repository to Vercel, set the root directory to `frontend`.
-2. Add the following environment variables in the Vercel dashboard:
+2. Add the environment variables documented in `frontend/.env.production.example` in the Vercel dashboard:
    - `BACKEND_API_URL` — your Render backend URL, e.g. `https://zephyr-backend.onrender.com/api`
    - `NEXT_PUBLIC_API_URL` — set to `/api` (proxied through Next.js rewrites to avoid CORS)
    - `NEXT_PUBLIC_SITE_URL` — your canonical Vercel deployment origin, e.g. `https://your-app.vercel.app`; this is used for public links, `robots.txt`, and `sitemap.xml`
+
+### Automated Deployment Configuration Audit
+
+Continuous integration validates deployment parity and prevents configuration drift:
+
+```bash
+npm run check:deployment
+```
+
+This verifies that `render.yaml` specifies all runtime variables expected by the backend, ensures `Procfile` remains aligned with canonical startup commands, and enforces template consistency across environments.
 
 ---
 

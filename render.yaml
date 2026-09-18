@@ -1,3 +1,15 @@
+# ==============================================================================
+# CANONICAL DEPLOYMENT BLUEPRINT: Zephyr Backend (Render)
+# ==============================================================================
+# This file is the CANONICAL infrastructure-as-code deployment definition for the
+# Zephyr backend service. All production deployment behavior, build commands,
+# startup commands, health check probes, and environment variable requirements
+# are authoritatively defined in this blueprint.
+#
+# Frontend deployment is hosted separately on Vercel (see frontend/.env.production.example).
+# For compatibility/legacy PaaS process definitions, see `Procfile` (compatibility-only).
+# ==============================================================================
+
 services:
   - type: web
     name: zephyr-backend
