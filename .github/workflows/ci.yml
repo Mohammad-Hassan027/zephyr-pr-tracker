@@ -7,6 +7,22 @@ on:
     branches: [ main ]
 
 jobs:
+  deployment-audit:
+    name: Deployment Configuration & Blueprint Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate Deployment Configuration & Blueprint Parity
+        run: node scripts/validate-deployment-config.js
+
   backend-test:
     name: Backend Installation & Hermetic Test Suite
     runs-on: ubuntu-latest
